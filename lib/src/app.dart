@@ -13,6 +13,7 @@ import 'data/puzzle_repo.dart';
 import 'data/saved_game.dart';
 import 'data/saved_game_repo.dart';
 import 'data/settings_store.dart';
+import 'online/api_client.dart';
 import 'domain/models.dart';
 import 'ui/screens/course_screen.dart';
 import 'ui/screens/courses_screen.dart';
@@ -23,6 +24,8 @@ import 'ui/screens/game_view_model.dart';
 import 'ui/screens/home_screen.dart';
 import 'ui/screens/lesson_player_screen.dart';
 import 'ui/screens/onboarding_screen.dart';
+import 'ui/screens/online_game_controller.dart';
+import 'ui/screens/online_lobby_screen.dart';
 import 'ui/screens/profile_screen.dart';
 import 'ui/screens/puzzle_screen.dart';
 import 'ui/screens/puzzles_screen.dart';
@@ -41,6 +44,7 @@ class GoApp extends StatefulWidget {
   final DrillRepo drills;
   final LessonRepo lessons;
   final ProfileStore profile;
+  final OnlineApiClient online;
   const GoApp({
     super.key,
     required this.repo,
@@ -49,6 +53,7 @@ class GoApp extends StatefulWidget {
     required this.drills,
     required this.lessons,
     required this.profile,
+    required this.online,
   });
 
   @override
@@ -78,8 +83,12 @@ class _GoAppState extends State<GoApp> {
           routes: [
             GoRoute(
               path: '/play',
-              builder: (context, state) =>
-                  _PlayTab(repo: widget.repo, vm: _gameVm),
+              builder: (context, state) => _PlayTab(
+                repo: widget.repo,
+                vm: _gameVm,
+                online: widget.online,
+                profile: widget.profile,
+              ),
             ),
             GoRoute(
               path: '/puzzles',
@@ -202,6 +211,39 @@ class _GoAppState extends State<GoApp> {
           ),
         ),
         GoRoute(
+          path: '/online',
+          builder: (context, state) => _StandalonePage(
+            child: OnlineLobbyScreen(
+              api: widget.online,
+              profile: widget.profile,
+              onBack: () => context.go('/play'),
+              onGameReady: (controller) => context.pushReplacement(
+                '/online-game',
+                extra: controller,
+              ),
+            ),
+          ),
+        ),
+        GoRoute(
+          path: '/online-game',
+          builder: (context, state) {
+            final controller = state.extra;
+            if (controller is! OnlineGameController) {
+              return _StandalonePage(
+                child: Center(
+                  child: TextButton(
+                    onPressed: () => context.go('/online'),
+                    child: const Text('Return to online play'),
+                  ),
+                ),
+              );
+            }
+            return _StandalonePage(
+              child: _OnlineGameHost(controller: controller),
+            );
+          },
+        ),
+        GoRoute(
           path: '/drills',
           builder: (context, state) => DrillsScreen(
             repo: widget.drills,
@@ -306,6 +348,7 @@ class _GoAppState extends State<GoApp> {
   @override
   void dispose() {
     _gameVm.dispose();
+    widget.online.close();
     super.dispose();
   }
 
@@ -331,6 +374,30 @@ class _StandalonePage extends StatelessWidget {
       body: SafeArea(child: child),
     );
   }
+}
+
+class _OnlineGameHost extends StatefulWidget {
+  final OnlineGameController controller;
+
+  const _OnlineGameHost({required this.controller});
+
+  @override
+  State<_OnlineGameHost> createState() => _OnlineGameHostState();
+}
+
+class _OnlineGameHostState extends State<_OnlineGameHost> {
+  @override
+  void dispose() {
+    widget.controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => GameScreen(
+        vm: widget.controller,
+        settings: context.findAncestorWidgetOfExactType<GoApp>()!.settings,
+        onExit: () => context.go('/play'),
+      );
 }
 
 class _Chrome extends StatefulWidget {
@@ -643,7 +710,14 @@ class _ChromeState extends State<_Chrome> {
 class _PlayTab extends StatefulWidget {
   final SavedGameRepo repo;
   final GameViewModel vm;
-  const _PlayTab({required this.repo, required this.vm});
+  final OnlineApiClient online;
+  final ProfileStore profile;
+  const _PlayTab({
+    required this.repo,
+    required this.vm,
+    required this.online,
+    required this.profile,
+  });
 
   @override
   State<_PlayTab> createState() => _PlayTabState();
@@ -722,6 +796,7 @@ class _PlayTabState extends State<_PlayTab> {
     return HomeScreen(
       onPlayLocal: () => context.push('/setup-local'),
       onPlayAi: () => context.push('/setup-ai'),
+      onPlayOnline: () => context.push('/online'),
       onRules: () => context.push('/rules'),
       onResume: _hasSaved
           ? () async {

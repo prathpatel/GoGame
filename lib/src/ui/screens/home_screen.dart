@@ -27,6 +27,7 @@ class RecentGame {
 class HomeScreen extends StatelessWidget {
   final VoidCallback onPlayLocal;
   final VoidCallback onPlayAi;
+  final VoidCallback onPlayOnline;
   final VoidCallback onRules;
   final VoidCallback? onResume;
   final List<RecentGame> recents;
@@ -38,6 +39,7 @@ class HomeScreen extends StatelessWidget {
     super.key,
     required this.onPlayLocal,
     required this.onPlayAi,
+    required this.onPlayOnline,
     required this.onRules,
     this.onResume,
     this.recents = const [],
@@ -70,8 +72,8 @@ class HomeScreen extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   'Step into the quiet space.',
-                  style: text.bodyMedium
-                      ?.copyWith(color: scheme.onSurfaceVariant),
+                  style:
+                      text.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
@@ -82,10 +84,34 @@ class HomeScreen extends StatelessWidget {
                     onPressed: onPlayLocal,
                     icon: const Icon(Icons.play_arrow),
                     label: Text('Play Now',
-                        style: text.labelLarge
-                            ?.copyWith(color: scheme.onPrimary)),
+                        style:
+                            text.labelLarge?.copyWith(color: scheme.onPrimary)),
                   ),
                 ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          ZenCard(
+            container: scheme.primaryContainer,
+            onTap: onPlayOnline,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Play Online',
+                          style: text.headlineSmall
+                              ?.copyWith(color: scheme.onPrimaryContainer)),
+                      Text('Matchmaking and a one-device network test.',
+                          style: text.bodyMedium?.copyWith(
+                              color: scheme.onPrimaryContainer
+                                  .withValues(alpha: 0.85))),
+                    ],
+                  ),
+                ),
+                Icon(Icons.public, color: scheme.onPrimaryContainer),
               ],
             ),
           ),

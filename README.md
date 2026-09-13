@@ -5,12 +5,14 @@ hand-painted board, beginner AI, SGF round-trip, and a built-in tutorial and
 rules reference. Built with Flutter for Android and iOS, with desktop targets
 planned.
 
-> **Status:** v0.2.0 — local MVP. No online play; everything runs offline on the
-> device.
+> **Status:** v0.2.0 — local and AI play plus a connected online-play path for
+> guest authentication, casual matchmaking, live WebSocket games, scoring,
+> reconnects, and secure token refresh.
 
-The Go backend under `backend/` contains online platform services, but the
-Flutter app does not yet connect to them. See [PRODUCTION_READINESS.md](PRODUCTION_READINESS.md)
-for the audit, verified fixes, and remaining release work.
+The Go backend under `backend/` can be run locally with PostgreSQL and Redis.
+The mobile app connects to it from the **Play Online** card. See
+[PRODUCTION_READINESS.md](PRODUCTION_READINESS.md) for the verified scope and
+the features that still need production work.
 
 > **History:** This repository started as a native Kotlin / Jetpack Compose
 > Android app. It was migrated to Flutter on 2026-05-07 to enable iOS and
@@ -26,6 +28,7 @@ for the audit, verified fixes, and remaining release work.
 
 - 9×9, 13×13, and 19×19 boards
 - Local two-player (pass-and-play) and human-vs-AI
+- Online guest play through server-authoritative casual matchmaking
 - Main-time clock with configurable time control
 - Undo / pass / resign
 - Optional move numbers and last-move highlight
@@ -53,6 +56,15 @@ for the audit, verified fixes, and remaining release work.
 
 - Saved games via `sqflite` with auto-resume on launch
 - Settings via `shared_preferences` (theme, coordinates, hints, move numbers)
+- Online access and refresh tokens in platform secure storage
+
+**Online play**
+
+- Configurable backend URL and readiness check
+- Guest session creation with automatic access-token refresh
+- 9×9, 13×13, and 19×19 casual matchmaking
+- Server-authoritative WebSocket moves, clocks, scoring, and reconnect snapshots
+- A one-device **Quick Network Test** opponent that uses the real backend path
 
 **Learning**
 
@@ -83,6 +95,8 @@ lib/
       saved_game.dart             # row model
       saved_game_repo.dart        # sqflite-backed repo
       settings_store.dart         # SharedPreferences wrapper
+    online/
+      api_client.dart             # auth, refresh, matchmaking + game REST client
     ui/
       theme.dart                  # zen-leaning Material 3 theme
       board/
@@ -95,6 +109,8 @@ lib/
         setup_screen.dart         # board size, players, time control
         game_screen.dart          # the play screen
         game_view_model.dart      # ChangeNotifier wrapping GameState
+        online_lobby_screen.dart  # backend URL + matchmaking controls
+        online_game_controller.dart # server-authoritative WebSocket game state
         review_screen.dart        # post-game / saved-game playback
         tutorial_screen.dart      # lessons list + detail
         rules_screen.dart         # rules reference
@@ -121,6 +137,10 @@ needs platform integration checks in addition to serializer tests.
   user settings
 - [`share_plus`](https://pub.dev/packages/share_plus) — share SGF
 - [`file_picker`](https://pub.dev/packages/file_picker) — import SGF
+- [`http`](https://pub.dev/packages/http) — backend REST API
+- [`web_socket_channel`](https://pub.dev/packages/web_socket_channel) — live games
+- [`flutter_secure_storage`](https://pub.dev/packages/flutter_secure_storage) —
+  online session tokens
 - [`flutter_launcher_icons`](https://pub.dev/packages/flutter_launcher_icons) —
   generates adaptive Android + iOS icons from `assets/icon/`
 
@@ -134,16 +154,52 @@ Install Flutter (≥ 3.27) and fetch packages:
 flutter pub get
 ```
 
-Run on a connected device or emulator:
+For local/AI-only play, run on a connected device or emulator:
 
 ```sh
 flutter run
 ```
 
+### Run the full local stack
+
+Start PostgreSQL and Redis, then start the API in one terminal:
+
+```sh
+cd backend
+make dev-up
+make run-api
+```
+
+`make run-api` defaults to the credentials in
+`backend/deploy/docker-compose.yml` and applies migrations automatically.
+
+In a second terminal, run Android:
+
+```sh
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080
+```
+
+Then open **Play Online** and choose **Quick Network Test**. It creates two
+guest users, puts both through matchmaking, and plays the second seat through
+the same REST, PostgreSQL, Redis, and WebSocket path. To test two physical
+devices, use the development machine's LAN address instead of `10.0.2.2` and
+tap **Find Another Player** on both.
+
+Plain HTTP is enabled only in the Android debug manifest; other targets should
+use a reachable HTTPS/WSS backend unless their local network policy is
+configured separately.
+
 Run the test suite (rules engine, scoring, SGF round-trip):
 
 ```sh
 flutter test
+```
+
+With the local API running, the opt-in full-stack integration test is:
+
+```sh
+flutter test test/online/live_backend_test.dart \
+  --dart-define=LIVE_BACKEND_TESTS=true
 ```
 
 ---

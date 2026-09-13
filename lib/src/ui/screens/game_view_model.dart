@@ -23,7 +23,7 @@ import '../../domain/rules.dart';
 import '../../domain/scoring.dart';
 import '../../sgf/sgf.dart';
 
-enum Opponent { human, ai }
+enum Opponent { human, ai, online }
 
 const _defaultTimeControl = TimeControl.absolute(mainSeconds: 10 * 60);
 
@@ -45,6 +45,10 @@ class GameUi {
   final StoneColor? timeoutLoser;
   final Point? pendingPoint;
   final bool showHints;
+  final StoneColor youColor;
+  final String opponentName;
+  final String? connectionStatus;
+  final bool canUndo;
 
   const GameUi({
     required this.state,
@@ -64,6 +68,10 @@ class GameUi {
     this.timeoutLoser,
     this.pendingPoint,
     this.showHints = false,
+    this.youColor = StoneColor.black,
+    this.opponentName = 'Opponent',
+    this.connectionStatus,
+    this.canUndo = true,
   });
 
   GameUi copyWith({
@@ -84,6 +92,10 @@ class GameUi {
     Object? timeoutLoser = _sentinel,
     Object? pendingPoint = _sentinel,
     bool? showHints,
+    StoneColor? youColor,
+    String? opponentName,
+    Object? connectionStatus = _sentinel,
+    bool? canUndo,
   }) =>
       GameUi(
         state: state ?? this.state,
@@ -112,13 +124,33 @@ class GameUi {
             ? this.pendingPoint
             : pendingPoint as Point?,
         showHints: showHints ?? this.showHints,
+        youColor: youColor ?? this.youColor,
+        opponentName: opponentName ?? this.opponentName,
+        connectionStatus: identical(connectionStatus, _sentinel)
+            ? this.connectionStatus
+            : connectionStatus as String?,
+        canUndo: canUndo ?? this.canUndo,
       );
 
   static const _sentinel = Object();
 }
 
+abstract class GameController extends ChangeNotifier {
+  GameUi get ui;
+  void setVisible(bool visible);
+  void tap(Point point);
+  void cancelPending();
+  void pass();
+  void resign();
+  void undo();
+  void toggleDead(Point point);
+  void confirmScore();
+  void resumePlay();
+  String exportSgf();
+}
+
 /// Lightweight ChangeNotifier-based viewmodel; mirrors the original Kotlin GameViewModel.
-class GameViewModel extends ChangeNotifier with WidgetsBindingObserver {
+class GameViewModel extends GameController with WidgetsBindingObserver {
   final SavedGameRepo? repo;
   GoAi _ai = BeginnerAi();
   ClockController _clock = ClockController(_defaultTimeControl);
@@ -165,6 +197,7 @@ class GameViewModel extends ChangeNotifier with WidgetsBindingObserver {
     });
   }
 
+  @override
   GameUi get ui => _ui;
 
   void _set(GameUi next) {
@@ -173,15 +206,19 @@ class GameViewModel extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
   }
 
-  String _opponentLabel(GameUi ui) {
-    if (ui.opponent != Opponent.ai) return 'Local';
-    final name = ui.botName;
-    if (name != null && name.isNotEmpty) return 'Practice · $name';
-    return 'Practice · ${ui.aiDifficulty.label}';
-  }
+  String _opponentLabel(GameUi ui) => switch (ui.opponent) {
+        Opponent.human => 'Local',
+        Opponent.online => ui.opponentName,
+        Opponent.ai => ui.botName != null && ui.botName!.isNotEmpty
+            ? 'Practice · ${ui.botName}'
+            : 'Practice · ${ui.aiDifficulty.label}',
+      };
 
-  StoneColor _youColor(GameUi ui) =>
-      ui.opponent == Opponent.ai ? ui.aiPlays.other : StoneColor.black;
+  StoneColor _youColor(GameUi ui) => switch (ui.opponent) {
+        Opponent.ai => ui.aiPlays.other,
+        Opponent.online => ui.youColor,
+        Opponent.human => StoneColor.black,
+      };
 
   void _autosave() {
     final cur = _ui;
@@ -355,6 +392,7 @@ class GameViewModel extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  @override
   void tap(Point point) {
     final cur = _ui;
     if (cur.state.status == GameStatus.scoring) {
@@ -384,10 +422,12 @@ class GameViewModel extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  @override
   void cancelPending() {
     _set(_ui.copyWith(pendingPoint: null));
   }
 
+  @override
   void pass() {
     if (_paused ||
         (_ui.opponent == Opponent.ai &&
@@ -397,6 +437,7 @@ class GameViewModel extends ChangeNotifier with WidgetsBindingObserver {
     _play(const MoveIntent.pass());
   }
 
+  @override
   void resign() {
     if (_ui.state.status != GameStatus.active &&
         _ui.state.status != GameStatus.scoring) {
@@ -415,6 +456,7 @@ class GameViewModel extends ChangeNotifier with WidgetsBindingObserver {
     _play(const MoveIntent.resign());
   }
 
+  @override
   void undo() {
     final cur = _ui.state;
     if (cur.history.isEmpty ||
@@ -563,6 +605,7 @@ class GameViewModel extends ChangeNotifier with WidgetsBindingObserver {
     return marker?.group(1);
   }
 
+  @override
   void toggleDead(Point p) {
     final cur = _ui;
     if (cur.state.status != GameStatus.scoring) return;
@@ -582,6 +625,7 @@ class GameViewModel extends ChangeNotifier with WidgetsBindingObserver {
     _autosave();
   }
 
+  @override
   void confirmScore() {
     final cur = _ui;
     if (cur.state.status != GameStatus.scoring) return;
@@ -592,6 +636,7 @@ class GameViewModel extends ChangeNotifier with WidgetsBindingObserver {
     _archiveAndClear();
   }
 
+  @override
   void resumePlay() {
     final cur = _ui;
     if (cur.state.status != GameStatus.scoring) return;
@@ -607,6 +652,7 @@ class GameViewModel extends ChangeNotifier with WidgetsBindingObserver {
     _maybeTriggerAi();
   }
 
+  @override
   String exportSgf() {
     final cur = _ui;
     final sgf = Sgf.export(cur.state,
@@ -690,6 +736,7 @@ class GameViewModel extends ChangeNotifier with WidgetsBindingObserver {
     _maybeTriggerAi();
   }
 
+  @override
   void setVisible(bool visible) {
     _visible = visible;
     if (visible) {

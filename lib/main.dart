@@ -7,6 +7,7 @@ import 'src/data/profile_store.dart';
 import 'src/data/puzzle_repo.dart';
 import 'src/data/saved_game_repo.dart';
 import 'src/data/settings_store.dart';
+import 'src/online/api_client.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,6 +17,7 @@ Future<void> main() async {
   final drills = await DrillRepo.load();
   final lessons = await LessonRepo.load();
   final profile = await ProfileStore.load();
+  final online = await OnlineApiClient.open();
   runApp(GoApp(
     repo: repo,
     settings: settings,
@@ -23,5 +25,6 @@ Future<void> main() async {
     drills: drills,
     lessons: lessons,
     profile: profile,
+    online: online,
   ));
 }

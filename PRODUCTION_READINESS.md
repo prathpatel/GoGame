@@ -1,14 +1,16 @@
-# Production readiness audit — 2026-09-10
+# Production readiness audit — updated 2026-09-13
 
-The offline Flutter app and Go backend have received a bug-fix and regression-test
-pass against the roadmap, continuation, and backend scope documents. This is not
-a certification that the complete online platform is ready for production.
+The Flutter app and Go backend have received a bug-fix and regression-test pass
+against the roadmap, continuation, and backend scope documents. This is not a
+certification that the complete online platform is ready for production.
 
 The source documents describe the intended product. Some architectural details
 are historical: the application has migrated from Kotlin to Flutter, and backend
-services now live in this repository. The mobile app still runs offline and does
-not authenticate with, sync to, or play games through the Go backend. These facts
-are reflected in both READMEs; the original requirements documents are preserved.
+services now live in this repository. The mobile app now has a core online path:
+guest authentication, secure token refresh, matchmaking, game lookup, WebSocket
+play, authoritative snapshots, scoring, and reconnects. Profile/content sync and
+the broader social, competition, and business surfaces are not wired into the
+mobile UI. The original requirements documents are preserved.
 
 ## Fixed and verified
 
@@ -33,6 +35,7 @@ are reflected in both READMEs; the original requirements documents are preserved
 | C5 notifications | Missing FCM configuration discarded queued work; a cached OAuth source retained the first batch's cancelled context | No delivery without a sender; token refresh uses a lasting context with bounded HTTP requests |
 | G1/F5 payments | Unauthenticated store webhook IDs could be recorded; fake coach processing reported successful bookings | Unconfigured store webhooks/redemption and coach booking fail with 503; no false charge/receipt success |
 | Build/deployment | Go toolchain disagreed with `go.mod`; worker process overrides conflicted with Docker entrypoint; release signing silently used the debug key | Go version aligned in Docker/CI, overridable runtime command, live API autostop disabled, explicit release signing requirement and Flutter CI added |
+| Core online client | The Flutter app had no backend runtime path | Guest sessions persist in secure storage, expired access tokens refresh automatically, matchmaking creates server games, and live play consumes authoritative WebSocket snapshots/moves with state-hash checks and reconnects |
 
 The seven shared rules fixtures are now real: both engines read
 `backend/internal/goban/testdata/rules.json`. They verify captures, rejected moves,
@@ -46,16 +49,21 @@ of all Go rules.
   isolated PostgreSQL 16 and Redis. No failed tests. The subsequently added FCM
   token-context regression also passes with `-race` against a local mock endpoint.
 - `go vet ./...` and `go build ./...`: passed, including after the FCM change.
-- Flutter suite: **79 tests passed**. Shared fixture tests were rerun after strict
-  type annotations; `flutter analyze` then reported **no issues**.
+- Flutter suite: **82 tests passed** (with the live backend suite skipped by
+  default). Shared fixture tests were rerun after strict type annotations;
+  `flutter analyze` then reported **no issues**.
+- Opt-in full-stack test: **2 tests passed** against the running local API,
+  PostgreSQL, and Redis. The tests create two guests, match them, join both
+  WebSockets, exchange an authoritative move, reconcile both Flutter online
+  controllers, and exercise the one-device automated opponent.
 - PostgreSQL migrations 0013–0015: applied by the integration suite; down/up SQL
   also executed successfully inside a rolled-back transaction on the isolated DB.
 - SQLite SQL smoke check: fresh creation and v6-to-v7 upgrade preserve existing
   moves and populate the runtime defaults. This does not replace device testing
   of the sqflite plugin.
 - `git diff --check`: passed.
-- Android debug APK: attempted, **blocked by missing Android SDK**. Release AAB,
-  signing guard, iOS build, physical-device lifecycle/storage tests, store flows,
+- Android debug APK: **built successfully** with the current local Android SDK.
+  Release AAB, iOS build, physical-device lifecycle/storage tests, store flows,
   provider-backed integration tests and load/soak tests remain unverified.
 
 Reproduce the backend checks with disposable services and both test variables:
@@ -76,11 +84,11 @@ when `TEST_DATABASE_URL` is unset; bare test success is insufficient evidence.
 
 ## Remaining release blockers and scope gaps
 
-1. **Online client integration (C–G).** Implement secure token storage/rotation,
-   account upgrade UI, API repositories, conflict-aware sync, WebSocket reconnect
-   and authoritative snapshot reconciliation. The app currently has no such
-   runtime path. Remote puzzles/analysis and online social/business screens are
-   also not complete.
+1. **Online feature breadth (C–G).** Core guest matchmaking and live games are
+   connected, including secure token storage/rotation, WebSocket reconnects, and
+   authoritative snapshot reconciliation. Account upgrade UI, profile/content
+   sync, conflict-aware offline queues, remote puzzles/analysis, archives in the
+   client, and online social/business screens are not complete.
 2. **Multiple API instances (D1/D2).** Exclusive leases prevent concurrent owners,
    but WebSocket requests reaching another instance receive
    `game_on_another_instance`; there is no proxy/redirect routing implementation.
@@ -131,7 +139,8 @@ implemented API contract. Examples in the original roadmap are not all compatibl
   value. Duplicate/old commands are rejected, not replayed as a cached success.
 - Wire ruleset/clock names use the backend's lowercase spellings. State hashes
   are SHA-256 over board size, side to move and row-major cell bytes; the mobile
-  client does not yet implement server hash verification.
+  client verifies snapshot and move hashes, and a move mismatch triggers a fresh
+  authoritative snapshot connection.
 
 New database migrations add session runtime/version fields (0013), the durable
 completion outbox (0014), and retry scheduling (0015). SQLite advances to schema

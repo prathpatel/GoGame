@@ -2,7 +2,8 @@
 
 Contains services for Phases **C through G** of `BACKEND_SCOPE.md`, with
 unfinished integrations and workflows. This is not a feature-complete online
-release. The Flutter app remains offline; see
+release. The Flutter app now connects to the core guest-authentication,
+matchmaking, game, and WebSocket paths; see
 [PRODUCTION_READINESS.md](../PRODUCTION_READINESS.md) for the audited status.
 
 Stack is as C1 recommends: Go, Postgres 16, Redis 7, containerized deploys on
@@ -70,12 +71,23 @@ Migrations apply automatically at startup. `APP_ENV` defaults to `dev`, which
 supplies an insecure fixed `JWT_SECRET`; staging and production require a real
 one of at least 32 bytes.
 
+`make run-api`, `make run-worker`, and `make test-integration` default to the
+same `gogame:gogame` local credentials as Docker Compose. Override
+`DEV_DATABASE_URL` or `DEV_REDIS_URL` when using different local services.
+
+From the repository root, point the Android emulator at the host API with:
+
+```sh
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8080
+```
+
+The in-app **Quick Network Test** drives two guest accounts through real
+matchmaking and WebSocket play, so it does not require a second device.
+
 ## Tests
 
 ```sh
-export TEST_DATABASE_URL="postgres://gogame:gogame@localhost:5432/gogame?sslmode=disable"
-export TEST_REDIS_URL="redis://localhost:6379/0"
-make test
+make test-integration
 ```
 
 Auth, profile, API and session integration tests use real PostgreSQL; API,
@@ -180,8 +192,8 @@ therefore checked with **each engine's own internal hash**, which is only ever
 compared against itself. Server values crossing the wire — `GAME_SNAPSHOT`,
 `MOVE_PLAYED`, `game_moves.state_hash`, the opening index key — uses
 `StateHash`, a SHA-256 over one byte of board size, one byte of side to move,
-then row-major cell bytes (`0` empty, `1` black, `2` white). Flutter does not
-yet verify server hashes. Both engines now execute the same seven rule
+then row-major cell bytes (`0` empty, `1` black, `2` white). Flutter verifies
+these hashes when applying snapshots and moves. Both engines execute the seven rule
 fixtures from `internal/goban/testdata/rules.json`.
 
 If you ever port the engine again, reproduce `StateHash`, not the Zobrist

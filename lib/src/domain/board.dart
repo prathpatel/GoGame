@@ -11,6 +11,27 @@ class Board {
 
   factory Board.empty(int size) => Board._(size, Uint8List(size * size));
 
+  /// Builds a board from the backend's compact row representation.
+  /// `.` is empty, `b` is black and `w` is white.
+  factory Board.fromRows(List<String> rows) {
+    final size = rows.length;
+    if (size == 0 || rows.any((row) => row.length != size)) {
+      throw const FormatException('Board rows must form a non-empty square');
+    }
+    final cells = Uint8List(size * size);
+    for (var row = 0; row < size; row++) {
+      for (var col = 0; col < size; col++) {
+        cells[row * size + col] = switch (rows[row][col]) {
+          '.' => CellState.empty.index,
+          'b' => CellState.black.index,
+          'w' => CellState.white.index,
+          _ => throw const FormatException('Invalid board cell'),
+        };
+      }
+    }
+    return Board._(size, cells);
+  }
+
   int index(int row, int col) => row * size + col;
   int indexOf(Point p) => index(p.row, p.col);
 

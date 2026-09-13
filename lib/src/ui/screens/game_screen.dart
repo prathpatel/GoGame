@@ -13,7 +13,7 @@ import '../components/zen_components.dart';
 import 'game_view_model.dart';
 
 class GameScreen extends StatefulWidget {
-  final GameViewModel vm;
+  final GameController vm;
   final SettingsStore settings;
   final VoidCallback onExit;
 
@@ -59,8 +59,17 @@ class _GameScreenState extends State<GameScreen> {
     return base.copyWith(showCoordinates: s.showCoordinates);
   }
 
-  StoneColor _humanColor(GameUi ui) =>
-      ui.opponent == Opponent.ai ? ui.aiPlays.other : StoneColor.black;
+  StoneColor _humanColor(GameUi ui) => switch (ui.opponent) {
+        Opponent.ai => ui.aiPlays.other,
+        Opponent.online => ui.youColor,
+        Opponent.human => StoneColor.black,
+      };
+
+  StoneColor _opponentColor(GameUi ui) => switch (ui.opponent) {
+        Opponent.ai => ui.aiPlays,
+        Opponent.online => ui.youColor.other,
+        Opponent.human => StoneColor.white,
+      };
 
   bool _lowTime(GameUi ui, StoneColor color) {
     final snap = color == StoneColor.black ? ui.blackClock : ui.whiteClock;
@@ -99,6 +108,7 @@ class _GameScreenState extends State<GameScreen> {
     final text = Theme.of(context).textTheme;
     final ui = widget.vm.ui;
     final state = ui.state;
+    final opponentColor = _opponentColor(ui);
 
     return LayoutBuilder(builder: (context, constraints) {
       final boardSide =
@@ -115,9 +125,11 @@ class _GameScreenState extends State<GameScreen> {
                   GameStatus.active =>
                     state.config.variant == GameVariant.atariGo
                         ? 'ATARI GO'
-                        : (ui.opponent == Opponent.ai
-                            ? 'PRACTICE MATCH'
-                            : 'LOCAL MATCH'),
+                        : switch (ui.opponent) {
+                            Opponent.ai => 'PRACTICE MATCH',
+                            Opponent.online => 'ONLINE MATCH',
+                            Opponent.human => 'LOCAL MATCH',
+                          },
                   GameStatus.scoring => 'SCORING',
                   GameStatus.completed => ui.timeoutLoser != null
                       ? 'TIMEOUT'
@@ -130,19 +142,17 @@ class _GameScreenState extends State<GameScreen> {
             ),
             const SizedBox(height: 8),
             _PlayerCard(
-              color: ui.opponent == Opponent.ai ? ui.aiPlays : StoneColor.white,
-              name: ui.opponent == Opponent.ai
-                  ? (ui.botName ?? '${ui.aiDifficulty.label} opponent')
-                  : 'Opponent',
-              time: _formatClock(ui,
-                  ui.opponent == Opponent.ai ? ui.aiPlays : StoneColor.white),
+              color: opponentColor,
+              name: switch (ui.opponent) {
+                Opponent.ai =>
+                  ui.botName ?? '${ui.aiDifficulty.label} opponent',
+                Opponent.online => ui.opponentName,
+                Opponent.human => 'Opponent',
+              },
+              time: _formatClock(ui, opponentColor),
               active: state.status == GameStatus.active &&
-                  state.currentPlayer ==
-                      (ui.opponent == Opponent.ai
-                          ? ui.aiPlays
-                          : StoneColor.white),
-              lowTime: _lowTime(ui,
-                  ui.opponent == Opponent.ai ? ui.aiPlays : StoneColor.white),
+                  state.currentPlayer == opponentColor,
+              lowTime: _lowTime(ui, opponentColor),
             ),
             const SizedBox(height: 8),
             SizedBox(
@@ -189,6 +199,17 @@ class _GameScreenState extends State<GameScreen> {
               Text('Opponent is thinking…',
                   style: text.labelMedium
                       ?.copyWith(color: scheme.onSurfaceVariant)),
+            ],
+            if (ui.connectionStatus != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                ui.connectionStatus!,
+                style: text.labelMedium?.copyWith(
+                  color: ui.connectionStatus == 'Connected'
+                      ? scheme.primary
+                      : scheme.onSurfaceVariant,
+                ),
+              ),
             ],
             if (ui.pendingPoint != null &&
                 state.status == GameStatus.active) ...[
@@ -269,7 +290,7 @@ class _PlayerCard extends StatelessWidget {
 
 class _Controls extends StatelessWidget {
   final GameUi ui;
-  final GameViewModel vm;
+  final GameController vm;
   final VoidCallback onExit;
   final VoidCallback onResignTap;
 
@@ -286,7 +307,7 @@ class _Controls extends StatelessWidget {
       case GameStatus.active:
         return _ActiveControls(
           onPass: vm.pass,
-          onUndo: vm.undo,
+          onUndo: ui.canUndo ? vm.undo : null,
           onResign: onResignTap,
           onExit: onExit,
         );
@@ -314,7 +335,7 @@ class _Controls extends StatelessWidget {
 
 class _ActiveControls extends StatelessWidget {
   final VoidCallback onPass;
-  final VoidCallback onUndo;
+  final VoidCallback? onUndo;
   final VoidCallback onResign;
   final VoidCallback onExit;
 

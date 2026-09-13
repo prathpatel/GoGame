@@ -9,8 +9,8 @@
 // table seeded from Dart's math.Random, whose sequence no other language
 // reproduces. Superko is therefore checked with each engine's own internal
 // hash, and anything that crosses the wire uses StateHash (SHA-256 over the
-// board size, side to move and board bytes). The offline client does not yet
-// implement verification of these wire hashes.
+// board size, side to move and board bytes). The online Flutter client verifies
+// these hashes when applying server snapshots and moves.
 package goban
 
 import (
