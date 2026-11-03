@@ -15,7 +15,7 @@ export interface Hook {
   t: number; // time
   s: number; // speed
   i: number; // increment
-  variant: VariantKey;
+  size?: number; // board size, 19 when absent
   perf: Exclude<Perf, 'fromPosition'>;
   prov?: true; // is rating provisional
   u?: string; // username
@@ -35,7 +35,7 @@ export interface Seek {
     key: Exclude<Perf, 'fromPosition'>;
   };
   provisional?: boolean;
-  variant?: { key: VariantKey };
+  size?: number;
   action: 'joinSeek' | 'cancelSeek';
 }
 
@@ -76,14 +76,11 @@ type RatingWithProvisional = number;
 export interface NowPlaying {
   fullId: string;
   gameId: string;
-  fen: FEN;
+  board: string;
+  size: number;
   color: Color;
   orientation?: Color;
   lastMove: string;
-  variant: {
-    key: string;
-    name: string;
-  };
   speed: string;
   perf: string;
   rated: boolean;
@@ -108,8 +105,8 @@ export type PoolId = string;
 export type PoolRange = string;
 
 export interface SetupStore {
-  variant: VariantKey;
-  fen: FEN;
+  size: number;
+  handicap: number;
   timeMode: TimeMode;
   gameMode: GameMode;
   color: ColorChoice;
@@ -122,8 +119,8 @@ export interface SetupStore {
 }
 
 export interface ForceSetupOptions {
-  variant?: VariantKey;
-  fen?: FEN;
+  size?: number;
+  handicap?: number;
   timeMode?: TimeMode;
   time?: number;
   increment?: number;

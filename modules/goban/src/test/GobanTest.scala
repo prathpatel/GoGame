@@ -166,3 +166,8 @@ class GobanTest extends munit.FunSuite:
     )
     val g = Game(nine, Komi(7.5), 0, None).copy(position = Position(board(rows*), Color.Black, consecutivePasses = 2))
     assertEquals(Bot.estimateDead(g), Set(pt("G5")))
+
+  test("bot does not pass early in the game, even at level 1"):
+    val g = play("E5", "C3").toOption.get
+    (1L to 20L).foreach: seed =>
+      assertNotEquals(Bot.move(g, 1, seed).move, Move.Pass, s"seed $seed")

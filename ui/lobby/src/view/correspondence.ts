@@ -37,7 +37,7 @@ function createSeek(ctrl: LobbyController) {
       {
         hook: bind(
           'click',
-          () => ctrl.setupCtrl.openModal('hook', { variant: 'standard', timeMode: 'correspondence' }),
+          () => ctrl.setupCtrl.openModal('hook', { timeMode: 'correspondence' }),
           ctrl.redraw,
         ),
       },

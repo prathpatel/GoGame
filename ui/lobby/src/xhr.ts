@@ -17,7 +17,7 @@ export const anonPoolSeek = (pool: Pool) =>
   xhrJson('/setup/hook/' + site.sri, {
     method: 'POST',
     body: form({
-      variant: 1,
+      size: 19,
       timeMode: 1,
       time: pool.lim,
       increment: pool.inc,

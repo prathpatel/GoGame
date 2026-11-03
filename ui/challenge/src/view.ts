@@ -1,4 +1,4 @@
-import { opposite } from '@lichess-org/chessground/util';
+const opposite = (c: Color): Color => (c === 'white' ? 'black' : 'white');
 import { h, type VNode } from 'snabbdom';
 
 import { licon } from 'lib/licon';

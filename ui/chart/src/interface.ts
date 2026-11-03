@@ -1,6 +1,6 @@
 import type { Chart } from 'chart.js';
 
-import type { TreeNodeBase } from 'lib/tree/types';
+type TreeNodeBase = any;
 
 export interface PlyChart extends Chart<'line' | 'bar'> {
   selectPly(ply: number, isMainline: boolean): void;

@@ -1,7 +1,6 @@
 import { requestIdleCallbackSafe, memoize } from 'lib';
 import { throttle } from 'lib/async';
 import { isIos } from 'lib/device';
-import { speakable } from 'lib/game/sanWriter';
 import { log } from 'lib/permalog';
 import { storage } from 'lib/storage';
 
@@ -206,7 +205,7 @@ export default new (class implements SoundI {
     return true;
   };
 
-  saySan = (san?: San, cut?: boolean, force?: boolean) => this.sayLazy(() => speakable(san), cut, force);
+  saySan = (san?: San, cut?: boolean, force?: boolean) => this.sayLazy(() => san ?? '', cut, force);
 
   sayOrPlay = (name: string, text: string, cut = false) => this.sayLazy(() => text, cut) || this.play(name);
 

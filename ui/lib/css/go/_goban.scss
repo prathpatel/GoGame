@@ -1,0 +1,119 @@
+// Shared Go board styles: the interactive goban and the mini boards.
+
+$goban-wood: #dcb35c;
+$goban-wood-dark: #c79a42;
+$goban-line: #3b2a14;
+
+.goban-wrap {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+}
+
+svg.goban,
+svg.goban-mini {
+  display: block;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+}
+
+.goban__wood,
+.goban-mini__bg {
+  fill: $goban-wood;
+}
+
+.goban__line,
+.goban-mini__lines line {
+  stroke: $goban-line;
+  stroke-width: 0.35;
+}
+
+.goban__star,
+.goban-mini__star {
+  fill: $goban-line;
+}
+
+.goban__coord {
+  font-size: 3px;
+  fill: rgba($goban-line, 0.7);
+  text-anchor: middle;
+  font-family: 'Noto Sans', sans-serif;
+}
+
+.goban__stone,
+.goban-mini__stone {
+  stroke-width: 0.3;
+
+  &.black {
+    fill: #111;
+    stroke: #000;
+  }
+
+  &.white {
+    fill: #f6f4ee;
+    stroke: #8c8578;
+  }
+
+  &.dead {
+    opacity: 0.4;
+  }
+}
+
+.goban__last,
+.goban-mini__last {
+  fill: none;
+  stroke-width: 0.6;
+
+  &.black {
+    stroke: #f6f4ee;
+  }
+
+  &.white {
+    stroke: #111;
+  }
+}
+
+.goban__ko {
+  fill: none;
+  stroke: $goban-line;
+  stroke-width: 0.5;
+}
+
+.goban__ghost {
+  opacity: 0.45;
+
+  &.black {
+    fill: #111;
+  }
+
+  &.white {
+    fill: #fff;
+  }
+}
+
+.goban__territory {
+  &.black {
+    fill: #111;
+  }
+
+  &.white {
+    fill: #fff;
+    stroke: #555;
+    stroke-width: 0.2;
+  }
+}
+
+svg.goban.playable,
+svg.goban.scoring {
+  cursor: pointer;
+}
+
+// mini boards in game lists
+.mini-game .goban-wrap,
+.game-row__board .goban-wrap,
+.now-playing .goban-wrap {
+  border-radius: 3px;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}

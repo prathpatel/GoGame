@@ -1,4 +1,4 @@
-import { COLORS } from 'chessops';
+const COLORS: Color[] = ['white', 'black'];
 
 import { ShowClockTenths } from '@/prefs';
 

@@ -29,13 +29,13 @@ function renderHook(ctrl: LobbyController, hook: Hook) {
           : i18n.site.anonymous,
       ),
       !ctrl.me ? null : td(!ctrl.opts.showRatings ? '' : [hook.rating + (hook.prov ? '?' : '')]),
-      td(hook.clock),
+      td([hook.clock, (hook.size || 19) !== 19 ? span('.go-size-tag', ` ${hook.size}×${hook.size}`) : null]),
       td(span({ ...dataIcon(perfIcons[hook.perf]) }, i18n.site[hook.ra ? 'rated' : 'casual'])),
     ],
   );
 }
 
-const isStandard = (value: boolean) => (hook: Hook) => (hook.variant === 'standard') === value;
+const isStandard = (value: boolean) => (hook: Hook) => ((hook.size || 19) === 19) === value;
 
 const isMine = (hook: Hook) => hook.action === 'cancel';
 
@@ -66,7 +66,7 @@ export const render = (ctrl: LobbyController, allHooks: Hook[]) => {
   const renderedHooks = [
     ...standards.map(render),
     variants.length
-      ? tr('.variants', { key: 'variants' }, td({ attrs: { colspan: 5 } }, '— ' + i18n.site.variant + ' —'))
+      ? tr('.variants', { key: 'variants' }, td({ attrs: { colspan: 5 } }, '— smaller boards —'))
       : null,
     ...variants.map(render),
   ];

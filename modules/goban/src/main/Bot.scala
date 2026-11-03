@@ -32,11 +32,13 @@ object Bot:
     val pos = game.position
     val size = pos.board.width
     // bigger boards need longer playouts: scale budget by area to keep latency bounded
-    val budget = math.max(30, (cfg.playouts * 81L / (size * size)).toInt * (if size > 9 then 2 else 1))
+    val budget0 = math.max(30, (cfg.playouts * 81L / (size * size)).toInt * (if size > 9 then 2 else 1))
     val me = pos.color
     val candidates: Array[Move] =
       (pos.legalPoints.filterNot(p => FastBoard.isOwnEye(pos.board, p, me)).map(Move.Play(_)) :+ Move.Pass).toArray
     val priors: Array[Double] = candidates.map(prior(pos, _))
+    // every candidate deserves a few playouts, even at low levels
+    val budget = math.max(budget0, candidates.length * 3)
     if candidates.length == 1 then Result(Move.Pass, 0.5, 0)
     else if rng.nextDouble() < cfg.randomness then
       val playable = candidates.filterNot(_.isPass)
@@ -81,11 +83,15 @@ object Bot:
         total += 1
       def value(k: Int) = wins(k) / visits(k).max(1) + 0.1 * priors(k)
       val minVisits = total / candidates.length / 2
-      var best = candidates.length - 1
-      var j = 0
-      while j < candidates.length do
+      val passIdx0 = candidates.length - 1
+      // pick the best stone placement; ties never go to passing
+      var best = 0
+      var j = 1
+      while j < passIdx0 do
         if visits(j) >= minVisits && value(j) > value(best) then best = j
         j += 1
+      // only pass if it is clearly better than playing on
+      if value(passIdx0) > value(best) + 0.05 then best = passIdx0
       // after the opponent passed, pass back as long as passing still wins
       val passIdx = candidates.length - 1
       val passRate = wins(passIdx) / visits(passIdx).max(1)
@@ -96,7 +102,10 @@ object Bot:
 
   /** Cheap tactical knowledge that random playouts are blind to. */
   private def prior(pos: Position, move: Move): Double = move match
-    case Move.Pass => 0
+    case Move.Pass =>
+      // passing while the board is still mostly empty is almost always wrong
+      val stones = pos.board.stoneCount(chess.Color.Black) + pos.board.stoneCount(chess.Color.White)
+      if stones * 3 < pos.board.points then -3.0 else 0
     case Move.Play(p) =>
       pos.play(move).fold(
         _ => -10,

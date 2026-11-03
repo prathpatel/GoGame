@@ -1,4 +1,4 @@
-/// <reference path="./chessground.d.ts" />
+/// <reference path="./go.d.ts" />
 /// <reference path="./cash.d.ts" />
 /// <reference path="./i18n.d.ts" />
 

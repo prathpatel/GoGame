@@ -9,18 +9,16 @@ export function initModule(opts: LobbyOpts) {
   opts.appElement = document.querySelector('.lobby__app') as HTMLElement;
   opts.tableElement = document.querySelector('.lobby__table') as HTMLElement;
   opts.pools = [
-    // mirrors modules/pool/src/main/PoolList.scala
-    { id: '1+0', lim: 1, inc: 0 },
-    { id: '2+1', lim: 2, inc: 1 },
-    { id: '3+0', lim: 3, inc: 0 },
-    { id: '3+2', lim: 3, inc: 2 },
-    { id: '5+0', lim: 5, inc: 0 },
-    { id: '5+3', lim: 5, inc: 3 },
-    { id: '10+0', lim: 10, inc: 0 },
+    // mirrors modules/pool/src/main/PoolList.scala (19×19 quick pairing)
+    { id: '3+3', lim: 3, inc: 3 },
+    { id: '5+5', lim: 5, inc: 5 },
     { id: '10+5', lim: 10, inc: 5 },
+    { id: '10+10', lim: 10, inc: 10 },
     { id: '15+10', lim: 15, inc: 10 },
-    { id: '30+0', lim: 30, inc: 0 },
+    { id: '20+20', lim: 20, inc: 20 },
     { id: '30+20', lim: 30, inc: 20 },
+    { id: '45+30', lim: 45, inc: 30 },
+    { id: '60+30', lim: 60, inc: 30 },
   ];
 
   opts.socketSend = wsConnect('/lobby/socket/v5', false, {

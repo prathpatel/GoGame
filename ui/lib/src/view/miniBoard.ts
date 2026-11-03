@@ -1,31 +1,23 @@
 // no side effects allowed due to re-export by index.ts
+//
+// Mini Go boards: static thumbnails (`.mini-board`) and live mini games (`.mini-game`).
+// The server renders the initial SVG; live games are updated from websocket "fen" messages,
+// which in this Go fork carry the serialized board.
 
-import { Chessground as makeChessground } from '@lichess-org/chessground';
-import { uciToMove } from '@lichess-org/chessground/util';
-import { COLORS } from 'chessops';
 import { h, type VNode } from 'snabbdom';
 
-import * as domData from '@/data';
-import { fenColor } from '@/game/chess';
-import { lichessClockIsRunning, setClockWidget } from '@/game/clock/clockWidget';
+import { setClockWidget } from '@/game/clock/clockWidget';
+import { renderMiniGoban } from '@/go/miniGoban';
 import { pubsub } from '@/pubsub';
 import { wsSend } from '@/socket';
 
-export const initMiniBoard = (node: HTMLElement): void => {
-  const [fen, orientation, lm] = node.getAttribute('data-state')!.split(',');
-  initMiniBoardWith(node, { fen, orientation: orientation as Color, lastMove: uciToMove(lm) });
-};
+const COLORS: Color[] = ['white', 'black'];
 
-export const initMiniBoardWith = (node: HTMLElement, config: CgConfig): void => {
-  const cgConfig = {
-    coordinates: false,
-    viewOnly: !node.getAttribute('data-playable'),
-    drawable: { enabled: false, visible: false },
-    // scoped to the board, not the body: a page can hold many of these
-    addDimensionsCssVarsTo: node,
-    ...config,
-  };
-  domData.set(node, 'chessground', makeChessground(node, cgConfig));
+export const initMiniBoard = (node: HTMLElement): void => {
+  const state = node.getAttribute('data-state');
+  if (!state) return;
+  const [board, , lm] = state.split(',');
+  renderMiniGoban(node, board, lm);
 };
 
 export const initMiniBoards = (parent?: HTMLElement): void =>
@@ -39,42 +31,18 @@ export const renderClock = (color: Color, time: number): VNode =>
     attrs: { 'data-time': time, 'data-managed': 1 },
   });
 
-export const initMiniGame = (node: Element, withCg?: typeof makeChessground): string | null => {
-  const [fen, color, lm] = node.getAttribute('data-state')!.split(',');
-  const config = {
-    coordinates: false,
-    viewOnly: true,
-    fen,
-    orientation: color as Color,
-    lastMove: uciToMove(lm),
-    drawable: {
-      enabled: false,
-      visible: false,
-    },
-  };
+export const initMiniGame = (node: Element): string | null => {
+  const [, color] = (node.getAttribute('data-state') || '').split(',');
   const $el = $(node).removeClass('mini-game--init');
-  const $cg = $el.find('.cg-wrap');
-  const turnColor = fenColor(fen);
-  const cgEl = $cg[0] as HTMLElement;
-
-  domData.set(
-    cgEl,
-    'chessground',
-    (withCg ?? makeChessground)(cgEl, { ...config, addDimensionsCssVarsTo: cgEl }),
-  );
-
-  COLORS.forEach(color =>
-    $el.find('.mini-game__clock--' + color).each(function (this: HTMLElement) {
-      setClockWidget(this, {
-        time: parseInt(this.getAttribute('data-time')!),
-        pause: color !== turnColor || !lichessClockIsRunning(fen, color),
-      });
+  // we don't know whose turn it is from the board alone: both clocks start paused,
+  // and the first live update sets the running one
+  COLORS.forEach(c =>
+    $el.find('.mini-game__clock--' + c).each(function (this: HTMLElement) {
+      setClockWidget(this, { time: parseInt(this.getAttribute('data-time')!), pause: true });
     }),
   );
-  return node.getAttribute('data-live');
+  return color !== undefined ? node.getAttribute('data-live') : null;
 };
-
-export const getChessground = (node: HTMLElement): CgApi => domData.get(node, 'chessground');
 
 export const initMiniGames = (parent?: HTMLElement): void => {
   const nodes = Array.from((parent || document).getElementsByClassName('mini-game--init'));
@@ -83,21 +51,11 @@ export const initMiniGames = (parent?: HTMLElement): void => {
 };
 
 export const updateMiniGame = (node: HTMLElement, data: MiniGameUpdateData): void => {
-  const lm = data.lm;
-  const cg = getChessground(node.querySelector('.cg-wrap')!);
-  if (cg)
-    cg.set({
-      fen: data.fen,
-      lastMove: uciToMove(lm),
-    });
-  const turnColor = fenColor(data.fen);
+  renderMiniGoban(node, data.board, data.lm);
+  const turnColor = data.color;
   const updateClock = (time: number | undefined, color: Color) => {
     const clockEl = node?.querySelector('.mini-game__clock--' + color) as HTMLElement;
-    if (clockEl && !isNaN(time!))
-      setClockWidget(clockEl, {
-        time: time!,
-        pause: color !== turnColor || !lichessClockIsRunning(data.fen, color),
-      });
+    if (clockEl && !isNaN(time!)) setClockWidget(clockEl, { time: time!, pause: color !== turnColor });
   };
   updateClock(data.wc, 'white');
   updateClock(data.bc, 'black');
@@ -114,8 +72,9 @@ export const finishMiniGame = (node: HTMLElement, win?: 'b' | 'w'): void =>
   });
 
 interface MiniGameUpdateData {
-  fen: FEN;
-  lm: Uci;
+  board: string;
+  color?: Color;
+  lm: string;
   wc?: number;
   bc?: number;
 }

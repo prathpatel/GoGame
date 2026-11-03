@@ -24,7 +24,6 @@ import * as seekRepo from './seekRepo';
 import SetupController from './setupCtrl';
 import LobbySocket from './socket';
 import { make as makeStores, type Stores } from './store';
-import variantConfirm from './variant';
 import * as xhr from './xhr';
 
 export default class LobbyController {
@@ -82,14 +81,12 @@ export default class LobbyController {
       const forceOptions: ForceSetupOptions = {};
       const urlParams = new URLSearchParams(location.search);
       const friendUser = urlParams.get('user') ?? undefined;
-      const variant = urlParams.get('variant');
+      const size = parseInt(urlParams.get('size') || '');
 
-      if (variant) forceOptions.variant = variant as VariantKey;
+      if ([9, 13, 19].includes(size)) forceOptions.size = size;
+      const handicap = parseInt(urlParams.get('handicap') || '');
+      if (handicap >= 2 && handicap <= 9) forceOptions.handicap = handicap;
 
-      if (locationHash !== 'hook' && urlParams.get('fen')) {
-        forceOptions.fen = urlParams.get('fen')!;
-        forceOptions.variant = 'fromPosition';
-      }
 
       let timeMode = urlParams.get('time');
       const days = urlParams.get('days');
@@ -240,14 +237,14 @@ export default class LobbyController {
   clickHook = async (id: string) => {
     const hook = hookRepo.find(this, id);
     if (!hook || hook.disabled || this.stepping || this.redirecting) return;
-    if (hook.action === 'cancel' || (await variantConfirm(hook.variant)))
+    if (hook.action === 'cancel' || true)
       this.socket.send(hook.action, hook.id);
   };
 
   clickSeek = async (id: string) => {
     const seek = seekRepo.find(this, id);
     if (!seek || this.redirecting) return;
-    if (seek.action === 'cancelSeek' || (await variantConfirm(seek.variant?.key)))
+    if (seek.action === 'cancelSeek' || true)
       this.socket.send(seek.action, seek.id);
   };
 

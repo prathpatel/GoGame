@@ -1,6 +1,6 @@
 // no side effects allowed due to re-export by index.ts
 
-import type { NodeCrazy } from '@/tree/types';
+type NodeCrazy = any;
 
 import type { Status } from './status';
 

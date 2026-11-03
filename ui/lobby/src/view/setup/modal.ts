@@ -4,12 +4,11 @@ import { hl, type LooseVNodes, snabDialog, spinnerVdom } from 'lib/view';
 import type LobbyController from '@/ctrl';
 
 import { colorButtons } from './components/colorButtons';
-import { fenInput } from './components/fenInput';
 import { gameModeButtons } from './components/gameModeButtons';
 import { levelButtons } from './components/levelButtons';
 import { ratingDifferenceSliders } from './components/ratingDifferenceSliders';
 import { ratingView } from './components/ratingView';
-import { variantPicker } from './components/variantPicker';
+import { handicapPicker, sizePicker } from './components/goOptions';
 
 export default function setupModal(ctrl: LobbyController) {
   const { setupCtrl } = ctrl;
@@ -52,7 +51,7 @@ export default function setupModal(ctrl: LobbyController) {
 
 const views = {
   hook: (ctrl: LobbyController): LooseVNodes => [
-    variantPicker(ctrl.setupCtrl),
+    sizePicker(ctrl.setupCtrl),
     timePickerAndSliders(ctrl.setupCtrl.timeControl, 0),
     gameModeButtons(ctrl),
     ratingView(ctrl),
@@ -60,15 +59,15 @@ const views = {
     colorButtons(ctrl.setupCtrl),
   ],
   friend: (ctrl: LobbyController): LooseVNodes => [
-    variantPicker(ctrl.setupCtrl),
-    fenInput(ctrl.setupCtrl),
+    sizePicker(ctrl.setupCtrl),
+    handicapPicker(ctrl.setupCtrl),
     timePickerAndSliders(ctrl.setupCtrl.timeControl, 0),
     gameModeButtons(ctrl),
     colorButtons(ctrl.setupCtrl),
   ],
   ai: ({ setupCtrl }: LobbyController): LooseVNodes => [
-    variantPicker(setupCtrl),
-    fenInput(setupCtrl),
+    sizePicker(setupCtrl),
+    handicapPicker(setupCtrl),
     timePickerAndSliders(setupCtrl.timeControl, setupCtrl.minimumTimeIfReal()),
     levelButtons(setupCtrl),
     colorButtons(setupCtrl),

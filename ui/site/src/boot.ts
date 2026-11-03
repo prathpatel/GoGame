@@ -1,8 +1,6 @@
 /// <reference types="../types/ab" />
-import * as ab from 'ab/site';
 
 import { scrollToInnerSelector, requestIdleCallbackSafe, once } from 'lib';
-import { dispatchChessgroundResize } from 'lib/chessgroundResize';
 import { prefersLightThemeQuery } from 'lib/device';
 import { licon } from 'lib/licon';
 import { pubsub } from 'lib/pubsub';
@@ -53,9 +51,7 @@ export function boot() {
 
     toggleBoxInit();
 
-    window.addEventListener('resize', dispatchChessgroundResize);
 
-    ab.init();
 
     if (setBlind && !site.blindMode) setTimeout(() => $('#blind-mode button').trigger('click'), 1500);
 

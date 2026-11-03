@@ -1,5 +1,3 @@
-import { COLORS } from 'chessops';
-
 import { memoize } from 'lib';
 import { script as xhrScript } from 'lib/xhr';
 
@@ -113,34 +111,5 @@ export const loadI18n = async (catalog: string) => {
   await import(url(`compiled/i18n/${catalog}.${window.site.manifest.i18n![catalog]}.js`));
 };
 
-export function embedChessground() {
-  return import(url('npm/chessground.min.js'));
-}
-
-export const loadPieces = new Promise<void>(resolve => {
-  if (document.getElementById('main-wrap')?.classList.contains('is3d')) return resolve();
-  const style = window.getComputedStyle(document.body);
-  const urls = COLORS.flatMap(c =>
-    ['pawn', 'knight', 'bishop', 'rook', 'queen', 'king'].map(r => `---${c}-${r}`),
-  )
-    .map(
-      u =>
-        style
-          .getPropertyValue(u)
-          .slice(4, -1) // strip 'url(' + ... + ')'
-          .replace(/\\([:/.])/g, '$1'), // webkit escapes
-    )
-    .filter(Boolean);
-  let assetsToDecode = urls.length;
-  if (assetsToDecode === 0) return resolve();
-  urls.forEach(url => {
-    const img = new Image();
-    img.src = url;
-    img
-      .decode()
-      .then(() => {
-        if (--assetsToDecode === 0) resolve();
-      })
-      .catch(resolve);
-  });
-});
+// pieces don't exist in Go; kept for API compatibility with lila's asset loader
+export const loadPieces: Promise<void> = Promise.resolve();

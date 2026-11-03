@@ -60,14 +60,14 @@ export default class Filter {
     const ratingRange = f.ratingRange?.split('-').map((r: string) => parseInt(r, 10));
     const seen: string[] = [];
     const visible: Hook[] = [];
-    let variant: string;
+    let size: string;
     let hidden = 0;
     hooks.forEach(hook => {
-      variant = hook.variant;
+      size = `${hook.size || 19}`;
       if (hook.action === 'cancel') visible.push(hook);
       else {
         if (
-          !f.variant?.includes(variant) ||
+          (f.size?.length && !f.size.includes(size)) ||
           !f.speed?.includes((hook.s || 1).toString() /* ultrabullet = bullet */) ||
           (f.mode?.length === 1 && f.mode[0] !== (hook.ra || 0).toString()) ||
           (f.increment?.length === 1 && f.increment[0] !== hook.i.toString()) ||
@@ -75,7 +75,7 @@ export default class Filter {
         ) {
           hidden++;
         } else {
-          const hash = hook.ra + variant + hook.t + hook.rating;
+          const hash = hook.ra + size + hook.t + hook.rating;
           if (!seen.includes(hash)) visible.push(hook);
           seen.push(hash);
         }

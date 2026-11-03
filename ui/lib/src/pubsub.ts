@@ -1,8 +1,9 @@
 import type { Line } from '@/chat/interfaces';
 import type { Data as WatchersData } from '@/view/watchers';
 
-import type { EvalMeta } from './ceval';
-import type { TreePath, ClientEval } from './tree/types';
+type TreePath = string;
+type ClientEval = any;
+type EvalMeta = any;
 
 export type PubsubEventKey = keyof PubsubEvents;
 
@@ -42,7 +43,14 @@ export interface PubsubEvents {
   }) => void;
   'socket.in.announce': (data: { msg?: string; date?: string }) => void;
   'socket.in.endData': (data: any) => void;
-  'socket.in.fen': (data: { id: string; fen: FEN; lm: Uci; wc?: number; bc?: number }) => void;
+  'socket.in.fen': (data: {
+    id: string;
+    board: string;
+    color?: Color;
+    lm: string;
+    wc?: number;
+    bc?: number;
+  }) => void;
   'socket.in.finish': (data: { id: string; win?: 'b' | 'w' }) => void;
   'socket.in.following_enters': (
     titleName: string,

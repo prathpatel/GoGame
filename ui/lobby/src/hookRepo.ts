@@ -15,7 +15,7 @@ export function sort(ctrl: LobbyController, hooks: Hook[]) {
 
 export function init(hook: Hook) {
   hook.action = hook.sri === site.sri ? 'cancel' : 'join';
-  hook.variant = hook.variant || 'standard';
+  hook.size = hook.size || 19;
 }
 
 export function initAll(ctrl: LobbyController) {
