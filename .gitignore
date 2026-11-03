@@ -1,51 +1,79 @@
-# Dart / Flutter
-.dart_tool/
-.packages
-.pub-cache/
-.pub/
-build/
-.flutter-plugins
-.flutter-plugins-dependencies
+/.sbtopts
+/.jvmopts
+/.bsp/
+/.bloop/
+/.metals/
+/.pnpm-store/
+/.devenv/
+/bin/flair/download-flair.sh
+/bin/flair/emoji.txt
+/bin/flair/emojipedia.html
+/bin/git-hooks/post-*
+/bin/git-hooks/pre-push
+/bin/ublog-automod
+/project/.bloop/
+/conf/application.conf
+/conf/secrets.conf
+/conf/version.conf
+/translation/js
+logs/
+/project/metals.sbt
+/project/project/
+/project/target/
+/public/compiled/
+/public/data/*
+!/public/data/README.md
+/public/hashed/
+/public/lifat/nnue/*.tmp
+/public/lifat/nnue/*.gz
+/public/lifat/nnue/*.br
+/public/lifat/maia/*.tmp
+/public/lifat/maia/*.gz
+/public/lifat/maia/*.br
+/public/npm/
+/public/css/
+/public/json/
+target/
+/data/
+dist/
+node_modules/
+ui/lib/css/theme/gen/*.scss
+ui/.build/build
+ui/voice/crowdv
+ui/**/tsconfig.tsbuildinfo
+hs_*.log
+dependency-graph.png
+dump.rdb
+.venv
 
-# Local agent/tooling state
-.agents/
-.codex/
-
-# Android
-**/android/.gradle/
-**/android/captures/
-**/android/local.properties
-**/android/**/GeneratedPluginRegistrant.java
-**/android/key.properties
-*.jks
-*.keystore
-*.p12
-*.pem
-*.mobileprovision
-*.cer
-
-# iOS
-**/ios/Flutter/App.framework
-**/ios/Flutter/Flutter.framework
-**/ios/Flutter/Generated.xcconfig
-**/ios/Flutter/app.flx
-**/ios/Flutter/app.zip
-**/ios/Flutter/flutter_assets/
-**/ios/Flutter/flutter_export_environment.sh
-**/ios/ServiceDefinitions.json
-**/ios/Runner/GeneratedPluginRegistrant.*
-**/ios/Pods/
-**/ios/.symlinks/
-**/ios/Flutter/.last_build_id
-**/ios/Podfile.lock
-
-# IDE
-.idea/
-.vscode/
-*.iml
-
-# macOS
+RUNNING_PID
+instance.lock
 .DS_Store
 
-# Backend
-backend/bin/
+# Eclipse auto-generated files
+/modules/*/.classpath
+/modules/*/.project
+/modules/*/.settings/
+
+# VSCode auto-generated files
+.vscode/
+
+# VSCode workspaces
+*.code-workspace
+
+# IntelliJ auto-generated files
+.idea
+
+# Docker-compose / docker sbt
+/docker-compose.yml
+/?
+
+# deploy bearer
+.lila-cli
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/

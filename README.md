@@ -1,215 +1,89 @@
-# Go — Flutter
+# [lichess.org](https://lichess.org)
 
-A calm, cross-platform board for the game of Go. Pure-Dart rules engine,
-hand-painted board, beginner AI, SGF round-trip, and a built-in tutorial and
-rules reference. Built with Flutter for Android and iOS, with desktop targets
-planned.
+[![Crowdin](https://d322cqt584bo4o.cloudfront.net/lichess/localized.svg)](https://crowdin.com/project/lichess)
+[![Mastodon](https://img.shields.io/mastodon/follow/109298525492334687?domain=mastodon.online)](https://mastodon.online/@lichess)
+[![Bluesky](https://img.shields.io/badge/Bluesky-0285FF?logo=bluesky&logoColor=fff)](https://bsky.app/profile/lichess.org)
+[![Discord](https://img.shields.io/discord/280713822073913354?label=Discord&logo=discord&style=flat)](https://discord.gg/lichess)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/lichess-org/lila)
 
-> **Status:** v0.2.0 — local MVP. No online play; everything runs offline on the
-> device.
+<img src="https://raw.githubusercontent.com/lichess-org/lila/master/public/images/home-bicolor.png" alt="Lichess homepage" title="Lichess comes with light and dark theme, this screenshot shows both." />
 
-> **History:** This repository started as a native Kotlin / Jetpack Compose
-> Android app. It was migrated to Flutter on 2026-05-07 to enable iOS and
-> desktop from a single codebase. The original Kotlin source is archived at
-> [`prthmptl/GoGame-kotlin-legacy`](https://github.com/prthmptl/GoGame-kotlin-legacy)
-> (private).
+Lila (li[chess in sca]la) is a free online chess game server focused on [realtime](https://lichess.org/games) gameplay and ease of use.
 
----
+It features a [search engine](https://lichess.org/games/search),
+[computer analysis](https://lichess.org/ief49lif) distributed with [fishnet](https://github.com/lichess-org/fishnet),
+[tournaments](https://lichess.org/tournament),
+[simuls](https://lichess.org/simul),
+[forums](https://lichess.org/forum),
+[teams](https://lichess.org/team),
+[tactic trainer](https://lichess.org/training),
+a [mobile app](https://lichess.org/app),
+and a [shared analysis board](https://lichess.org/study).
+The UI is available in more than [140 languages](https://crowdin.com/project/lichess) thanks to the community.
 
-## Features
+Lichess is written in [Scala 3](https://www.scala-lang.org/),
+and relies on a modified [Play 2.8](https://www.playframework.com/) framework.
+[scalatags](https://com-lihaoyi.github.io/scalatags/) is used for templating.
+Pure chess logic is contained in the [scalachess](https://github.com/lichess-org/scalachess) submodule.
+The server is fully asynchronous, making heavy use of Scala Futures and [Pekko streams](https://pekko.apache.org).
+WebSocket connections are handled by a [separate server](https://github.com/lichess-org/lila-ws) that communicates using [redis](https://redis.io/).
+Lichess talks to [Stockfish](https://stockfishchess.org/) deployed in an [AI cluster](https://github.com/lichess-org/fishnet) of donated servers.
+It uses [MongoDB](https://www.mongodb.com) to store more than 12 billion games, which are indexed by [elasticsearch](https://github.com/elastic/elasticsearch).
+HTTP requests and WebSocket connections can be proxied by [nginx](https://nginx.org).
+The web client is written in [TypeScript](https://www.typescriptlang.org/) and [snabbdom](https://github.com/snabbdom/snabbdom), using [Sass](https://sass-lang.com/) to generate CSS.
+All rated games are published in a [free PGN database](https://database.lichess.org).
+Browser testing done with [Browserstack](https://www.browserstack.com).
+Proxy detection done with [IP2Proxy database](https://www.ip2location.com/database/ip2proxy).
+Software builds and CI/CD done with [Depot](https://depot.dev/).
+Please help us [translate Lichess with Crowdin](https://crowdin.com/project/lichess).
 
-**Gameplay**
+See [lichess.org/source](https://lichess.org/source) for a list of repositories.
 
-- 9×9, 13×13, and 19×19 boards
-- Local two-player (pass-and-play) and human-vs-AI
-- Main-time clock with configurable time control
-- Undo / pass / resign
-- Optional move numbers and last-move highlight
+[Join us on Discord](https://discord.gg/lichess) for more info.
+Use [GitHub issues](https://github.com/lichess-org/lila/issues) for bug reports and feature requests.
 
-**Rules engine** (`lib/src/domain/`, no Flutter imports — fully unit-testable)
-
-- Capture, suicide prevention, simple ko
-- Positional superko via Zobrist hashing
-- Chinese area scoring with interactive dead-stone marking
-- Group / liberty calculation with flood fill
-
-**AI** (`lib/src/domain/ai/beginner_ai.dart`)
-
-- Heuristic beginner: prioritises captures, saves stones in atari, prefers good
-  shape, applies a 1-ply lookahead. Designed to feel like a forgiving opponent
-  rather than a strong engine.
-
-**SGF**
-
-- Export the current game to SGF (`FF[4]`)
-- Import the main line of an SGF file via the system file picker
-- Share games through the OS share sheet (`share_plus`)
-
-**Persistence**
-
-- Saved games via `sqflite` with auto-resume on launch
-- Settings via `shared_preferences` (theme, coordinates, hints, move numbers)
-
-**Learning**
-
-- Step-by-step tutorial covering captures, life-and-death, and basic shape
-- Full Chinese-rules reference screen
-
----
-
-## Project layout
+## Installation
 
 ```
-lib/
-  main.dart                       # entrypoint, opens repo + settings, runs app
-  src/
-    app.dart                      # GoApp: GoRouter shell, bottom-nav chrome
-    domain/                       # pure Dart — rules, board, AI
-      board.dart                  # bitboard + intersection helpers
-      game_state.dart             # current position, history, ko hash
-      groups.dart                 # connected-stone / liberty queries
-      rules.dart                  # legal-move check, capture, superko
-      scoring.dart                # Chinese area scoring with dead marking
-      models.dart                 # Color, Move, GameConfig, etc.
-      ai/beginner_ai.dart         # heuristic opponent
-    sgf/
-      sgf.dart                    # serializer (FF[4])
-      sgf_import.dart             # main-line parser
-    data/
-      saved_game.dart             # row model
-      saved_game_repo.dart        # sqflite-backed repo
-      settings_store.dart         # SharedPreferences wrapper
-    ui/
-      theme.dart                  # zen-leaning Material 3 theme
-      board/
-        board_canvas.dart         # CustomPainter rendering board + stones
-        mini_stone.dart           # small reusable stone widget
-      components/
-        zen_components.dart       # shared buttons, cards, dividers
-      screens/
-        home_screen.dart          # recent games, "new game"
-        setup_screen.dart         # board size, players, time control
-        game_screen.dart          # the play screen
-        game_view_model.dart      # ChangeNotifier wrapping GameState
-        review_screen.dart        # post-game / saved-game playback
-        tutorial_screen.dart      # lessons list + detail
-        rules_screen.dart         # rules reference
-        settings_screen.dart      # preferences
-test/
-  domain/                         # rules + scoring tests
-  sgf/                            # SGF round-trip + import tests
-tool/
-  gen_icon.py                     # regenerate adaptive launcher icons
+./lila.sh # thin wrapper around sbt
+run
 ```
 
-The `domain/`, `sgf/`, and `data/` layers contain no Flutter imports, so they
-can run under plain Dart and stay easy to test.
+The Wiki describes [how to setup a development environment](https://github.com/lichess-org/lila/wiki/Lichess-Development-Onboarding).
 
----
+## HTTP API
 
-## Tech stack
+Feel free to use the [Lichess API](https://lichess.org/api) in your applications and websites.
 
-- **Flutter** ≥ 3.27, **Dart** ≥ 3.6
-- [`go_router`](https://pub.dev/packages/go_router) — declarative routing with a
-  shell route for the bottom-nav chrome
-- [`sqflite`](https://pub.dev/packages/sqflite) — saved games
-- [`shared_preferences`](https://pub.dev/packages/shared_preferences) —
-  user settings
-- [`share_plus`](https://pub.dev/packages/share_plus) — share SGF
-- [`file_picker`](https://pub.dev/packages/file_picker) — import SGF
-- [`flutter_launcher_icons`](https://pub.dev/packages/flutter_launcher_icons) —
-  generates adaptive Android + iOS icons from `assets/icon/`
+## Supported browsers
 
----
+| Name              | Version | Notes                      |
+| ----------------- | ------- | -------------------------- |
+| Firefox           | 100+    | Full support (recommended) |
+| Chromium / Chrome | 100+    | Full support               |
+| Edge              | 100+    | Full support               |
+| Opera             | 97+     | Reasonable support         |
+| Safari            | 14+     | Reasonable support         |
 
-## Getting started
+Older browsers will not work.
+For your own sake, please upgrade. Security and performance, think about it!
 
-Install Flutter (≥ 3.27) and fetch packages:
+## License
 
-```sh
-flutter pub get
-```
+Lila is licensed under the GNU Affero General Public License 3 or any later
+version at your choice. See [copying](https://github.com/lichess-org/lila/blob/master/COPYING.md) for
+details.
 
-Run on a connected device or emulator:
+## Production architecture (as of July 2022)
 
-```sh
-flutter run
-```
+![Lichess production server architecture diagram](https://raw.githubusercontent.com/lichess-org/lila/master/public/images/architecture.png)
 
-Run the test suite (rules engine, scoring, SGF round-trip):
+## Credits
 
-```sh
-flutter test
-```
+See [lichess.org/thanks](https://lichess.org/thanks) and the contributors here:
 
----
+[![GitHub contributors](https://contrib.rocks/image?repo=lichess-org/lila)](https://github.com/lichess-org/lila/graphs/contributors)
 
-## Building releases
+## Competence development program
 
-### Android (Google Play AAB)
-
-```sh
-flutter build appbundle --release
-# Output: build/app/outputs/bundle/release/app-release.aab
-```
-
-The Android `applicationId` is `com.gogame`. For Play uploads, copy the example
-keystore config and fill in your details:
-
-```sh
-cp android/key.properties.example android/key.properties
-```
-
-`android/key.properties` and `*.jks` files are gitignored. If `key.properties`
-is present, Gradle signs release builds with that upload key; otherwise local
-release builds fall back to debug signing for smoke testing.
-
-### iOS
-
-```sh
-cd ios && pod install
-flutter build ipa --release
-```
-
-Open `ios/Runner.xcworkspace` in Xcode to configure signing. Bundle id is
-`com.gogame`.
-
-### Desktop (planned)
-
-Desktop platforms are not yet scaffolded. To enable them:
-
-```sh
-flutter create --platforms=linux,windows,macos .
-flutter run -d linux        # or windows / macos
-```
-
-The Dart code under `lib/` should run as-is; only platform folders need to be
-generated.
-
----
-
-## Regenerating launcher icons
-
-Source artwork lives in `assets/icon/`. After editing, regenerate platform
-icons with:
-
-```sh
-dart run flutter_launcher_icons
-```
-
-`tool/gen_icon.py` is a helper for producing the foreground / background PNGs
-from a vector source.
-
----
-
-## Versioning
-
-Version is tracked in `pubspec.yaml` as `<semver>+<buildNumber>` (e.g.
-`0.2.0+3`). Bump the build number on every Play / TestFlight upload.
-
----
-
-## Contributing
-
-This is a personal project, but issues and PRs are welcome. When changing the
-rules engine or scoring code, please add or update tests in `test/domain/`.
+Lichess would like to support its contributors in their competence development by covering costs of relevant training materials and activities. This is a small way to further empower contributors who have given their time to Lichess and to enable or improve additional contributions to Lichess in the future. For more information, including how to apply, check [Competence Development for Lichess contributors](https://lichess.org/page/competence-development).

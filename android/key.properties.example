@@ -1,5 +1,0 @@
-# Copy to key.properties and fill in your release signing details.
-storeFile=/absolute/path/to/release.keystore
-storePassword=your-store-password
-keyAlias=upload
-keyPassword=your-key-password

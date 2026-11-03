@@ -1,2 +1,0 @@
-DROP TABLE IF EXISTS game_moves;
-DROP TABLE IF EXISTS games;
