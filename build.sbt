@@ -71,7 +71,7 @@ libraryDependencies ++= pekko.bundle ++ playWs.bundle ++ macwire.bundle ++ scala
 // matches https://github.com/ornicar/lila-dep-graphs
 lazy val modules = Seq(
   // level 1
-  core, coreI18n,
+  core, coreI18n, goban,
   // level 2
   common, ui, mon, tree, markdown,
   // level 3
@@ -103,6 +103,11 @@ lazy val moduleCPDeps = moduleRefs map { sbt.ClasspathDependency(_, None) }
 lazy val core = module("core",
   Seq(),
   Seq(catsMtl, scalatags, galimatias) ++ scalalib.bundle ++ reactivemongo.bundle ++ tests.bundle
+)
+
+lazy val goban = module("goban",
+  Seq(),
+  tests.bundle
 )
 
 lazy val coreI18n = module("coreI18n",
