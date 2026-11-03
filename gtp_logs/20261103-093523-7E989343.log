@@ -1,0 +1,150 @@
+2026-11-03 09:35:23+0000: Running with following config:
+allowResignation = true
+lagBuffer = 1.0
+logAllGTPCommunication = true
+logDir = gtp_logs
+logSearchInfo = true
+logSearchInfoForChosenMove = false
+logToStderr = false
+maxTimePondering = 60.0
+maxVisits = 500
+numSearchThreads = 6
+ponderingEnabled = false
+resignConsecTurns = 3
+resignThreshold = -0.90
+rules = tromp-taylor
+searchFactorAfterOnePass = 0.50
+searchFactorAfterTwoPass = 0.25
+searchFactorWhenWinning = 0.40
+searchFactorWhenWinningThreshold = 0.95
+
+2026-11-03 09:35:23+0000: GTP Engine starting...
+2026-11-03 09:35:23+0000: KataGo v1.15.3
+2026-11-03 09:35:23+0000: Using TrompTaylor rules initially, unless GTP/GUI overrides this
+2026-11-03 09:35:23+0000: Using 6 CPU thread(s) for search
+2026-11-03 09:35:23+0000: nnRandSeed0 = 8283530087512583950
+2026-11-03 09:35:23+0000: After dedups: nnModelFile0 = /root/.local/katago/model.bin.gz useFP16 auto useNHWC auto
+2026-11-03 09:35:23+0000: Initializing neural net buffer to be size 19 * 19 exactly
+2026-11-03 09:35:24+0000: Eigen (CPU) backend thread 0: Model version 14
+2026-11-03 09:35:24+0000: Eigen (CPU) backend thread 0: Model name: kata1-b18c384nbt-s9996604416-d4316597426
+2026-11-03 09:35:24+0000: Eigen (CPU) backend thread 1: Model version 14
+2026-11-03 09:35:24+0000: Eigen (CPU) backend thread 1: Model name: kata1-b18c384nbt-s9996604416-d4316597426
+2026-11-03 09:35:24+0000: Eigen (CPU) backend thread 3: Model version 14
+2026-11-03 09:35:24+0000: Eigen (CPU) backend thread 3: Model name: kata1-b18c384nbt-s9996604416-d4316597426
+2026-11-03 09:35:24+0000: Eigen (CPU) backend thread 2: Model version 14
+2026-11-03 09:35:24+0000: Eigen (CPU) backend thread 2: Model name: kata1-b18c384nbt-s9996604416-d4316597426
+2026-11-03 09:35:26+0000: Loaded neural net with nnXLen 19 nnYLen 19
+2026-11-03 09:35:26+0000: Initializing board with boardXSize 19 boardYSize 19
+2026-11-03 09:35:26+0000: Loaded config /root/.local/katago/default_gtp.cfg
+2026-11-03 09:35:26+0000: Loaded model /root/.local/katago/model.bin.gz
+2026-11-03 09:35:26+0000: Model name: kata1-b18c384nbt-s9996604416-d4316597426
+2026-11-03 09:35:26+0000: GTP ready, beginning main protocol loop
+2026-11-03 09:35:26+0000: Controller: boardsize 9
+2026-11-03 09:35:26+0000: GPU -1 finishing, processed 0 rows 0 batches
+2026-11-03 09:35:26+0000: GPU -1 finishing, processed 0 rows 0 batches
+2026-11-03 09:35:26+0000: GPU -1 finishing, processed 0 rows 0 batches
+2026-11-03 09:35:26+0000: GPU -1 finishing, processed 0 rows 0 batches
+2026-11-03 09:35:26+0000: Cleaned up old neural net and bot
+2026-11-03 09:35:26+0000: nnRandSeed0 = 18042870533767428422
+2026-11-03 09:35:26+0000: After dedups: nnModelFile0 = /root/.local/katago/model.bin.gz useFP16 auto useNHWC auto
+2026-11-03 09:35:26+0000: Initializing neural net buffer to be size 9 * 9 exactly
+2026-11-03 09:35:27+0000: Eigen (CPU) backend thread 1: Model version 14
+2026-11-03 09:35:27+0000: Eigen (CPU) backend thread 1: Model name: kata1-b18c384nbt-s9996604416-d4316597426
+2026-11-03 09:35:27+0000: Eigen (CPU) backend thread 0: Model version 14
+2026-11-03 09:35:27+0000: Eigen (CPU) backend thread 0: Model name: kata1-b18c384nbt-s9996604416-d4316597426
+2026-11-03 09:35:27+0000: Eigen (CPU) backend thread 2: Model version 14
+2026-11-03 09:35:27+0000: Eigen (CPU) backend thread 2: Model name: kata1-b18c384nbt-s9996604416-d4316597426
+2026-11-03 09:35:27+0000: Eigen (CPU) backend thread 3: Model version 14
+2026-11-03 09:35:27+0000: Eigen (CPU) backend thread 3: Model name: kata1-b18c384nbt-s9996604416-d4316597426
+2026-11-03 09:35:28+0000: Loaded neural net with nnXLen 9 nnYLen 9
+2026-11-03 09:35:28+0000: Initializing board with boardXSize 9 boardYSize 9
+2026-11-03 09:35:28+0000: = 
+2026-11-03 09:35:28+0000: Controller: clear_board
+2026-11-03 09:35:28+0000: = 
+2026-11-03 09:35:28+0000: Controller: komi 7.5
+2026-11-03 09:35:28+0000: = 
+2026-11-03 09:35:28+0000: Controller: play B E5
+2026-11-03 09:35:28+0000: = 
+2026-11-03 09:35:28+0000: Controller: play W C7
+2026-11-03 09:35:28+0000: = 
+2026-11-03 09:35:28+0000: Controller: kata-set-param maxVisits 8
+2026-11-03 09:35:28+0000: = 
+2026-11-03 09:35:28+0000: Controller: genmove B
+2026-11-03 09:35:29+0000: MoveNum: 2 HASH: 74B8AE54AA0BA6EFF737B62AA7DB0AA1
+   A B C D E F G H J
+ 9 . . . . . . . . .
+ 8 . . . . . . . . .
+ 7 . . O2. @ . . . .
+ 6 . . . . . . . . .
+ 5 . . . . X1. . . .
+ 4 . . . . . . . . .
+ 3 . . . . . . . . .
+ 2 . . . . . . . . .
+ 1 . . . . . . . . .
+
+koPOSITIONALscoreAREAtaxNONEsui1komi7.5
+Time taken: 1.64556
+Root visits: 8
+New playouts: 8
+NN rows: 8
+NN batches: 8
+NN avg batch size: 1
+PV: E7 C4 F3 D3
+Tree:
+: T -77.10c W -75.46c S  -1.50c ( -1.4 L  -0.5) N       8  --  E7 C4 F3 D3
+---Black(^)---
+E7  : T -74.82c W -73.25c S  -1.37c ( -1.4 L  -0.6) LCB -102.97c P 24.86% WF   7.2 PSV       7 N       5  --  E7 C4 F3 D3
+G4  : T -86.88c W -85.11c S  -1.77c ( -1.5 L  -0.2) LCB -436.88c P 10.33% WF   1.6 PSV       1 N       1  --  G4
+D7  : T -83.70c W -81.13c S  -2.57c ( -1.9 L  -0.4) LCB -433.70c P  8.63% WF   1.8 PSV       1 N       1  --  D7
+
+2026-11-03 09:35:29+0000: = E7
+2026-11-03 09:35:29+0000: Controller: boardsize 9
+2026-11-03 09:35:29+0000: = 
+2026-11-03 09:35:29+0000: Controller: clear_board
+2026-11-03 09:35:29+0000: = 
+2026-11-03 09:35:29+0000: Controller: komi 7.5
+2026-11-03 09:35:29+0000: = 
+2026-11-03 09:35:29+0000: Controller: play B E9
+2026-11-03 09:35:29+0000: = 
+2026-11-03 09:35:29+0000: Controller: play W F9
+2026-11-03 09:35:29+0000: = 
+2026-11-03 09:35:29+0000: Controller: play B E8
+2026-11-03 09:35:29+0000: = 
+2026-11-03 09:35:29+0000: Controller: play W F8
+2026-11-03 09:35:29+0000: = 
+2026-11-03 09:35:29+0000: Controller: play B E7
+2026-11-03 09:35:29+0000: = 
+2026-11-03 09:35:29+0000: Controller: play W B7
+2026-11-03 09:35:29+0000: = 
+2026-11-03 09:35:29+0000: Controller: play B E6
+2026-11-03 09:35:29+0000: = 
+2026-11-03 09:35:29+0000: Controller: play W F7
+2026-11-03 09:35:29+0000: = 
+2026-11-03 09:35:29+0000: Controller: play B E5
+2026-11-03 09:35:29+0000: = 
+2026-11-03 09:35:29+0000: Controller: play W F6
+2026-11-03 09:35:29+0000: = 
+2026-11-03 09:35:29+0000: Controller: play B E4
+2026-11-03 09:35:29+0000: = 
+2026-11-03 09:35:29+0000: Controller: play W F5
+2026-11-03 09:35:29+0000: = 
+2026-11-03 09:35:29+0000: Controller: play B E3
+2026-11-03 09:35:29+0000: = 
+2026-11-03 09:35:29+0000: Controller: play W F4
+2026-11-03 09:35:29+0000: = 
+2026-11-03 09:35:29+0000: Controller: play B E2
+2026-11-03 09:35:29+0000: = 
+2026-11-03 09:35:29+0000: Controller: play W F3
+2026-11-03 09:35:29+0000: = 
+2026-11-03 09:35:29+0000: Controller: play B E1
+2026-11-03 09:35:29+0000: = 
+2026-11-03 09:35:29+0000: Controller: play W F2
+2026-11-03 09:35:29+0000: = 
+2026-11-03 09:35:29+0000: Controller: play B pass
+2026-11-03 09:35:29+0000: = 
+2026-11-03 09:35:29+0000: Controller: play W F1
+2026-11-03 09:35:29+0000: = 
+2026-11-03 09:35:29+0000: Controller: final_status_list dead
+2026-11-03 09:35:35+0000: = B7
+2026-11-03 09:35:35+0000: Controller: quit
+2026-11-03 09:35:35+0000: Quit requested by controller

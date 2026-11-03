@@ -218,6 +218,12 @@ final private class RoundAsyncActor(
       handleAi: pov =>
         pov.game.resignable.so(finisher.other(pov.game, _.Resign, Some(!pov.color)))
 
+    // the engine resigned; ignore it if the position changed meanwhile (e.g. a takeback)
+    case AiResign(ply) =>
+      handleAi: pov =>
+        (pov.game.ply == ply && pov.game.playableByAi && pov.game.resignable)
+          .so(finisher.other(pov.game, _.Resign, Some(!pov.color)))
+
     case GoBerserk(color, promise) =>
       handle(color): pov =>
         val berserked = pov.game.goBerserk(color)
@@ -445,6 +451,7 @@ object RoundAsyncActor:
   case object WsBoot
   case class LilaStop(promise: Promise[Unit])
   case object AiStart
+  case class AiResign(ply: chess.Ply)
 
   private val monitor =
     AsyncActor.Monitor(msg => logger.warn(s"round.asyncActor unhandled msg: $msg"))

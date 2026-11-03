@@ -133,6 +133,10 @@ final class Env(
 
   lazy val isOfferingRematch = lila.core.round.IsOfferingRematch(rematcher.isOffering)
 
+  lazy val aiEngine: AiEngine = AiEngine(AiEngine.config(appConfig))
+  shutdown.addTask(org.apache.pekko.actor.CoordinatedShutdown.PhaseServiceStop, "stop AI engine"): () =>
+    fuccess(aiEngine.close()).inject(org.apache.pekko.Done)
+
   private lazy val player: MovePlayer = wire[MovePlayer]
 
   lazy val messenger = wire[Messenger]

@@ -13,8 +13,9 @@ import lila.round.RoundGame.*
 
 final private class MovePlayer(
     finisher: Finisher,
-    scheduleExpiration: ScheduleExpiration
-)(using Executor):
+    scheduleExpiration: ScheduleExpiration,
+    aiEngine: AiEngine
+)(using Executor, Scheduler):
 
   sealed private trait MoveResult
   private case object Flagged extends MoveResult
@@ -65,9 +66,11 @@ final private class MovePlayer(
       fuccess(progress.events)
 
   private def startScoring(game: Game)(using proxy: GameProxy): Fu[Events] =
-    val dead = goban.Bot.estimateDead(game.go)
-    val progress = game.updateScoring(lila.core.game.GoScoring(dead, Set.empty))
-    proxy.save(progress).inject(progress.events)
+    for
+      dead <- aiEngine.deadStones(game.go)
+      progress = game.updateScoring(lila.core.game.GoScoring(dead, Set.empty))
+      _ <- proxy.save(progress)
+    yield progress.events
 
   /** A move computed by the built-in engine. `ply` guards against stale moves after a takeback. */
   private[round] def ai(game: Game, move: goban.Move, ply: Ply)(using proxy: GameProxy): Fu[Events] =
@@ -83,10 +86,11 @@ final private class MovePlayer(
               events <-
                 if progress.game.inScoringPhase then
                   // the AI agrees with the estimated dead stones straight away
-                  val dead = goban.Bot.estimateDead(progress.game.go)
-                  val scoring = lila.core.game.GoScoring(dead, Set(game.turnColor))
-                  val p2 = progress.game.updateScoring(scoring)
-                  proxy.save(p2).inject(progress.events ::: p2.events)
+                  for
+                    dead <- aiEngine.deadStones(progress.game.go)
+                    p2 = progress.game.updateScoring(lila.core.game.GoScoring(dead, Set(game.turnColor)))
+                    _ <- proxy.save(p2)
+                  yield progress.events ::: p2.events
                 else fuccess(progress.events)
             yield events
     else fufail(AiError(s"Not AI turn move: $move id: ${game.id} ply: ${game.ply} expected: $ply"))
@@ -98,13 +102,14 @@ final private class MovePlayer(
         val level = game.aiLevel | 1
         val snapshot = game.go
         val ply = game.ply
-        Future:
-          // give the human a moment to see their own move
-          Thread.sleep(300)
-          goban.Bot.move(snapshot, level)
-        .foreach: result =>
-          lila.mon.fishnet.move(level).increment()
-          round ! RoundBus.AiPlay(result.move, ply)
+        // give the human a moment to see their own move
+        lila.common.LilaFuture
+          .delay(300.millis)(aiEngine.move(snapshot, level))
+          .foreach:
+            case AiEngine.Choice.Play(move) =>
+              lila.mon.fishnet.move(level).increment()
+              round ! RoundBus.AiPlay(move, ply)
+            case AiEngine.Choice.Resign => round ! RoundAsyncActor.AiResign(ply)
 
   private val aiLag = MoveMetrics(clientLag = Centis(5).some)
 

@@ -17,7 +17,8 @@ clocks, correspondence games, notifications, messages — and swaps the game its
 
 - Play **9×9, 13×13 and 19×19** games, with an optional **handicap** (2–9 stones, komi 0.5)
 - Play against people: lobby seeks, quick-pairing pools (19×19), or a challenge link
-- Play against the **built-in computer**, levels 1–8 (Monte-Carlo search, no external engine)
+- Play against the computer, levels 1–8: a **built-in** Monte-Carlo bot, or optionally
+  **[KataGo](https://github.com/lightvector/KataGo)** (see below)
 - Real time, correspondence, or unlimited games, Glicko-2 ratings per speed
 - Pass, resign, abort, takebacks, rematch
 - **Counting phase** after two passes: the server proposes dead stones, players click
@@ -33,7 +34,7 @@ clocks, correspondence games, notifications, messages — and swaps the game its
 
 | Path | What it is |
 | --- | --- |
-| `modules/goban` | **New.** The Go rules engine: board, captures, suicide, positional superko, handicap placement, area scoring, SGF read/write, and the Monte-Carlo bot. Pure Scala, unit tested. |
+| `modules/goban` | **New.** The Go rules engine: board, captures, suicide, positional superko, handicap placement, area scoring, SGF read/write, the Monte-Carlo bot, and a GTP client for external engines such as KataGo. Pure Scala, unit tested. |
 | `modules/core`, `game`, `round`, `lobby`, `setup`, `challenge`, `pool` | Lichess modules converted from chess to Go. `core.Game` now wraps `goban.Game`; games are stored as SGF move keys plus board size, komi, handicap and dead stones. |
 | `modules/*` (others) | Lichess platform modules kept as-is or lightly trimmed: users, security, OAuth, prefs, ratings, chat, messages, notifications, relations, reports, playbans, i18n, web. |
 | `app/` | The Play application: controllers, views and routes for the kept features. |
@@ -87,10 +88,43 @@ Requirements: **Java 21**, **sbt**, **Node.js 24.20+** with **pnpm 12**, **Mongo
 
 5. Open <http://localhost:9663>.
 
+### Optional: KataGo as the computer opponent
+
+Out of the box the computer is the built-in bot (`modules/goban/src/main/Bot.scala`): it needs
+nothing extra, but it is weak. For a strong opponent, point the server at
+[KataGo](https://github.com/lightvector/KataGo) (or any engine that speaks
+[GTP](https://www.lysator.liu.se/~gunnar/gtp/)):
+
+1. Download a KataGo release for your machine (the `eigen` build runs on any CPU; the
+   `opencl`/`cuda` builds are much faster with a GPU) and a network from
+   <https://katagotraining.org/networks/>.
+2. Copy its `default_gtp.cfg`, and set `logAllGTPCommunication = false` for production.
+3. Enable it in `conf/application.conf`:
+
+   ```hocon
+   round.ai.katago {
+     enabled = true
+     command = "/opt/katago/katago gtp -model /opt/katago/model.bin.gz -config /opt/katago/default_gtp.cfg"
+     work_dir = "/opt/katago"   # where KataGo writes its logs
+     min_level = 4              # levels 1-3 keep the built-in bot (KataGo is strong even at 1 visit)
+     visits = [1, 4, 16, 64, 256]   # search size for levels 4..8
+     timeout = 30 seconds
+     resign = true
+   }
+   ```
+
+The server starts one KataGo process, sets the same rules as the server (area scoring,
+positional superko, no suicide) and sends it one position at a time. KataGo is also used to
+propose dead stones when counting starts. If the engine is missing, crashes, answers with an
+illegal move or takes longer than `timeout`, the built-in bot plays that move instead and the
+engine is restarted for the next one.
+
 Tests:
 
 ```bash
 ./lila.sh test           # server, including the goban engine tests
+KATAGO_COMMAND="katago gtp -model model.bin.gz -config default_gtp.cfg" \
+  ./lila.sh "goban/testOnly goban.GtpTest"   # also run the real-KataGo test
 ./ui/build --tsc         # front-end type checking
 ```
 
