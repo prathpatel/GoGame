@@ -35,8 +35,8 @@ final class ChallengeApi(
 
   def createOpen(config: lila.core.setup.OpenConfig)(using me: Option[Me]): Fu[Challenge] =
     val c = Challenge.make(
-      variant = config.variant,
-      initialFen = config.position,
+      size = config.boardSize,
+      handicap = 0,
       timeControl = Challenge.makeTimeControl(config.clock, config.days),
       rated = config.rated,
       color = "random",

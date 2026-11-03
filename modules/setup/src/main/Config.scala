@@ -1,8 +1,6 @@
 package lila.setup
 
-import chess.format.Fen
-import chess.variant.{ FromPosition, Variant }
-import chess.{ Clock, Game as ChessGame, Position, Speed }
+import chess.{ Clock, Speed }
 import scalalib.model.Days
 
 import lila.lobby.TriColor
@@ -22,15 +20,19 @@ private[setup] trait Config:
   // Correspondence days per turn
   val days: Days
 
-  // Game variant code
-  val variant: Variant
+  // Board size (9, 13, 19)
+  val size: goban.BoardSize
+
+  // Number of handicap stones given to Black (0 for an even game)
+  val handicap: Int
 
   def hasClock = timeMode == TimeMode.RealTime
 
-  def makeGame(v: Variant): ChessGame =
-    ChessGame(position = v.initialPosition, clock = makeClock.map(_.toClock))
+  def komi: goban.Komi = goban.Game.defaultKomi(handicap)
 
-  def makeGame: ChessGame = makeGame(variant)
+  def makeGame: goban.Game = goban.Game(size, komi, handicap, makeClock.map(_.toClock))
+
+  def validHandicap = handicap == 0 || (handicap >= 2 && handicap <= goban.Handicap.max(size))
 
   def validClock = !hasClock || clockHasTime
 
@@ -52,7 +54,7 @@ private[setup] trait Config:
 
   def makeSpeed: Speed = chess.Speed(makeClock)
 
-  def perfType: PerfType = lila.rating.PerfType(variant, makeSpeed)
+  def perfType: PerfType = lila.rating.PerfType(chess.variant.Standard, makeSpeed)
   def perfKey = perfType.key
 
 trait WithColor:
@@ -63,73 +65,12 @@ trait WithColor:
 
   lazy val creatorColor: Color = color.resolve()
 
-trait Positional:
-  self: Config =>
-
-  def fen: Option[Fen.Full]
-
-  def strictFen: Boolean
-
-  lazy val validFen = variant != FromPosition ||
-    fen.exists: f =>
-      Fen.read(f).exists(_.playable(strictFen))
-
-  def fenGame(builder: ChessGame => Fu[Game]): Fu[Game] =
-    val baseState = fen
-      .ifTrue(variant.fromPosition)
-      .flatMap:
-        Fen.readWithMoveNumber(FromPosition, _)
-    val (chessGame, state) = baseState.fold(makeGame -> none):
-      case sit @ Position.AndFullMoveNumber(s, _) =>
-        val game = ChessGame(
-          position = s,
-          ply = sit.ply,
-          startedAtPly = sit.ply,
-          clock = makeClock.map(_.toClock)
-        )
-        if Fen.write(game).isInitial then makeGame(chess.variant.Standard) -> none
-        else game -> baseState
-    builder(chessGame).dmap { game =>
-      state.fold(game) { case sit @ Position.AndFullMoveNumber(position, _) =>
-        game.copy(
-          chess = game.chess.copy(
-            position = game.position.copy(
-              history = position.history,
-              variant = FromPosition
-            ),
-            ply = sit.ply
-          )
-        )
-      }
-    }
-
 object Config extends BaseConfig
 
 trait BaseConfig:
-  val variants = List(chess.variant.Standard.id, chess.variant.Chess960.id)
-  val variantDefault = chess.variant.Standard
-
-  val variantsWithFen = variants :+ FromPosition.id
-  val aiVariants = variants :+
-    chess.variant.Crazyhouse.id :+
-    chess.variant.KingOfTheHill.id :+
-    chess.variant.ThreeCheck.id :+
-    chess.variant.Antichess.id :+
-    chess.variant.Atomic.id :+
-    chess.variant.Horde.id :+
-    chess.variant.RacingKings.id :+
-    chess.variant.FromPosition.id
-  val variantsWithVariants =
-    variants :+
-      chess.variant.Crazyhouse.id :+
-      chess.variant.KingOfTheHill.id :+
-      chess.variant.ThreeCheck.id :+
-      chess.variant.Antichess.id :+
-      chess.variant.Atomic.id :+
-      chess.variant.Horde.id :+
-      chess.variant.RacingKings.id
-  val variantsWithFenAndVariants =
-    variantsWithVariants :+ FromPosition.id
+  val sizes = goban.BoardSize.all.map(_.size)
+  val sizeDefault = goban.BoardSize.default
+  val handicaps = 0 :: (2 to 9).toList
 
   val speeds = Speed.all.map(_.id)
 

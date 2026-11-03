@@ -24,12 +24,11 @@ object RageSit:
 
   def imbalanceInc(game: Game, loser: Color) = Update.Inc:
     {
-      import chess.variant.*
-      (game.chess.position.materialImbalance, game.variant) match
-        case (_, Crazyhouse | Horde | Antichess) => 0
-        case (a, _) if a >= 4 => 1
-        case (a, _) if a <= -4 => -1
-        case _ => 0
+      // in Go, the prisoner count is a rough proxy for who is ahead
+      val a = game.go.prisoners.white - game.go.prisoners.black
+      if a >= 4 then 1
+      else if a <= -4 then -1
+      else 0
     } * {
       if loser.white then 1 else -1
     } * {

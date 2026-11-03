@@ -43,10 +43,6 @@ final class Env(
 
   wire[MailerCli]
 
-  Bus.sub[lila.core.fishnet.NewKey]:
-    case lila.core.fishnet.NewKey(userId, key) =>
-      automaticEmail.onFishnetKey(userId, key)
-
   Bus.sub[lila.core.plan.PlanStart]: plan =>
     automaticEmail.onPatronNew(plan.userId)
 

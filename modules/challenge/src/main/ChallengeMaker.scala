@@ -56,17 +56,15 @@ final class ChallengeMaker(
       dest: WithPerf,
       nextId: GameId
   ): Fu[Challenge] =
-    gameRepo
-      .initialFen(pov.game)
-      .map: initialFen =>
+    fuccess:
         val timeControl = (pov.game.clock, pov.game.daysPerTurn) match
           case (Some(clock), _) => TimeControl.Clock(clock.config)
           case (_, Some(days)) => TimeControl.Correspondence(days)
           case _ => TimeControl.Unlimited
         val alternateColor = rematchAlternatesColor(pov.game, List(challenger.map(_.user), dest.user.some))
         Challenge.make(
-          variant = pov.game.variant,
-          initialFen = initialFen,
+          size = pov.game.boardSize,
+          handicap = pov.game.handicap,
           timeControl = timeControl,
           rated = pov.game.rated,
           color = (if alternateColor then !pov.color else pov.color).name,

@@ -1,21 +1,7 @@
 package lila.game
 
-import chess.format.Fen
-import chess.variant.{ Crazyhouse, Variant }
-import chess.{
-  Board,
-  ByColor,
-  CheckCount,
-  Clock,
-  Color,
-  Game as ChessGame,
-  HalfMoveClock,
-  History as ChessHistory,
-  Ply,
-  Rated,
-  Status,
-  UnmovedRooks
-}
+import chess.variant.Variant
+import chess.{ ByColor, Clock, Color, Ply, Rated, Status }
 import reactivemongo.api.bson.*
 import scalalib.model.Days
 
@@ -41,40 +27,14 @@ object BSONHandlers:
   import lila.db.ByteArray.byteArrayHandler
   import lila.game.Game.maxPlies
 
-  private[game] given checkCountWriter: BSONWriter[CheckCount] with
-    def writeTry(cc: CheckCount) = Success(BSONArray(cc.white, cc.black))
-
   given statusHandler: BSONHandler[Status] = tryHandler[Status](
     { case BSONInteger(v) => Status(v).toTry(s"No such status: $v") },
     x => BSONInteger(x.id)
   )
 
-  private[game] given BSONHandler[UnmovedRooks] = tryHandler[UnmovedRooks](
-    { case bin: BSONBinary => byteArrayHandler.readTry(bin).map(BinaryFormat.unmovedRooks.read) },
-    x => byteArrayHandler.writeTry(BinaryFormat.unmovedRooks.write(x)).get
-  )
-
   given BSONHandler[GameRule] = valueMapHandler[String, GameRule](GameRule.byKey)(_.toString)
 
   given sourceHandler: BSONHandler[Source] = valueMapHandler[Int, Source](Source.byId)(_.id)
-
-  private[game] given crazyhouseDataHandler: BSON[Crazyhouse.Data] with
-    import Crazyhouse.*
-    def reads(r: BSON.Reader) =
-      val (white, black) = r.str("p").view.flatMap(chess.Piece.fromChar).to(List).partition(_.is(chess.White))
-      Crazyhouse.Data(
-        pockets = ByColor(white, black).map(pieces => Pocket(pieces.map(_.role))),
-        promoted = chess.Bitboard(r.str("t").view.flatMap(chess.Square.fromChar(_)))
-      )
-
-    def writes(w: BSON.Writer, o: Crazyhouse.Data) =
-      def roles = o.pockets.mapWithColor: (color, pocket) =>
-        pocket.flatMap((role, nb) => List.fill(nb)(role.forsythBy(color))).mkString
-
-      BSONDocument(
-        "p" -> roles.reduce(_ + _),
-        "t" -> o.promoted.map(_.asChar).mkString
-      )
 
   private[game] given gameDrawOffersHandler: BSONHandler[GameDrawOffers] = tryHandler[GameDrawOffers](
     { case arr: BSONArray =>
@@ -113,51 +73,15 @@ object BSONHandlers:
       val whitePlayer = Player.from(light, Color.white, playerIds, r.getD[Bdoc](F.whitePlayer))
       val blackPlayer = Player.from(light, Color.black, playerIds, r.getD[Bdoc](F.blackPlayer))
 
-      val decoded = r.bytesO(F.huffmanPgn) match
-        case Some(huffPgn) => PgnStorage.Huffman.decode(huffPgn, playedPlies, light.id)
-        case None =>
-          val clm = r.get[CastleLastMove](F.castleLastMove)
-          val sans = PgnStorage.OldBin.decode(r.bytesD(F.oldPgn), playedPlies)
-          val halfMoveClock = HalfMoveClock
-            .from:
-              sans.reverse
-                .indexWhere(san => san.value.contains("x") || san.value.headOption.exists(_.isLower))
-                .some
-            .filter(HalfMoveClock.initial <= _)
-          PgnStorage.Decoded(
-            sans = sans,
-            board = Board.fromMap(BinaryFormat.piece.read(r.bytes(F.binaryPieces), light.variant)),
-            positionHashes =
-              r.getO[Array[Byte]](F.positionHashes).map(chess.PositionHash.apply) | chess.PositionHash.empty,
-            unmovedRooks = r.getO[UnmovedRooks](F.unmovedRooks) | UnmovedRooks.default,
-            lastMove = clm.lastMove,
-            castles = clm.castles,
-            halfMoveClock = halfMoveClock
-              .orElse(r.getO[Fen.Full](F.initialFen).flatMap { fen =>
-                Fen.readHalfMoveClockAndFullMoveNumber(fen)._1
-              })
-              .getOrElse(playedPlies.into(HalfMoveClock))
-          )
+      val size = goban.BoardSize.orDefault(r.intD(F.boardSize))
+      val komi = r.intO(F.komi).fold(size.defaultKomi)(goban.Komi.fromTenths)
+      val handicap = r.intD(F.handicap)
+      val moves = goban.Game.parseMoves(r.strD(F.goMoves), size).take(playedPlies.value)
+      val replayed = goban.Game
+        .replay(size, komi, handicap, moves)
+        .fold(err => sys.error(s"Invalid go game ${light.id}: $err"), identity)
 
-      val chessGame = ChessGame(
-        position = chess.Position(
-          board = decoded.board,
-          history = ChessHistory(
-            lastMove = decoded.lastMove,
-            castles = decoded.castles,
-            halfMoveClock = decoded.halfMoveClock,
-            positionHashes = decoded.positionHashes,
-            unmovedRooks = decoded.unmovedRooks,
-            checkCount = if light.variant.threeCheck then
-              val counts = r.intsD(F.checkCount)
-              CheckCount(~counts.headOption, ~counts.lastOption)
-            else emptyCheckCount,
-            crazyData = light.variant.crazyhouse.option(r.get[Crazyhouse.Data](F.crazyData))
-          ),
-          variant = light.variant,
-          color = turnColor
-        ),
-        sans = decoded.sans,
+      val goGame = replayed.copy(
         clock = r
           .getO[Color => Clock](F.clock)(using
             clockBSONReader(createdAt, whitePlayer.berserk, blackPlayer.berserk)
@@ -173,7 +97,7 @@ object BSONHandlers:
       Game(
         id = light.id,
         players = ByColor(whitePlayer, blackPlayer),
-        chess = chessGame,
+        go = goGame,
         loadClockHistory = clk =>
           for
             bw <- whiteClockHistory
@@ -200,7 +124,11 @@ object BSONHandlers:
           drawOffers = r.getD(F.drawOffers, emptyDrawOffers),
           rules = r.getD(F.rules, Set.empty)
         ),
-        abortedBy = r.getO[Color](F.abortedBy)
+        abortedBy = r.getO[Color](F.abortedBy),
+        scoring = lila.core.game.GoScoring(
+          dead = r.intsD(F.dead).map(goban.Point.fromIndex).toSet,
+          accepted = r.getD[List[Color]](F.scoringAccepted, Nil).toSet
+        )
       )
 
     def writes(w: BSON.Writer, o: Game) =
@@ -218,17 +146,22 @@ object BSONHandlers:
         F.whitePlayer -> w.docO(Player.playerWrite(o.whitePlayer)),
         F.blackPlayer -> w.docO(Player.playerWrite(o.blackPlayer)),
         F.status -> o.status,
-        F.turns -> o.chess.ply,
-        F.startedAtTurn -> w.intO(o.chess.startedAtPly.value),
-        F.clock -> o.chess.clock.flatMap { c =>
+        F.turns -> o.go.ply,
+        F.startedAtTurn -> w.intO(o.go.startedAtPly.value),
+        F.clock -> o.go.clock.flatMap { c =>
           clockBSONWrite(o.createdAt, c).toOption
         },
         F.daysPerTurn -> o.daysPerTurn,
         F.moveTimes -> o.binaryMoveTimes,
-        F.whiteClockHistory -> clockHistory(Color.White, o.clockHistory, o.chess.clock, o.flagged),
-        F.blackClockHistory -> clockHistory(Color.Black, o.clockHistory, o.chess.clock, o.flagged),
+        F.whiteClockHistory -> clockHistory(Color.White, o.clockHistory, o.go.clock, o.flagged),
+        F.blackClockHistory -> clockHistory(Color.Black, o.clockHistory, o.go.clock, o.flagged),
         F.rated -> w.yesnoO(o.rated),
-        F.variant -> o.position.variant.exotic.option(w(o.position.variant.id)),
+        F.goMoves -> o.go.moveKeys,
+        F.boardSize -> o.boardSize.size,
+        F.komi -> o.komi.tenths,
+        F.handicap -> w.intO(o.handicap),
+        F.dead -> o.scoring.dead.nonEmpty.option(o.scoring.dead.toList.map(_.index).sorted),
+        F.scoringAccepted -> o.scoring.accepted.nonEmpty.option(o.scoring.accepted.toList),
         F.bookmarks -> w.intO(o.bookmarks),
         F.createdAt -> w.date(o.createdAt),
         F.movedAt -> w.date(o.movedAt),
@@ -240,22 +173,8 @@ object BSONHandlers:
         F.analysed -> w.boolO(o.metadata.analysed),
         F.rules -> o.metadata.nonEmptyRules,
         F.abortedBy -> o.abortedBy
-      ) ++ {
-        if o.variant.standard then
-          bdoc(F.huffmanPgn -> PgnStorage.Huffman.encode(o.sans.take(maxPlies.value)))
-        else
-          val f = PgnStorage.OldBin
-          bdoc(
-            F.oldPgn -> f.encode(o.sans.take(maxPlies.value)),
-            F.binaryPieces -> BinaryFormat.piece.write(o.position.pieces),
-            F.positionHashes -> o.history.positionHashes.value,
-            F.unmovedRooks -> o.history.unmovedRooks,
-            F.castleLastMove -> CastleLastMove(castles = o.history.castles, lastMove = o.history.lastMove),
-            F.checkCount -> o.history.checkCount.nonEmpty.option(o.history.checkCount),
-            F.crazyData -> o.position.crazyData
-          )
-      }
-    val emptyCheckCount = CheckCount(0, 0)
+      )
+
 
   given lightGameReader: lila.db.BSONReadOnly[LightGame] with
 

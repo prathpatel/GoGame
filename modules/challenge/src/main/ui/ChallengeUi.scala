@@ -41,7 +41,7 @@ final class ChallengeUi(helpers: Helpers):
     val speed = c.clock.map(_.config).fold(chess.Speed.Correspondence.name) { clock =>
       s"${chess.Speed(clock).name} (${clock.show})"
     }
-    val variant = c.variant.exotic.so(s" ${c.variant.name}")
+    val variant = s" ${c.boardSize.name}"
     val challenger = c.challengerUser.fold(trans.site.anonymous.txt()): reg =>
       s"${titleNameOrId(reg.id)}${ctx.pref.showRatings.so(s" (${reg.rating.show})")}"
     val players =
@@ -49,17 +49,20 @@ final class ChallengeUi(helpers: Helpers):
       else
         c.destUser.fold(s"Challenge from $challenger"): dest =>
           s"$challenger challenges ${titleNameOrId(dest.id)}${ctx.pref.showRatings.so(s" (${dest.rating.show})")}"
-    s"$speed$variant ${c.rated.name} Chess • $players"
+    s"$speed$variant ${c.rated.name} Go • $players"
 
   private def details(c: Challenge, requestedColor: Option[Color])(using ctx: Context) =
     div(cls := "details-wrapper")(
       div(cls := "content")(
         div(
           cls := "variant",
-          dataIcon := (if c.initialFen.isDefined then Icon.Feather else c.perfType.icon)
+          dataIcon := c.perfType.icon
         )(
           div(
-            variantLink(c.variant, c.perfType, c.initialFen),
+            span(cls := "variant-link")(
+              s"${c.boardSize.name} • ${c.perfType.trans}",
+              (c.handicap > 0).option(s" • ${c.handicap} stones handicap")
+            ),
             br,
             span(cls := "clock"):
               c.daysPerTurn
@@ -185,11 +188,6 @@ final class ChallengeUi(helpers: Helpers):
                         )
                     )
                 },
-              c.notableInitialFen.map: fen =>
-                frag(
-                  br,
-                  div(cls := "board-preview", chessgroundMini(fen.board, c.finalColor)(div))
-                ),
               (!c.isOpen).option(cancelForm)
             )
           case Status.Declined =>
@@ -244,8 +242,6 @@ final class ChallengeUi(helpers: Helpers):
                       )
               ,
               details(c, color),
-              c.notableInitialFen.map: fen =>
-                div(cls := "board-preview", chessgroundMini(fen.board, !c.finalColor)(div)),
               if relation.has(Relation.Block) then badTag("You have blocked this player.")
               else if c.open.exists(!_.canJoin) then
                 div(
@@ -307,11 +303,11 @@ final class ChallengeUi(helpers: Helpers):
 
   private def genericUrl(c: Challenge): Option[Url] =
     c.challengerUser.map: user =>
-      import c.{ initialFen, rated, timeControl, variant, colorChoice }
+      import c.{ rated, timeControl, size, colorChoice }
       val params: Map[String, String] = List(
         List(
           "user" -> user.id.value,
-          "variant" -> variant.key.value,
+          "size" -> size.toString,
           "gameMode" -> rated.name
         ),
         timeControl.match
@@ -322,7 +318,7 @@ final class ChallengeUi(helpers: Helpers):
             )
           case Challenge.TimeControl.Correspondence(days) => List("days" -> days.value.toString)
           case Challenge.TimeControl.Unlimited => List("time" -> "unlimited"),
-        initialFen.map(f => "fen" -> f.value),
+        (c.handicap > 0).so(List("handicap" -> c.handicap.toString)),
         colorChoice.match
           case Challenge.ColorChoice.Random => Nil
           case choice => List("color" -> choice.trans.value)

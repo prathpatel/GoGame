@@ -34,7 +34,7 @@ final private class FarmBoostDetection(
             .map:
               _.exists: prev =>
                 g.winnerUserId === prev.winnerUserId &&
-                  g.sans.take(SAME_PLIES) === prev.sans.take(SAME_PLIES)
+                  g.moves.take(SAME_PLIES) == prev.moves.take(SAME_PLIES)
             .addEffect:
               if _ then lila.mon.round.farming.bot.increment()
 
@@ -60,7 +60,7 @@ final private class FarmBoostDetection(
         def minPliesForPerfNb =
           if g.variant.standard
           then linearInterpolation(perf.nb)(0 -> 40, 5 -> 20)
-          else reasonableMinimumNumberOfMoves(g.variant)
+          else reasonableMinimumNumberOfMoves(g.boardSize)
         def minPliesForLoserRating =
           g.variant.standard
             .so(g.loser.flatMap(_.rating))
@@ -75,7 +75,7 @@ final private class FarmBoostDetection(
       .addEffect:
         if _ then
           lila.mon.round.farming.provisional.increment()
-          logger.info(s"new account boosting: https://lichess.org/${g.id} ${users.map(_.user.username)}")
+          logger.info(s"new account boosting: /${g.id} ${users.map(_.user.username)}")
 
   private def linearInterpolation(x: Int)(p1: PairOf[Int], p2: PairOf[Int]): Int =
     val ((x1, y1), (x2, y2)) = (p1, p2)

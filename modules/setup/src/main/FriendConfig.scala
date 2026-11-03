@@ -1,56 +1,51 @@
 package lila.setup
 
-import chess.format.Fen
-import chess.variant.Variant
 import chess.{ Clock, Rated }
 import scalalib.model.Days
 
 import lila.lobby.TriColor
 
 case class FriendConfig(
-    variant: chess.variant.Variant,
+    size: goban.BoardSize,
     timeMode: TimeMode,
     time: Double,
     increment: Clock.IncrementSeconds,
     days: Days,
     rated: Rated,
     color: TriColor,
-    fen: Option[Fen.Full] = None
+    handicap: Int = 0
 ) extends HumanConfig
-    with Positional
     with WithColor:
 
-  val strictFen = false
-
-  def >> = (variant.id, timeMode.id, time, increment, days, rated.id.some, color.name, fen).some
+  def >> = (size.size, timeMode.id, time, increment, days, rated.id.some, color.name, handicap).some
 
   def isPersistent = timeMode == TimeMode.Unlimited || timeMode == TimeMode.Correspondence
 
 object FriendConfig extends BaseConfig:
 
   def from(
-      v: Variant.Id,
+      s: Int,
       tm: Int,
       t: Double,
       i: Clock.IncrementSeconds,
       d: Days,
       m: Option[Int],
       c: String,
-      fen: Option[Fen.Full]
+      h: Int
   ) =
     new FriendConfig(
-      variant = chess.variant.Variant.orDefault(v),
+      size = goban.BoardSize.orDefault(s),
       timeMode = TimeMode(tm).err(s"Invalid time mode $tm"),
       time = t,
       increment = i,
       days = d,
       rated = m.fold(Rated.default)(Rated.orDefault),
       color = TriColor(c).err("Invalid color " + c),
-      fen = fen
+      handicap = h
     )
 
   val default = FriendConfig(
-    variant = variantDefault,
+    size = sizeDefault,
     timeMode = TimeMode.Unlimited,
     time = 5d,
     increment = Clock.IncrementSeconds(8),
@@ -66,23 +61,23 @@ object FriendConfig extends BaseConfig:
 
     def reads(r: BSON.Reader): FriendConfig =
       FriendConfig(
-        variant = Variant.idOrDefault(r.getO[Variant.Id]("v")),
+        size = goban.BoardSize.orDefault(r.intD("s")),
         timeMode = TimeMode.orDefault(r.int("tm")),
         time = r.double("t"),
         increment = r.get("i"),
         days = r.get("d"),
         rated = Rated.orDefault(r.int("m")),
-        color = TriColor.White,
-        fen = r.getO[Fen.Full]("f").filter(_.value.nonEmpty)
+        color = TriColor.Random,
+        handicap = r.intD("h")
       )
 
     def writes(w: BSON.Writer, o: FriendConfig) =
       bdoc(
-        "v" -> o.variant.id,
+        "s" -> o.size.size,
         "tm" -> o.timeMode.id,
         "t" -> o.time,
         "i" -> o.increment,
         "d" -> o.days,
         "m" -> o.rated.id,
-        "f" -> o.fen
+        "h" -> o.handicap
       )

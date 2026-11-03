@@ -1,26 +1,24 @@
 package lila.round
 
-import chess.format.{ Fen, Uci }
-import chess.{ Centis, Clock, ErrorStr, MoveMetrics, MoveOrDrop, Status }
+import chess.{ Centis, ErrorStr, MoveMetrics, Ply }
 
 import java.util.concurrent.TimeUnit
 
 import lila.common.Bus
 import lila.core.round.*
-import lila.game.GameExt.applyMove
+import lila.game.GameExt.{ applyMove, updateScoring }
+import lila.game.Progress
 import lila.game.actorApi.MoveGameEvent
-import lila.game.{ Progress, UciMemo }
 import lila.round.RoundGame.*
 
 final private class MovePlayer(
     finisher: Finisher,
-    scheduleExpiration: ScheduleExpiration,
-    uciMemo: UciMemo
+    scheduleExpiration: ScheduleExpiration
 )(using Executor):
 
   sealed private trait MoveResult
   private case object Flagged extends MoveResult
-  private case class MoveApplied(progress: Progress, move: MoveOrDrop, compedLag: Option[Centis])
+  private case class MoveApplied(progress: Progress, move: goban.Move, compedLag: Option[Centis])
       extends MoveResult
 
   private[round] def human(play: HumanPlay, round: RoundAsyncActor)(
@@ -30,129 +28,109 @@ final private class MovePlayer(
     if game.ply > lila.game.Game.maxPlies then
       round ! TooManyPlies
       fuccess(Nil)
+    else if game.inScoringPhase then fufail(ClientError(s"$pov game is being scored"))
     else if game.playableBy(color) then
-      applyUci(game, play.uci, play.blur, play.moveMetrics)
+      goban.Move
+        .parse(play.key, game.board.width)
+        .toRight(chess.ErrorStr(s"invalid move ${play.key}"))
+        .flatMap(applyMove(game, _, play.blur, play.moveMetrics))
         .leftMap(e => s"$pov $e")
         .fold(errs => fufail(ClientError(errs)), fuccess)
         .flatMap:
           case Flagged => finisher.outOfTime(game)
-          case MoveApplied(progress, moveOrDrop, compedLag) =>
+          case MoveApplied(progress, move, compedLag) =>
             compedLag.foreach: lag =>
               lila.mon.round.move.lag.moveComp.record(lag.millis, TimeUnit.MILLISECONDS)
             proxy.save(progress) >>
-              postHumanOrBotPlay(round, pov, progress, moveOrDrop)
+              postHumanPlay(round, pov, progress, move)
     else if game.finished then fufail(GameIsFinishedError(game.id))
     else if game.aborted then fufail(ClientError(s"$pov game is aborted"))
     else if !game.turnOf(color) then fufail(ClientError(s"$pov not your turn"))
     else fufail(ClientError(s"$pov move refused for some reason"))
 
-  private[round] def bot(uci: Uci, round: RoundAsyncActor)(pov: Pov)(using proxy: GameProxy): Fu[Events] =
-    import pov.{ game, color }
-    if game.ply > lila.game.Game.maxPlies then
-      round ! TooManyPlies
-      fuccess(Nil)
-    else if game.playableBy(color) then
-      applyUci(game, uci, blur = false, botLag)
-        .fold(errs => fufail(ClientError(ErrorStr.raw(errs))), fuccess)
-        .flatMap:
-          case Flagged => finisher.outOfTime(game)
-          case MoveApplied(progress, moveOrDrop, _) =>
-            proxy.save(progress) >> postHumanOrBotPlay(round, pov, progress, moveOrDrop)
-    else if game.finished then fufail(GameIsFinishedError(game.id))
-    else if game.aborted then fufail(ClientError(s"$pov game is aborted"))
-    else if !game.turnOf(color) then fufail(ClientError(s"$pov not your turn"))
-    else fufail(ClientError(s"$pov move refused for some reason"))
-
-  private def postHumanOrBotPlay(
+  private def postHumanPlay(
       round: RoundAsyncActor,
       pov: Pov,
       progress: Progress,
-      moveOrDrop: MoveOrDrop
+      move: goban.Move
   )(using GameProxy): Fu[Events] =
-    if pov.game.hasAi then uciMemo.add(pov.game, moveOrDrop)
-    notifyMove(moveOrDrop, progress.game)
-    if progress.game.finished then moveFinish(progress.game).dmap(progress.events ::: _)
+    notifyMove(move, progress.game)
+    if progress.game.inScoringPhase then
+      // both players passed: suggest dead stones to start the counting phase
+      startScoring(progress.game).dmap(progress.events ::: _)
     else
-      if progress.game.playableByAi then requestFishnet(progress.game, round)
-      if pov.opponent.isOfferingDraw then round ! RoundBus.Draw(pov.player.id, false)
+      if progress.game.playableByAi then requestAi(progress.game, round)
       if pov.opponent.isProposingTakeback then round ! RoundBus.Takeback(pov.player.id, false)
-      if progress.game.forecastable then round ! ForecastPlay(moveOrDrop)
       scheduleExpiration.exec(progress.game)
       fuccess(progress.events)
 
-  private[round] def fishnet(game: Game, sign: String, uci: Uci)(using proxy: GameProxy): Fu[Events] =
-    if game.playable && game.player.isAi then
-      uciMemo.sign(game).flatMap { expectedSign =>
-        if expectedSign == sign then
-          applyUci(game, uci, blur = false, metrics = fishnetLag)
-            .fold(errs => fufail(ClientError(ErrorStr.raw(errs))), fuccess)
-            .flatMap:
-              case Flagged => finisher.outOfTime(game)
-              case MoveApplied(progress, moveOrDrop, _) =>
-                for
-                  _ <- proxy.save(progress)
-                  _ =
-                    uciMemo.add(progress.game, moveOrDrop)
-                    lila.mon.fishnet.move(~game.aiLevel).increment()
-                    notifyMove(moveOrDrop, progress.game)
-                  events <-
-                    if progress.game.finished then moveFinish(progress.game).dmap(progress.events ::: _)
-                    else fuccess(progress.events)
-                yield events
-        else
-          fufail:
-            FishnetError:
-              s"Invalid game hash: $sign id: ${game.id} playable: ${game.playable} player: ${game.player}"
-      }
-    else
-      // probably the player took a move back,
-      // and the when the AI move arrives it's no longer its turn
-      fufail:
-        FishnetError:
-          s"Not AI turn move: $uci id: ${game.id} playable: ${game.playable} player: ${game.player}"
+  private def startScoring(game: Game)(using proxy: GameProxy): Fu[Events] =
+    val dead = goban.Bot.estimateDead(game.go)
+    val progress = game.updateScoring(lila.core.game.GoScoring(dead, Set.empty))
+    proxy.save(progress).inject(progress.events)
 
-  private[round] def requestFishnet(game: Game, round: RoundAsyncActor): Unit =
+  /** A move computed by the built-in engine. `ply` guards against stale moves after a takeback. */
+  private[round] def ai(game: Game, move: goban.Move, ply: Ply)(using proxy: GameProxy): Fu[Events] =
+    if game.playable && game.player.isAi && game.ply == ply && !game.inScoringPhase then
+      applyMove(game, move, blur = false, metrics = aiLag)
+        .fold(errs => fufail(AiError(ErrorStr.raw(errs))), fuccess)
+        .flatMap:
+          case Flagged => finisher.outOfTime(game)
+          case MoveApplied(progress, move, _) =>
+            for
+              _ <- proxy.save(progress)
+              _ = notifyMove(move, progress.game)
+              events <-
+                if progress.game.inScoringPhase then
+                  // the AI agrees with the estimated dead stones straight away
+                  val dead = goban.Bot.estimateDead(progress.game.go)
+                  val scoring = lila.core.game.GoScoring(dead, Set(game.turnColor))
+                  val p2 = progress.game.updateScoring(scoring)
+                  proxy.save(p2).inject(progress.events ::: p2.events)
+                else fuccess(progress.events)
+            yield events
+    else fufail(AiError(s"Not AI turn move: $move id: ${game.id} ply: ${game.ply} expected: $ply"))
+
+  private[round] def requestAi(game: Game, round: RoundAsyncActor): Unit =
     game.playableByAi.so:
-      if game.ply <= lila.core.fishnet.maxPlies then Bus.pub(lila.core.fishnet.FishnetMoveRequest(game))
-      else round ! ResignAi
+      if game.ply > lila.game.Game.maxPlies then round ! ResignAi
+      else
+        val level = game.aiLevel | 1
+        val snapshot = game.go
+        val ply = game.ply
+        Future:
+          // give the human a moment to see their own move
+          Thread.sleep(300)
+          goban.Bot.move(snapshot, level)
+        .foreach: result =>
+          lila.mon.fishnet.move(level).increment()
+          round ! RoundBus.AiPlay(result.move, ply)
 
-  private val fishnetLag = MoveMetrics(clientLag = Centis(5).some)
-  private val botLag = MoveMetrics(clientLag = Centis(0).some)
+  private val aiLag = MoveMetrics(clientLag = Centis(5).some)
 
-  private def applyUci(
+  private def applyMove(
       game: Game,
-      uci: Uci,
+      move: goban.Move,
       blur: Boolean,
       metrics: MoveMetrics
   ): Either[ErrorStr, MoveResult] =
-    uci
-      .match
-        case Uci.Move(orig, dest, prom) =>
-          game.chess.moveWithCompensated(orig, dest, prom, metrics)
-        case Uci.Drop(role, pos) =>
-          game.chess.drop(role, pos, metrics).map((ncg, drop) => Clock.WithCompensatedLag(ncg, None) -> drop)
+    game.go
+      .apply(move, metrics)
       .map:
-        case (ncg, _) if ncg.value.clock.exists(_.outOfTime(game.turnColor, withGrace = false)) => Flagged
-        case (ncg, moveOrDrop: MoveOrDrop) =>
+        case ncg if ncg.value.clock.exists(_.outOfTime(game.turnColor, withGrace = false)) => Flagged
+        case ncg =>
           MoveApplied(
-            game.applyMove(ncg.value, moveOrDrop, blur),
-            moveOrDrop,
+            game.applyMove(ncg.value, move, blur),
+            move,
             ncg.compensated
           )
 
-  private def notifyMove(moveOrDrop: MoveOrDrop, game: Game): Unit =
-    import lila.core.round.{ CorresMoveEvent, MoveEvent, SimulMoveEvent }
-    val color = moveOrDrop.color
-    val moveEvent = MoveEvent(
-      gameId = game.id,
-      fen = Fen.write(game.chess),
-      move = moveOrDrop.toUci
-    )
+  private def notifyMove(move: goban.Move, game: Game): Unit =
+    import lila.core.round.{ CorresMoveEvent, MoveEvent }
+    val color = !game.turnColor
+    val moveEvent = MoveEvent(gameId = game.id, move = move.key(game.board.width))
 
-    // I checked and the bus doesn't do much if there's no subscriber for a classifier,
-    // so we should be good here.
-    // also used for targeted TvBroadcast subscription
-    Bus.publishDyn(MoveGameEvent(game, moveEvent.fen, moveEvent.move), MoveGameEvent.makeChan(game.id))
+    Bus.publishDyn(MoveGameEvent(game, moveEvent.move), MoveGameEvent.makeChan(game.id))
 
     // publish correspondence moves
     if game.isCorrespondence && game.nonAi then
@@ -164,17 +142,3 @@ final private class MovePlayer(
           alarmable = game.alarmable,
           unlimited = game.isUnlimited
         )
-
-    // publish simul moves
-    for
-      simulId <- game.simulId
-      opponentUserId <- game.player(!color).userId
-      event = SimulMoveEvent(move = moveEvent, simulId = simulId, opponentUserId = opponentUserId)
-    yield Bus.pub(event)
-
-  private def moveFinish(game: Game)(using GameProxy): Fu[Events] =
-    game.status match
-      case Status.Mate => finisher.other(game, _.Mate, game.position.winner)
-      case Status.VariantEnd => finisher.other(game, _.VariantEnd, game.position.winner)
-      case status @ (Status.Stalemate | Status.Draw) => finisher.other(game, _ => status, None)
-      case _ => fuccess(Nil)

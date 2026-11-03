@@ -1,7 +1,6 @@
 package lila.setup
 package ui
 
-import chess.variant.Variant
 import chess.{ Rated, Speed }
 import play.api.data.{ Field, Form }
 
@@ -36,14 +35,9 @@ final class SetupUi(helpers: Helpers):
       p(cls := "header")(trans.site.filterGames()),
       table(
         tbody(
-          tr(cls := "filter-variant")(
-            td(trans.site.variant()),
-            td(
-              setupCheckboxes(
-                form("variant"),
-                translatedVariantChoicesWithVariants(_.key.value)
-              )
-            )
+          tr(cls := "filter-size")(
+            td("Board"),
+            td(setupCheckboxes(form("size"), sizeChoices))
           ),
           tr(
             td(trans.site.timeControl()),
@@ -146,28 +140,8 @@ final class SetupUi(helpers: Helpers):
       (0, trans.site.no.txt(), none)
     )
 
-  private def encodeId(v: Variant) = v.id.toString
-
-  private def variantTuple(encode: Variant => String)(variant: Variant)(using Translate): SelectChoice =
-    (encode(variant), variant.variantTrans.txt(), variant.variantTitleTrans.txt().some)
-
-  private val selectableVariants: List[Variant] = List(
-      chess.variant.Standard,
-      chess.variant.Crazyhouse,
-      chess.variant.Chess960,
-      chess.variant.KingOfTheHill,
-      chess.variant.ThreeCheck,
-      chess.variant.Antichess,
-      chess.variant.Atomic,
-      chess.variant.Horde,
-      chess.variant.RacingKings
-    )
-
-  def translatedVariantChoicesWithVariantsById(using Translate): List[SelectChoice] =
-    translatedVariantChoicesWithVariants(encodeId)
-
-  def translatedVariantChoicesWithVariants(encode: Variant => String)(using Translate): List[SelectChoice] =
-    selectableVariants.map(variantTuple(encode))
+  val sizeChoices: List[SelectChoice] =
+    goban.BoardSize.all.map(s => (s.size.toString, s.name, none))
 
   private def translatedSpeedChoices(using Translate) =
     Speed.limited.map: s =>

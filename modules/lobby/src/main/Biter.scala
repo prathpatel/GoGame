@@ -1,6 +1,6 @@
 package lila.lobby
 
-import chess.{ ByColor, Game as ChessGame }
+import chess.ByColor
 
 import lila.core.socket.Sri
 import lila.core.user.{ GameUsers, WithPerf }
@@ -64,10 +64,7 @@ final private class Biter(
 
   private def makeGame(hook: Hook, users: GameUsers) = lila.core.game
     .newGame(
-      chess = ChessGame(
-        position = hook.realVariant.initialPosition,
-        clock = hook.clock.toClock.some
-      ),
+      go = goban.Game(hook.boardSize, hook.boardSize.defaultKomi, 0, hook.clock.toClock.some),
       players = users.mapWithColor(newPlayer.apply),
       rated = hook.rated,
       source = lila.core.game.Source.Lobby,
@@ -77,10 +74,7 @@ final private class Biter(
 
   private def makeGame(seek: Seek, users: GameUsers) = lila.core.game
     .newGame(
-      chess = ChessGame(
-        position = seek.realVariant.initialPosition,
-        clock = none
-      ),
+      go = goban.Game(seek.boardSize, seek.boardSize.defaultKomi, 0, none),
       players = users.mapWithColor(newPlayer.apply),
       rated = seek.rated,
       source = lila.core.game.Source.Lobby,

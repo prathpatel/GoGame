@@ -1,7 +1,7 @@
 package lila.core
 package game
 
-import _root_.chess.{ ByColor, Game as ChessGame, Rated, Status }
+import _root_.chess.{ ByColor, Rated, Status }
 import scalalib.ThreadLocalRandom
 import scalalib.model.Days
 
@@ -13,17 +13,17 @@ case class NewGame(sloppy: Game):
   def start: NewGame = NewGame(sloppy.start)
 
 def newGame(
-    chess: ChessGame,
+    go: _root_.goban.Game,
     players: ByColor[Player],
     rated: Rated,
     source: Source,
     pgnImport: Option[PgnImport],
     daysPerTurn: Option[Days] = None,
     rules: Set[GameRule] = Set.empty
-): NewGame = NewGame(newSloppy(chess, players, rated, source, pgnImport, daysPerTurn, rules))
+): NewGame = NewGame(newSloppy(go, players, rated, source, pgnImport, daysPerTurn, rules))
 
 def newSloppy(
-    chess: ChessGame,
+    go: _root_.goban.Game,
     players: ByColor[Player],
     rated: Rated,
     source: Source,
@@ -35,7 +35,7 @@ def newSloppy(
   new Game(
     id = IdGenerator.uncheckedGame,
     players = players,
-    chess = chess,
+    go = go,
     status = Status.Created,
     daysPerTurn = daysPerTurn,
     rated = rated,

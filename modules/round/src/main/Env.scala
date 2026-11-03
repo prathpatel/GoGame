@@ -15,7 +15,6 @@ import lila.round.RoundGame.*
 @Module
 private class RoundConfig(
     @ConfigName("collection.note") val noteColl: CollName,
-    @ConfigName("collection.forecast") val forecastColl: CollName,
     @ConfigName("collection.alarm") val alarmColl: CollName
 )
 
@@ -35,9 +34,7 @@ final class Env(
     gameJsonView: lila.game.JsonView,
     rankingApi: lila.user.RankingApi,
     notifyApi: lila.core.notify.NotifyApi,
-    uciMemo: lila.game.UciMemo,
     rematches: lila.game.Rematches,
-    divider: lila.game.Divider,
     prefApi: lila.pref.PrefApi,
     socketKit: lila.core.socket.ParallelSocketKit,
     userLagPut: lila.core.socket.userLag.Put,
@@ -112,7 +109,7 @@ final class Env(
             Bus.pub(sg)
             game.userIds.foreach: userId =>
               Bus.publishDyn(sg, s"userStartGame:$userId")
-            if game.playableByAi then Bus.pub(lila.core.fishnet.FishnetMoveRequest(game))
+            if game.playableByAi then roundApi.tell(game.id, RoundAsyncActor.AiStart)
 
   lazy val proxyRepo: GameProxyRepo = wire[GameProxyRepo]
 
@@ -132,8 +129,6 @@ final class Env(
 
   private lazy val perfsUpdater: PerfsUpdater = wire[PerfsUpdater]
 
-  lazy val forecastApi: ForecastApi = ForecastApi(coll = db(config.forecastColl), roundApi = roundApi)
-
   private lazy val notifier = RoundNotifier(isUserPresent, notifyApi)
 
   private lazy val finisher = wire[Finisher]
@@ -143,8 +138,6 @@ final class Env(
   lazy val isOfferingRematch = lila.core.round.IsOfferingRematch(rematcher.isOffering)
 
   private lazy val player: MovePlayer = wire[MovePlayer]
-
-  private lazy val drawer = wire[Drawer]
 
   lazy val messenger = wire[Messenger]
 
@@ -158,8 +151,6 @@ final class Env(
 
   lazy val noteApi = NoteApi(db(config.noteColl))
 
-  lazy val mobile = wire[RoundMobile]
-
   private lazy val takebacker = wire[Takebacker]
 
   lazy val moretimer = wire[Moretimer]
@@ -167,16 +158,12 @@ final class Env(
   lazy val playing = wire[PlayingUsers]
   export playing.currentlyPlaying
 
-  val apiMoveStream = wire[ApiMoveStream]
-
   wire[RoundCourtesy]
 
   // core APIs
   @annotation.nowarn
   val gameProxy: lila.core.game.GameProxy = new:
     export proxyRepo.{ game, pov, gameIfPresent, updateIfPresent, flushIfPresent, upgradeIfPresent }
-  val roundJson: lila.core.round.RoundJson = new:
-    export mobile.offline as mobileOffline
 
   val roundApi: lila.core.round.RoundApi = new:
     export roundSocket.rounds.{ tell, ask }

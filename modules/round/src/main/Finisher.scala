@@ -49,15 +49,20 @@ final private class Finisher(
     then
       logger.info(s"Aborting game last played before JVM boot: ${game.id}")
       other(game, _.Aborted, none)
-    else if game.player(!game.player.color).isOfferingDraw then
-      apply(game, _.Draw, None, Messenger.SystemMessage.Persistent(trans.site.drawOfferAccepted.txt()).some)
     else
-      val winner = Option(!game.player.color).ifFalse(game.position.opponentHasInsufficientMaterial)
+      val winner = Option(!game.player.color)
       for
         events <- apply(game, _.Outoftime, winner)
         _ = winner.foreach: w =>
           playban.flag(game, !w)
       yield events
+
+  /** End the game by counting: area scoring with the agreed dead stones. */
+  def scored(game: Game)(using GameProxy): Fu[Events] =
+    val score = game.score
+    score.winner match
+      case Some(w) => apply(game, _.VariantEnd, Some(w))
+      case None => apply(game, _.Draw, None)
 
   def noStart(game: Game)(using GameProxy): Fu[Events] =
     game.playerWhoDidNotMove.so: culprit =>

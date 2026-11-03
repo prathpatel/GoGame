@@ -47,12 +47,13 @@ final class UserGameApi(
             .add("aiLevel" -> p.aiLevel)
             .add("rating" -> p.rating)
             .add("ratingDiff" -> p.ratingDiff)),
-        "fen" -> chess.format.Fen.writeBoard(g.position),
+        "board" -> g.board.serialize,
+        "size" -> g.boardSize.size,
         "winner" -> g.winnerColor.map(_.name),
         "bookmarks" -> g.bookmarks
       )
       .add("analysed" -> g.metadata.analysed)
-      .add("lastMove" -> g.lastMoveKeys)
+      .add("lastMove" -> g.lastMoveKey)
       .add("clock" -> g.clock)
       .add("correspondence" -> g.daysPerTurn.map { d =>
         Json.obj("daysPerTurn" -> d)

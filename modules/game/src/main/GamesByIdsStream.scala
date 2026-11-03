@@ -39,7 +39,6 @@ final class GamesByIdsStream(gameRepo: lila.game.GameRepo)(using
             Bus.unsubscribeDyn(subWatch, List(streamChan(streamId)))
     gameSource(initialIds)
       .concat(startStream)
-      .mapAsync(1)(gameRepo.withInitialFen)
       .map(GameStream.toJson(none))
 
   def addGameIds(streamId: String, gameIds: Set[GameId]) =

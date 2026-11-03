@@ -2,7 +2,6 @@ package lila.core
 package challenge
 
 import _root_.chess.rating.RatingProvisional
-import _root_.chess.variant.Variant
 import _root_.chess.{ Color, IntRating, Rated }
 import scalalib.model.Days
 
@@ -13,7 +12,9 @@ import lila.core.userId.UserId
 trait Challenge:
   import Challenge.*
   val id: ChallengeId
-  val variant: Variant
+  /** board size: 9, 13 or 19 */
+  val size: Int
+  val handicap: Int
   val rated: Rated
   val timeControl: TimeControl
   val finalColor: Color

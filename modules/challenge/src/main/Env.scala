@@ -56,23 +56,12 @@ final class Env(
 
   lazy val jsonView = wire[JsonView]
 
-  lazy val bulkSetup = wire[ChallengeBulkSetup]
-
-  lazy val bulkSetupApi = wire[ChallengeBulkSetupApi]
-
-  lazy val bulk = wire[ChallengeBulkApi]
-
   lazy val msg = wire[ChallengeMsg]
-
-  lazy val keepAliveStream = wire[ChallengeKeepAliveStream]
 
   val forms = new ChallengeForm
 
   scheduler.scheduleWithFixedDelay(10.seconds, 3343.millis): () =>
     api.sweep
-
-  scheduler.scheduleWithFixedDelay(20.seconds, 2897.millis): () =>
-    bulk.tick
 
   lila.common.Bus.sub[lila.core.round.DeleteUnplayed]: unplayed =>
     api.removeByGameId(unplayed.gameId)

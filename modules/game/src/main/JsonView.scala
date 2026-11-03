@@ -1,6 +1,5 @@
 package lila.game
 
-import chess.format.Fen
 import chess.{ Clock, Color }
 import play.api.libs.json.*
 
@@ -13,7 +12,7 @@ final class JsonView(rematches: Rematches):
 
   import JsonView.given
 
-  def immutable(game: Game, initialFen: Option[Fen.Full]) =
+  def immutable(game: Game) =
     Json
       .obj(
         "id" -> game.id,
@@ -24,43 +23,41 @@ final class JsonView(rematches: Rematches):
         "source" -> game.source,
         "createdAt" -> game.createdAt
       )
-      .add("startedAtTurn" -> game.chess.startedAtPly.some.filter(_ > 0))
-      .add("initialFen" -> initialFen)
+      .add("startedAtTurn" -> game.go.startedAtPly.some.filter(_ > 0))
       .add("tournamentId" -> game.tournamentId)
       .add("swissId" -> game.swissId)
       .add("rules" -> game.metadata.nonEmptyRules)
 
-  def base(game: Game, initialFen: Option[Fen.Full]) =
-    immutable(game, initialFen) ++ Json
+  def base(game: Game) =
+    immutable(game) ++ Json
       .obj(
-        "fen" -> Fen.write(game.chess).some,
+        "go" -> JsonView.goJson(game),
         "turns" -> game.ply,
         "status" -> game.status
       )
-      .add("threefold" -> game.history.threefoldRepetition)
       .add("winner" -> game.winnerColor)
       .add("abortedBy" -> game.abortedBy)
       .add("rematch" -> rematches.getAcceptedId(game.id))
       .add("drawOffers" -> (!game.drawOffers.isEmpty).option(game.drawOffers.normalizedPlies))
 
   // adds fields that should be computed by the client instead
-  def baseWithChessDenorm(game: Game, initialFen: Option[Fen.Full]) =
-    base(game, initialFen) ++ Json
+  def baseWithDenorm(game: Game) =
+    base(game) ++ Json
       .obj("player" -> game.turnColor)
-      .add("check" -> game.position.checkSquare.map(_.key))
-      .add("lastMove" -> game.lastMoveKeys)
+      .add("lastMove" -> game.lastMoveKey)
 
-  def apiAiNewGame(pov: Pov, initialFen: Option[Fen.Full]): JsObject =
-    baseWithChessDenorm(pov.game, initialFen) ++ Json.obj("fullId" -> pov.fullId)
+  def apiAiNewGame(pov: Pov): JsObject =
+    baseWithDenorm(pov.game) ++ Json.obj("fullId" -> pov.fullId)
 
   def ownerPreview(pov: Pov)(using LightUser.GetterSync) =
     Json
       .obj(
         "fullId" -> pov.fullId,
         "gameId" -> pov.gameId,
-        "fen" -> maybeFen(pov),
+        "board" -> maybeBoard(pov),
+        "size" -> pov.game.boardSize.size,
         "color" -> pov.color,
-        "lastMove" -> (pov.game.lastMoveKeys | ""),
+        "lastMove" -> (pov.game.lastMoveKey | ""),
         "source" -> pov.game.source,
         "status" -> pov.game.status,
         "variant" -> Json.obj(
@@ -90,8 +87,8 @@ final class JsonView(rematches: Rematches):
       .add("rating" -> pov.player.rating)
       .add("ratingDiff" -> pov.player.ratingDiff)
 
-  def maybeFen(pov: Pov): Fen.Full =
-    if pov.player.blindfold then Fen.Full("8/8/8/8/8/8/8/8") else Fen.write(pov.game.chess)
+  def maybeBoard(pov: Pov): String =
+    if pov.player.blindfold then "." * pov.game.boardSize.points else pov.game.board.serialize
 
   def player(p: Player, user: Option[LightUser]) =
     Json
@@ -105,6 +102,41 @@ final class JsonView(rematches: Rematches):
       .add("blindfold" -> p.blindfold)
 
 object JsonView:
+
+  def scoreJson(score: goban.Score) =
+    Json.obj(
+      "black" -> score.black,
+      "white" -> score.white,
+      "komi" -> score.komi.value,
+      "territory" -> Json.obj("black" -> score.territory.black, "white" -> score.territory.white),
+      "stones" -> Json.obj("black" -> score.stones.black, "white" -> score.stones.white),
+      "result" -> score.result,
+      "ownership" -> ownership(score)
+    )
+
+  private def ownership(score: goban.Score): JsArray =
+    JsArray(score.owner.toList.sortBy(_._1.index).map((p, c) => Json.arr(p.index, if c.black then 1 else 2)))
+
+  /** Everything a client needs to draw the board. */
+  def goJson(game: Game): JsObject =
+    val size = game.boardSize.size
+    Json
+      .obj(
+        "size" -> size,
+        "komi" -> game.komi.value,
+        "board" -> game.board.serialize,
+        "moves" -> game.go.moveKeys,
+        "prisoners" -> Json.obj("black" -> game.go.prisoners.black, "white" -> game.go.prisoners.white)
+      )
+      .add("handicap" -> (game.handicap > 0).option(game.handicap))
+      .add("lastMove" -> game.lastMoveKey)
+      .add("ko" -> game.position.koPoint.map(_.index))
+      .add("scoring" -> (game.inScoringPhase || game.scoring.dead.nonEmpty).option:
+        Json.obj(
+          "dead" -> game.scoring.dead.toList.map(_.index).sorted,
+          "accepted" -> game.scoring.accepted.toList.map(_.name),
+          "score" -> scoreJson(game.score)
+        ))
 
   def expiration(game: Game) =
     game.expirable.option:

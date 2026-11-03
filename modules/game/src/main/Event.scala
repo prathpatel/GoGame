@@ -1,23 +1,8 @@
 package lila.game
 
-import chess.format.pgn.SanStr
-import chess.format.{ BoardFen, Fen }
 import chess.rating.IntRatingDiff
-import chess.variant.Crazyhouse
-import chess.{
-  Bitboard,
-  Centis,
-  Check,
-  Clock as ChessClock,
-  Color,
-  Drop as ChessDrop,
-  Move as ChessMove,
-  Ply,
-  Position,
-  PromotableRole,
-  Square,
-  Status
-}
+import chess.{ Centis, Clock as ChessClock, Color, Ply, Status }
+import goban.Position
 import play.api.libs.json.*
 
 import lila.common.Json.given
@@ -33,186 +18,58 @@ object Event:
   object Start extends Empty:
     def typ = "start"
 
-  object MoveOrDrop:
-
-    def data(
-        fen: BoardFen,
-        check: Check,
-        threefold: Boolean,
-        fiftyMoves: Boolean,
-        state: State,
-        clock: Option[ClockEvent],
-        possibleMoves: Map[Square, Bitboard],
-        possibleDrops: Option[List[Square]],
-        crazyData: Option[Crazyhouse.Data]
-    )(extra: JsObject) =
-      extra ++ Json
-        .obj(
-          "fen" -> fen,
-          "ply" -> state.turns,
-          "dests" -> PossibleMoves.oldJson(possibleMoves)
-        )
-        .add("clock" -> clock.map(_.data))
-        .add("status" -> state.status)
-        .add("winner" -> state.winner)
-        .add("check" -> check)
-        .add("threefold" -> threefold)
-        .add("fiftyMoves" -> fiftyMoves)
-        .add("wDraw" -> state.whiteOffersDraw)
-        .add("bDraw" -> state.blackOffersDraw)
-        .add("crazyhouse" -> crazyData)
-        .add("drops" -> possibleDrops.map: squares =>
-          JsString(squares.map(_.key).mkString))
-
+  /** A stone was played, or a player passed. */
   case class Move(
-      orig: Square,
-      dest: Square,
-      san: SanStr,
-      fen: BoardFen,
-      check: Check,
-      threefold: Boolean,
-      fiftyMoves: Boolean,
-      promotion: Option[Promotion],
-      enpassant: Option[Enpassant],
-      castle: Option[Castling],
+      key: String,
+      human: String,
+      board: String,
+      captured: List[Int],
+      prisoners: chess.ByColor[Int],
+      ko: Option[Int],
+      scoring: Boolean,
       state: State,
-      clock: Option[ClockEvent],
-      possibleMoves: Map[Square, Bitboard],
-      possibleDrops: Option[List[Square]],
-      crazyData: Option[Crazyhouse.Data]
+      clock: Option[ClockEvent]
   ) extends Event:
     def typ = "move"
-    def data = MoveOrDrop.data(
-      fen,
-      check,
-      threefold,
-      fiftyMoves,
-      state,
-      clock,
-      possibleMoves,
-      possibleDrops,
-      crazyData
-    ):
-      Json
-        .obj(
-          "uci" -> s"${orig.key}${dest.key}",
-          "san" -> san
-        )
-        .add("promotion" -> promotion.map(_.data))
-        .add("enpassant" -> enpassant.map(_.data))
-        .add("castle" -> castle.map(_.data))
+    def data = Json
+      .obj(
+        "uci" -> key,
+        "san" -> human,
+        "board" -> board,
+        "ply" -> state.turns,
+        "prisoners" -> Json.obj("black" -> prisoners.black, "white" -> prisoners.white)
+      )
+      .add("captured" -> captured.nonEmpty.option(captured))
+      .add("ko" -> ko)
+      .add("scoring" -> scoring)
+      .add("clock" -> clock.map(_.data))
+      .add("status" -> state.status)
+      .add("winner" -> state.winner)
     override def moveBy = Some(!state.turns.turn)
 
   object Move:
-    def apply(
-        move: ChessMove,
-        board: Position,
-        state: State,
-        clock: Option[ClockEvent],
-        crazyData: Option[Crazyhouse.Data]
-    ): Move = Move(
-      orig = move.orig,
-      dest = move.dest,
-      san = move.toSanStr,
-      fen = Fen.writeBoard(board),
-      check = board.check,
-      threefold = board.threefoldRepetition,
-      fiftyMoves = board.variant.fiftyMoves(board.history),
-      promotion = move.promotion.map(Promotion(_, move.dest)),
-      enpassant = move.capture.ifTrue(move.enpassant).map(Event.Enpassant(_, !move.color)),
-      castle = move.castle.map(Castling(_, move.color)),
-      state = state,
-      clock = clock,
-      possibleMoves = board.destinations,
-      possibleDrops = board.drops,
-      crazyData = crazyData
-    )
-
-  case class Drop(
-      role: chess.Role,
-      pos: Square,
-      san: SanStr,
-      fen: BoardFen,
-      check: Check,
-      threefold: Boolean,
-      state: State,
-      clock: Option[ClockEvent],
-      possibleMoves: Map[Square, Bitboard],
-      crazyData: Option[Crazyhouse.Data],
-      possibleDrops: Option[List[Square]]
-  ) extends Event:
-    def typ = "drop"
-    def data =
-      MoveOrDrop.data(fen, check, threefold, false, state, clock, possibleMoves, possibleDrops, crazyData):
-        Json.obj(
-          "role" -> role.name,
-          "uci" -> s"${role.pgn}@${pos.key}",
-          "san" -> san
-        )
-    override def moveBy = Some(!state.turns.turn)
-  object Drop:
-    def apply(
-        drop: ChessDrop,
-        board: Position,
-        state: State,
-        clock: Option[ClockEvent],
-        crazyData: Option[Crazyhouse.Data]
-    ): Drop = Drop(
-      role = drop.piece.role,
-      pos = drop.square,
-      san = drop.toSanStr,
-      fen = Fen.writeBoard(board),
-      check = board.check,
-      threefold = board.threefoldRepetition,
-      state = state,
-      clock = clock,
-      possibleMoves = board.destinations,
-      possibleDrops = board.drops,
-      crazyData = crazyData
-    )
-
-  object PossibleMoves:
-    def json(moves: Map[Square, Bitboard]): JsValue =
-      if moves.isEmpty then JsNull
-      else
-        val sb = new java.lang.StringBuilder(128)
-        var first = true
-        moves.foreach: (orig, dests) =>
-          if first then first = false
-          else sb.append(" ")
-          sb.append(orig.key)
-          dests.foreach(s => sb.append(s.key))
-        JsString(sb.toString)
-
-    // We need to keep this implementation for lichobile compatibility
-    def oldJson(moves: Map[Square, Bitboard]): JsValue =
-      if moves.isEmpty then JsNull
-      else
-        val fields = Array.newBuilder[(String, JsValue)]
-        fields.sizeHint(moves.size)
-        moves.foreach: (orig, dests) =>
-          val sb = new java.lang.StringBuilder(dests.count * 2)
-          dests.foreach(s => sb.append(s.key))
-          fields += (orig.key -> JsString(sb.toString))
-        JsObject(fields.result())
-
-  case class Enpassant(pos: Square, color: Color) extends Event:
-    def typ = "enpassant"
-    def data =
-      Json.obj(
-        "key" -> pos.key,
-        "color" -> color
+    def apply(move: goban.Move, position: Position, state: State, clock: Option[ClockEvent]): Move =
+      val n = position.board.width
+      Move(
+        key = move.key(n),
+        human = move.human(n),
+        board = position.board.serialize,
+        captured = position.lastCaptures.toList.map(_.index).sorted,
+        prisoners = position.prisoners,
+        ko = position.koPoint.map(_.index),
+        scoring = position.bothPassed,
+        state = state,
+        clock = clock
       )
 
-  case class Castling(castle: ChessMove.Castle, color: Color) extends Event:
-    def typ = "castling"
-    def data =
-      import castle.*
-      Json.obj(
-        "king" -> Json.arr(king.key, kingTo.key),
-        "rook" -> Json.arr(rook.key, rookTo.key),
-        "color" -> color
-      )
+  /** Dead stone marks changed during the scoring phase. */
+  case class Scoring(dead: Set[goban.Point], accepted: Set[Color], score: goban.Score) extends Event:
+    def typ = "scoring"
+    def data = Json.obj(
+      "dead" -> dead.toList.map(_.index).sorted,
+      "accepted" -> accepted.toList.map(_.name),
+      "score" -> JsonView.scoreJson(score)
+    )
 
   case class RedirectOwner(
       color: Color,
@@ -228,14 +85,6 @@ object Event:
         )
         .add("cookie" -> cookie)
     override def only = Some(color)
-
-  case class Promotion(role: PromotableRole, pos: Square) extends Event:
-    def typ = "promotion"
-    def data =
-      Json.obj(
-        "key" -> pos.key,
-        "pieceClass" -> role.toString.toLowerCase
-      )
 
   case class PlayerMessage(data: JsObject) extends Event:
     def typ = "message"
@@ -267,6 +116,9 @@ object Event:
             Color.Black.name -> rds.black
           ))
         .add("boosted" -> game.boosted)
+        .add("score" -> (game.status == Status.VariantEnd || game.status == Status.Draw).option(
+          JsonView.scoreJson(game.score)
+        ))
 
   case object Reload extends Empty:
     def typ = "reload"

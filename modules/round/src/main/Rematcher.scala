@@ -1,8 +1,6 @@
 package lila.round
 
-import chess.format.Fen
-import chess.variant.*
-import chess.{ ByColor, Clock, Color as ChessColor, Game as ChessGame, Ply, Rated }
+import chess.{ ByColor, Clock, Color as ChessColor, Rated }
 import scalalib.cache.ExpireSetMemo
 
 import lila.common.Bus
@@ -32,7 +30,6 @@ final private class Rematcher(
     log = false
   )
 
-  private val chess960 = ExpireSetMemo[GameId](3.hours)
 
   export rematches.isOffering
 
@@ -44,7 +41,7 @@ final private class Rematcher(
       g.nonMandatory &&
       !g.hasRule(_.noRematch) &&
       !g.boosted &&
-      !(g.hasAi && g.variant == FromPosition && g.clock.exists(_.config.limitSeconds < 60))
+      true
 
   def yes(pov: Pov): Fu[Events] =
     pov match
@@ -86,7 +83,6 @@ final private class Rematcher(
     def createGame(withId: Option[GameId]) = for
       nextGame <- returnGame(pov, withId).map(_.start)
       _ = rematches.accept(pov.gameId, nextGame.id)
-      _ = if pov.game.variant == Chess960 && !chess960.get(pov.gameId) then chess960.put(nextGame.id)
       _ <- gameRepo.insertDenormalized(nextGame)
     yield
       messenger.volatile(pov.game, trans.site.rematchOfferAccepted.txt())
@@ -101,16 +97,15 @@ final private class Rematcher(
 
   private def returnGame(pov: Pov, withId: Option[GameId]): Fu[Game] =
     for
-      initialFen <- gameRepo.initialFen(pov.game)
-      newGame = Rematcher.returnChessGame(
-        pov.game.variant,
-        pov.game.clock,
-        initialFen,
-        !chess960.get(pov.gameId)
+      newGame = goban.Game(
+        pov.game.boardSize,
+        pov.game.komi,
+        pov.game.handicap,
+        pov.game.clock.map(c => Clock(c.config))
       )
       users <- userApi.gamePlayersAny(pov.game.userIdPair, pov.game.perfKey)
       sloppy = lila.core.game.newGame(
-        chess = newGame,
+        go = newGame,
         players = ByColor(returnPlayer(pov.game, _, users)),
         rated = if users.exists(_.exists(_.user.lame)) then Rated.No else pov.game.rated,
         source = pov.game.source | lila.core.game.Source.Lobby,
@@ -141,27 +136,3 @@ final private class Rematcher(
       Event.RedirectOwner(!color, game.fullIdOf(color), AnonCookie.json(game.pov(color)))
     val spectatorRedirect = Event.RematchTaken(game.id)
     spectatorRedirect :: ownerRedirects.toList
-
-object Rematcher:
-  // returns a new chess game with the same Board as the previous game
-  // except for Chess960, where if shouldRepeatChess960Position is true,
-  // the same position is returned otherwise a new random position is returned
-  def returnChessGame(
-      variant: Variant,
-      clock: Option[Clock],
-      initialFen: Option[Fen.Full],
-      shouldRepeatChess960Position: Boolean
-  ): ChessGame =
-    val prevPosition = initialFen.flatMap(Fen.readWithMoveNumber(variant, _))
-    val newPosition = variant match
-      case Chess960 if shouldRepeatChess960Position => prevPosition.fold(Chess960.initialPosition)(_.position)
-      case Chess960 => Chess960.initialPosition
-      case variant => prevPosition.fold(variant.initialPosition)(_.position)
-    val ply = prevPosition.fold(Ply.initial)(_.ply)
-    val color = prevPosition.fold[Color](White)(_.position.color)
-    ChessGame(
-      position = newPosition.withColor(color),
-      clock = clock.map(c => Clock(c.config)),
-      ply = ply,
-      startedAtPly = ply
-    )

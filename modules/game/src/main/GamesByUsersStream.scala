@@ -6,7 +6,7 @@ import play.api.libs.json.*
 import lila.common.Bus
 import lila.common.Json.given
 import lila.core.LightUser
-import lila.core.game.{ FinishGame, Game, StartGame, WithInitialFen }
+import lila.core.game.{ FinishGame, Game, StartGame }
 
 final class GamesByUsersStream(gameRepo: lila.game.GameRepo)(using
     org.apache.pekko.stream.Materializer,
@@ -34,7 +34,6 @@ final class GamesByUsersStream(gameRepo: lila.game.GameRepo)(using
         }
       initialGames
         .concat(startStream)
-        .mapAsync(1)(gameRepo.withInitialFen)
         .map(GameStream.toJson(none))
 
   private def currentGamesSource(userIds: Set[UserId]): Source[Game, ?] =
@@ -42,8 +41,7 @@ final class GamesByUsersStream(gameRepo: lila.game.GameRepo)(using
 
 object GameStream:
 
-  def toJson(lightUserGet: Option[LightUser.GetterSync])(wif: WithInitialFen) =
-    val WithInitialFen(g, initialFen) = wif
+  def toJson(lightUserGet: Option[LightUser.GetterSync])(g: Game) =
     Json
       .obj(
         "id" -> g.id,
@@ -70,7 +68,7 @@ object GameStream:
             .add("ai" -> p.aiLevel))
       )
       .add("winner" -> g.winnerColor.map(_.name))
-      .add("initialFen" -> initialFen)
+      .add("size" -> g.boardSize.size.some)
       .add("clock" -> g.clock.map: clock =>
         Json.obj(
           "initial" -> clock.limitSeconds,

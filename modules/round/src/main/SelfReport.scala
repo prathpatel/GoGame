@@ -40,7 +40,7 @@ final class SelfReport(
 
   def apply(userId: Option[UserId], ip: IpAddress, fullId: GameFullId, name: String): Funit =
     (name != "err").so:
-      val gameUrl = s"https://lichess.org/$fullId"
+      val gameUrl = s"/$fullId"
       if name != "ceval" && logOnceEvery(ip.str) then
         logger.info(s"$ip $gameUrl ${userId | "-"} $name")
         lila.mon.cheat.selfReport(name, userId.isDefined).increment()

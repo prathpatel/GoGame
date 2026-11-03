@@ -1,7 +1,6 @@
 package lila.lobby
 
 import chess.rating.RatingProvisional
-import chess.variant.Variant
 import chess.{ IntRating, Rated, Speed }
 import play.api.libs.json.*
 import scalalib.ThreadLocalRandom
@@ -15,7 +14,7 @@ import lila.rating.PerfType
 // correspondence chess, persistent
 case class Seek(
     _id: String,
-    variant: Variant.Id,
+    size: Int,
     daysPerTurn: Option[Days],
     rated: Rated,
     user: LobbyUser,
@@ -24,7 +23,7 @@ case class Seek(
 ):
   inline def id = _id
 
-  val realVariant = Variant.orDefault(variant)
+  val boardSize = goban.BoardSize.orDefault(size)
 
   def compatibleWith(h: Seek) =
     user.id != h.user.id &&
@@ -34,11 +33,11 @@ case class Seek(
   private def ratingRangeCompatibleWith(s: Seek) =
     realRatingRange.forall(_.contains(s.rating))
 
-  private def compatibilityProperties = (variant, rated, daysPerTurn)
+  private def compatibilityProperties = (size, rated, daysPerTurn)
 
   lazy val realRatingRange: Option[RatingRange] = ratingRange.ifNotDefault
 
-  lazy val perfType = PerfType(realVariant, Speed.Correspondence)
+  lazy val perfType = PerfType(chess.variant.Standard, Speed.Correspondence)
 
   def perf = user.perfAt(perfType)
   def rating = perf.rating
@@ -49,7 +48,7 @@ case class Seek(
         "id" -> _id,
         "username" -> user.username,
         "rating" -> rating,
-        "variant" -> Json.obj("key" -> realVariant.key),
+        "size" -> size,
         "perf" -> Json.obj("key" -> perfType.key),
         "mode" -> rated.id // must keep BC
       )
@@ -64,7 +63,7 @@ object Seek:
   def makeId = ThreadLocalRandom.nextString(idSize)
 
   def make(
-      variant: chess.variant.Variant,
+      size: goban.BoardSize,
       daysPerTurn: Option[Days],
       rated: Rated,
       user: UserWithPerfs,
@@ -72,7 +71,7 @@ object Seek:
       blocking: lila.core.pool.Blocking
   ): Seek = Seek(
     _id = makeId,
-    variant = variant.id,
+    size = size.size,
     daysPerTurn = daysPerTurn,
     rated = rated,
     user = LobbyUser.make(user, blocking),
@@ -82,7 +81,7 @@ object Seek:
 
   def renew(seek: Seek) = Seek(
     _id = makeId,
-    variant = seek.variant,
+    size = seek.size,
     daysPerTurn = seek.daysPerTurn,
     rated = seek.rated,
     user = seek.user,

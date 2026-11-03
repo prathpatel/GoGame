@@ -1,7 +1,5 @@
 package lila.game
 
-import chess.format.Fen
-import chess.format.pgn.SanStr
 import chess.rating.IntRatingDiff
 import chess.{ ByColor, Color, Status }
 import reactivemongo.api.bson.*
@@ -400,31 +398,19 @@ final class GameRepo(c: Coll)(using Executor) extends lila.core.game.GameRepo(c)
       )
       .void
 
-  def findRandomStandardCheckmate(distribution: Int): Fu[Option[Game]] =
-    coll
-      .find(Query.mate ++ Query.variantStandard)
-      .sort(Query.sortCreated)
-      .skip(ThreadLocalRandom.nextInt(distribution))
-      .one[Game]
-
-  def insertDenormalized(g: Game, initialFen: Option[Fen.Full] = None): Funit =
+  def insertDenormalized(g: Game): Funit =
     val g2 =
       if g.rated.yes && (g.userIds.distinct.size != 2 ||
           !lila.core.game.allowRated(g.variant, g.clock.map(_.config)))
       then g.copy(rated = chess.Rated.No)
       else g
     val userIds = g2.userIds.distinct
-    val fen: Option[Fen.Full] = initialFen.orElse:
-      (g2.variant.fromPosition || g2.variant.chess960)
-        .option(Fen.write(g2.chess))
-        .filterNot(_.isInitial)
     val checkInHours =
       if g2.isPgnImport then none
       else if g2.sourceIs(_.Api) then some(24 * 7)
       else if g2.hasClock then 1.some
       else some(24 * 10)
     val bson = gameHandler.write(g2) ++ bdoc(
-      F.initialFen -> fen,
       F.checkAt -> checkInHours.map(nowInstant.plusHours(_)),
       F.playingUids -> (g2.started && userIds.nonEmpty).option(userIds)
     )
@@ -468,28 +454,6 @@ final class GameRepo(c: Coll)(using Executor) extends lila.core.game.GameRepo(c)
   def unsetPlayingUids(g: Game): Unit =
     coll.update(ordered = false, WriteConcern.Unacknowledged).one(bid(g.id), unset(F.playingUids))
 
-  private def initialFen(gameId: GameId, readPref: ReadPref): Fu[Option[Fen.Full]] =
-    coll.withReadPreference(readPref).primitiveOne[Fen.Full](bid(gameId), F.initialFen)
-
-  def initialFen(game: Game): Fu[Option[Fen.Full]] =
-    if game.sourceIs(_.Import) || !game.variant.standardInitialPosition then
-      initialFen(game.id, if game.finished then _.sec else _.pri).dmap:
-        case None if game.variant == chess.variant.Chess960 => Fen.initial.some
-        case fen => fen
-    else fuccess(none)
-
-  def gameWithInitialFen(gameId: GameId): Fu[Option[WithInitialFen]] =
-    game(gameId).flatMapz: game =>
-      initialFen(game).dmap: fen =>
-        WithInitialFen(game, fen).some
-
-  def withInitialFen(game: Game): Fu[WithInitialFen] =
-    initialFen(game).dmap(WithInitialFen(game, _))
-
-  def withInitialFens(games: List[Game]): Fu[List[(Game, Option[Fen.Full])]] =
-    games.parallel: game =>
-      initialFen(game).dmap(game -> _)
-
   def count(query: Query.type => Bdoc): Fu[Int] = coll.countSel(query(Query))
   def countSec(query: Query.type => Bdoc): Fu[Int] = coll.secondary.countSel(query(Query))
 
@@ -529,7 +493,7 @@ final class GameRepo(c: Coll)(using Executor) extends lila.core.game.GameRepo(c)
       .skip(ThreadLocalRandom.nextInt(1000))
       .one[Game]
 
-  def getOptionPgn(id: GameId): Fu[Option[Vector[SanStr]]] = game(id).dmap2(_.sans)
+  def getMoves(id: GameId): Fu[Option[Vector[goban.Move]]] = game(id).dmap2(_.moves)
 
   def lastGameBetween(u1: UserId, u2: UserId, since: Instant): Fu[Option[Game]] =
     coll.one[Game](

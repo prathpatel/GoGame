@@ -1,7 +1,5 @@
 package lila.setup
 
-import chess.format.Fen
-import chess.variant.Variant
 import chess.{ ByColor, Clock }
 import scalalib.model.Days
 
@@ -10,35 +8,31 @@ import lila.core.user.GameUser
 import lila.lobby.TriColor
 
 case class AiConfig(
-    variant: chess.variant.Variant,
+    size: goban.BoardSize,
     timeMode: TimeMode,
     time: Double,
     increment: Clock.IncrementSeconds,
     days: Days,
     level: Int,
     color: TriColor,
-    fen: Option[Fen.Full] = None
+    handicap: Int = 0
 ) extends Config
-    with Positional
     with WithColor:
 
-  val strictFen = true
-
-  def >> = (variant.id, timeMode.id, time, increment, days, level, color.name, fen).some
+  def >> = (size.size, timeMode.id, time, increment, days, level, color.name, handicap).some
 
   private def game(user: GameUser)(using idGenerator: IdGenerator, newPlayer: NewPlayer): Fu[Game] =
-    fenGame: chessGame =>
-      lila.rating.PerfType(chessGame.position.variant, chess.Speed(chessGame.clock.map(_.config)))
-      idGenerator.withUniqueId:
+    idGenerator
+      .withUniqueId:
         lila.core.game
           .newGame(
-            chess = chessGame,
+            go = makeGame,
             players = ByColor: c =>
               if creatorColor == c
               then newPlayer(c, user)
               else newPlayer.anon(c, level.some),
             rated = chess.Rated.No,
-            source = if chessGame.position.variant.fromPosition then Source.Position else Source.Ai,
+            source = Source.Ai,
             daysPerTurn = makeDaysPerTurn,
             pgnImport = None
           )
@@ -46,34 +40,32 @@ case class AiConfig(
 
   def pov(user: GameUser)(using IdGenerator, NewPlayer) = game(user).dmap(Pov(_, creatorColor))
 
-  def timeControlFromPosition =
-    timeMode != TimeMode.RealTime || variant != chess.variant.FromPosition || time >= 1
 
 object AiConfig extends BaseConfig:
 
   def from(
-      v: Variant.Id,
+      s: Int,
       tm: Int,
       t: Double,
       i: Clock.IncrementSeconds,
       d: Days,
       level: Int,
       c: String,
-      fen: Option[Fen.Full]
+      h: Int
   ) =
     new AiConfig(
-      variant = chess.variant.Variant.orDefault(v),
+      size = goban.BoardSize.orDefault(s),
       timeMode = TimeMode(tm).err(s"Invalid time mode $tm"),
       time = t,
       increment = i,
       days = d,
       level = level,
       color = TriColor(c).err("Invalid color " + c),
-      fen = fen
+      handicap = h
     )
 
   val default = AiConfig(
-    variant = variantDefault,
+    size = goban.BoardSize.Nine,
     timeMode = TimeMode.Unlimited,
     time = 5d,
     increment = Clock.IncrementSeconds(8),
@@ -95,23 +87,23 @@ object AiConfig extends BaseConfig:
 
     def reads(r: BSON.Reader): AiConfig =
       AiConfig(
-        variant = Variant.idOrDefault(r.getO[Variant.Id]("v")),
+        size = goban.BoardSize.orDefault(r.intD("s")),
         timeMode = TimeMode.orDefault(r.int("tm")),
         time = r.double("t"),
         increment = r.get("i"),
         days = r.get("d"),
         level = r.int("l"),
-        color = TriColor.White,
-        fen = r.getO[Fen.Full]("f").filter(_.value.nonEmpty)
+        color = TriColor.Black,
+        handicap = r.intD("h")
       )
 
     def writes(w: BSON.Writer, o: AiConfig) =
       bdoc(
-        "v" -> o.variant.id,
+        "s" -> o.size.size,
         "tm" -> o.timeMode.id,
         "t" -> o.time,
         "i" -> o.increment,
         "d" -> o.days,
         "l" -> o.level,
-        "f" -> o.fen
+        "h" -> o.handicap
       )

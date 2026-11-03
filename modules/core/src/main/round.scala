@@ -1,8 +1,8 @@
 package lila.core
 package round
 
-import _root_.chess.format.{ Fen, Uci }
-import _root_.chess.{ Color, MoveOrDrop }
+import _root_.chess.Color
+import _root_.goban.{ Move as GoMove, Point }
 import play.api.libs.json.{ JsArray, JsObject }
 import scalalib.bus.NotBuseable
 
@@ -19,9 +19,11 @@ enum RoundBus extends NotBuseable:
   case Abort(playerId: GamePlayerId)
   case AbortForce
   case BotConnected(color: Color, v: Boolean)
-  case BotPlay(playerId: GamePlayerId, uci: Uci, promise: Option[Promise[Unit]] = None)
   case Draw(playerId: GamePlayerId, draw: Boolean)
-  case FishnetPlay(uci: Uci, sign: String)
+  case AiPlay(move: GoMove, ply: _root_.chess.Ply)
+  case ScoringToggle(playerId: GamePlayerId, point: Point)
+  case ScoringAccept(playerId: GamePlayerId)
+  case ScoringResume(playerId: GamePlayerId)
   case IsOnGame(color: Color, promise: Promise[Boolean])
   case QuietFlagCheck
   case Rematch(playerId: GamePlayerId, rematch: Boolean)
@@ -33,7 +35,7 @@ enum RoundBus extends NotBuseable:
 case class Tell(id: GameId, msg: RoundBus)
 case class TellMany(ids: Seq[GameId], msg: StartClock.type | RoundBus.QuietFlagCheck.type)
 
-case class MoveEvent(gameId: GameId, fen: Fen.Full, move: Uci)
+case class MoveEvent(gameId: GameId, move: String)
 case class CorresMoveEvent(
     move: MoveEvent,
     playerUserId: Option[UserId],
@@ -47,7 +49,6 @@ case class BoardDrawEvent(gameId: GameId)
 case class SimulMoveEvent(move: MoveEvent, simulId: SimulId, opponentUserId: UserId)
 case class TourStandingOld(data: JsArray)
 case class TourStanding(tourId: TourId, data: JsArray)
-case object FishnetStart
 case class RematchOffer(gameId: GameId)
 case class RematchCancel(gameId: GameId)
 case class Mlat(millis: Int)
@@ -67,7 +68,6 @@ case class Moretime(
 )
 case class ClientFlag(color: Color, fromPlayerId: Option[GamePlayerId])
 case object Abandon
-case class ForecastPlay(lastMove: MoveOrDrop)
 case class Cheat(color: Color)
 case class HoldAlert(playerId: GamePlayerId, mean: Int, sd: Int, ip: IpAddress)
 case class GoBerserk(color: Color, promise: Promise[Boolean])
@@ -80,7 +80,7 @@ object IsOfferingRematch extends FunctionWrapper[IsOfferingRematch, game.PovRef 
 
 trait BenignError extends lilaism.LilaException
 case class ClientError(message: String) extends BenignError
-case class FishnetError(message: String) extends BenignError
+case class AiError(message: String) extends BenignError
 case class GameIsFinishedError(id: GameId) extends BenignError:
   val message = s"game $id is finished"
 

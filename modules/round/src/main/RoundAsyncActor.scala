@@ -97,7 +97,7 @@ final private class RoundAsyncActor(
           player.userId = game.player(color).userId
           player.goneWeight = goneWeights(color)
         mightBeSimul = game.isSimul
-        if game.playableByAi then player.requestFishnet(game, this)
+        if game.playableByAi then player.requestAi(game, this)
 
     // socket stuff
 
@@ -149,15 +149,10 @@ final private class RoundAsyncActor(
           has <- gameRepo.hasHoldAlert(pov)
           _ <- has.not.so:
             logger.info:
-              s"hold alert $ip https://lichess.org/${pov.gameId}/${pov.color.name}#${pov.game.ply} ${pov.player.userId | "anon"} mean: $mean SD: $sd"
+              s"hold alert $ip /${pov.gameId}/${pov.color.name}#${pov.game.ply} ${pov.player.userId | "anon"} mean: $mean SD: $sd"
             lila.mon.cheat.holdAlert.increment()
             gameRepo.setHoldAlert(pov, GamePlayer.HoldAlert(ply = pov.game.ply, mean = mean, sd = sd)).void
         yield Nil
-
-    case lila.tree.AnalysisProgress(_, payload) =>
-      fuccess:
-        socketSend.exec:
-          RP.Out.tellRoom(roomId, makeMessage("analysisProgress", payload()))
 
     // round stuff
 
@@ -179,20 +174,37 @@ final private class RoundAsyncActor(
           MoveLatMonitor.recordMicros(lap.micros)
       )
 
-    case p: RoundBus.BotPlay =>
-      val res = proxy
-        .withPov(p.playerId):
-          _.so: pov =>
-            if pov.game.outoftime(withGrace = true) then finisher.outOfTime(pov.game)
-            else player.bot(p.uci, this)(pov)
-        .dmap(publish)
-      p.promise.foreach(_.completeWith(res))
-      res
-
-    case RoundBus.FishnetPlay(uci, hash) =>
+    case RoundBus.AiPlay(move, ply) =>
       handle: game =>
-        player.fishnet(game, hash, uci)
+        player.ai(game, move, ply)
       .mon(lila.mon.round.move.time)
+
+    // stone removal phase, after both players passed
+    case RoundBus.ScoringToggle(playerId, point) =>
+      handle(playerId): pov =>
+        pov.game.inScoringPhase.so:
+          val progress = pov.game.updateScoring(pov.game.scoring.toggle(pov.game.board, point))
+          proxy.save(progress).inject(progress.events)
+
+    case RoundBus.ScoringAccept(playerId) =>
+      handle(playerId): pov =>
+        pov.game.inScoringPhase.so:
+          val scoring = pov.game.scoring.accept(pov.color)
+          val opponentIsAi = pov.opponent.isAi
+          val progress = pov.game.updateScoring(if opponentIsAi then scoring.accept(!pov.color) else scoring)
+          for
+            _ <- proxy.save(progress)
+            end <- progress.game.scoring.bothAccepted.so(finisher.scored(progress.game))
+          yield progress.events ::: end
+
+    case RoundBus.ScoringResume(playerId) =>
+      handle(playerId): pov =>
+        pov.game.inScoringPhase.so:
+          val progress = pov.game.resumePlay
+          for _ <- proxy.save(progress)
+          yield
+            if progress.game.playableByAi then player.requestAi(progress.game, this)
+            progress.events
 
     case RoundBus.Abort(playerId) =>
       handle(playerId): pov =>
@@ -200,10 +212,7 @@ final private class RoundAsyncActor(
 
     case RoundBus.Resign(playerId) =>
       handle(playerId): pov =>
-        pov.game.resignable.so(
-          if RoundGame.cannotLose(pov) then finisher.other(pov.game, _.InsufficientMaterialClaim, None)
-          else finisher.other(pov.game, _.Resign, Some(!pov.color))
-        )
+        pov.game.resignable.so(finisher.other(pov.game, _.Resign, Some(!pov.color)))
 
     case ResignAi =>
       handleAi: pov =>
@@ -231,17 +240,7 @@ final private class RoundAsyncActor(
         pov.mightClaimWin.so:
           players(!pov.color).isLongGone.flatMap:
             if _ then
-              finisher.rageQuit(
-                pov.game,
-                Some(pov.color).ifFalse(pov.game.position.opponentHasInsufficientMaterial)
-              )
-            else fuccess(List(Event.Reload))
-
-    case RoundBus.DrawForce(playerId) =>
-      handle(playerId): pov =>
-        (pov.game.forceDrawable && pov.game.hasClock && !pov.isMyTurn).so:
-          players(!pov.color).isLongGone.flatMap:
-            if _ then finisher.rageQuit(pov.game, None)
+              finisher.rageQuit(pov.game, Some(pov.color))
             else fuccess(List(Event.Reload))
 
     case RoundBus.AbortForce =>
@@ -274,22 +273,13 @@ final private class RoundAsyncActor(
             )
           else finisher.other(game, _.Resign, Some(!game.player.color))
 
-    case RoundBus.Draw(playerId, draw) => handle(playerId)(drawer(_, draw))
-
-    case DrawClaim(playerId) => handle(playerId)(drawer.claim)
     case Cheat(color) =>
       handle: game =>
         (game.playable && !game.sourceIs(_.Import)).so:
           finisher.other(game, _.Cheat, Some(!color))
-    case TooManyPlies => handle(drawer.force(_))
 
-    case Threefold =>
-      proxy.withGame: game =>
-        drawer
-          .autoThreefold(game)
-          .map:
-            _.foreach: pov =>
-              this ! DrawClaim(pov.player.id)
+    // a game that never ends gets counted as is
+    case TooManyPlies => handle(finisher.scored(_))
 
     case RoundBus.Rematch(playerId, rematch) => handle(playerId)(rematcher(_, rematch))
 
@@ -310,15 +300,6 @@ final private class RoundAsyncActor(
           for _ <- proxy.save(progress)
           yield progress.events
 
-    case ForecastPlay(lastMove) =>
-      handle: game =>
-        forecastApi
-          .nextMove(game, lastMove)
-          .map: mOpt =>
-            mOpt.foreach: move =>
-              this ! HumanPlay(game.player.id, move, blur = false)
-            Nil
-
     case LilaStop(promise) =>
       proxy
         .withGame: g =>
@@ -333,10 +314,14 @@ final private class RoundAsyncActor(
           logger.warn(s"RoundAsyncActor LilaStop error: ${e.getMessage}")
         .tap(promise.completeWith)
 
+    case AiStart =>
+      proxy.withGame: g =>
+        fuccess(g.playableByAi.so(player.requestAi(g, this)))
+
     case WsBoot =>
       handle: game =>
         game.playable.so:
-          messenger.volatile(game, "Lichess has been updated! Sorry for the inconvenience.", reboot = true)
+          messenger.volatile(game, "The server has been updated! Sorry for the inconvenience.", reboot = true)
           val progress = moretimer.give(game, Color.all, 20.seconds, reboot = true)
           proxy.save(progress).inject(progress.events)
 
@@ -358,10 +343,6 @@ final private class RoundAsyncActor(
       handle: game =>
         game.startClock.so: g =>
           proxy.save(g).inject(List(Event.Reload))
-
-    case FishnetStart =>
-      proxy.withGame: g =>
-        fuccess(g.playableByAi.so(player.requestFishnet(g, this)))
 
     case Tick =>
       proxy.withGameOptionSync { g =>
@@ -444,10 +425,6 @@ final private class RoundAsyncActor(
         version = version.map(_ + 1)
         socketSend.exec:
           Protocol.Out.tellVersion(roomId, version, e)
-      if events.exists:
-          case e: Event.Move => e.threefold
-          case _ => false
-      then this ! Threefold
 
   private def errorHandler(name: String): PartialFunction[Throwable, Unit] =
     case e: BenignError =>
@@ -467,6 +444,7 @@ object RoundAsyncActor:
   case object Stop
   case object WsBoot
   case class LilaStop(promise: Promise[Unit])
+  case object AiStart
 
   private val monitor =
     AsyncActor.Monitor(msg => logger.warn(s"round.asyncActor unhandled msg: $msg"))
@@ -479,8 +457,6 @@ object RoundAsyncActor:
       val finisher: Finisher,
       val rematcher: Rematcher,
       val player: MovePlayer,
-      val drawer: Drawer,
-      val forecastApi: ForecastApi,
       val simulApi: lila.core.data.CircularDep[lila.core.simul.SimulApi],
       val jsonView: JsonView
   )

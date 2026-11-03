@@ -70,38 +70,14 @@ libraryDependencies ++= pekko.bundle ++ playWs.bundle ++ macwire.bundle ++ scala
 // influences the compilation order
 // matches https://github.com/ornicar/lila-dep-graphs
 lazy val modules = Seq(
-  // level 1
-  core, coreI18n, goban,
-  // level 2
-  common, ui, mon, tree, markdown,
-  // level 3
-  db, room,
-  // level 4
-  memo, rating,
-  // level 5
-  game, gathering, study, user, puzzle, analyse,
-  report, pref, chat, playban, lobby, mailer, oauth, search,
-  // level 6
-  insight, evaluation, storm,
-  // level 7
-  // everything else is free from deps; do the big ones first
-  relay, tutor, security, tournament, plan, round,
-  swiss, insight, fishnet, mod, challenge, web,
-  team, forum, streamer, simul, activity, msg, ublog,
-  notifyModule, clas, perfStat, opening, timeline,
-  setup, video, fide, title, push,
-  // and then the smaller ones
-  pool, lobby, relation, tv, coordinate, feed, history, recap,
-  shutup, appeal, irc, explorer, learn, event, coach,
-  practice, evalCache, irwin, bot, racer, cms, i18n, jsBot,
-  socket, bookmark, studySearch, gameSearch, forumSearch, teamSearch, irc
+  core, coreI18n, goban, common, ui, mon, markdown, db, room, memo, rating, user, game, pref, chat, playban, mailer, oauth, security, shutup, irc, report, relation, notifyModule, msg, history, bookmark, socket, i18n, pool, lobby, setup, challenge, round, web
 )
 
 lazy val moduleRefs = modules map projectToRef
 lazy val moduleCPDeps = moduleRefs map { sbt.ClasspathDependency(_, None) }
 
 lazy val core = module("core",
-  Seq(),
+  Seq(goban),
   Seq(catsMtl, scalatags, galimatias) ++ scalalib.bundle ++ reactivemongo.bundle ++ tests.bundle
 )
 
@@ -159,79 +135,9 @@ lazy val rating = module("rating",
   tests.bundle ++ Seq(apacheMath)
 ).dependsOn(common % "test->test")
 
-lazy val cms = module("cms",
-  Seq(memo, ui),
-  Seq()
-)
-
-lazy val puzzle = module("puzzle",
-  Seq(tree, memo, rating),
-  tests.bundle
-)
-
-lazy val storm = module("storm",
-  Seq(puzzle),
-  Seq()
-)
-
-lazy val racer = module("racer",
-  Seq(storm, room),
-  Seq()
-)
-
-lazy val jsBot = module("jsBot",
-  Seq(memo, ui),
-  Seq()
-)
-
-lazy val video = module("video",
-  Seq(memo, ui),
-  macwire.bundle
-)
-
-lazy val coach = module("coach",
-  Seq(memo, rating),
-  Seq()
-)
-
-lazy val streamer = module("streamer",
-  Seq(ui, memo),
-  Seq()
-)
-
-lazy val coordinate = module("coordinate",
-  Seq(db, ui),
-  macwire.bundle
-)
-
-lazy val feed = module("feed",
-  Seq(memo, ui),
-  Seq()
-)
-
-lazy val ublog = module("ublog",
-  Seq(search, report),
-  Seq(probabilisticDataStructures)
-)
-
-lazy val evaluation = module("evaluation",
-  Seq(analyse, game),
-  tests.bundle
-)
-
-lazy val perfStat = module("perfStat",
-  Seq(memo, rating),
-  Seq()
-)
-
 lazy val history = module("history",
   Seq(rating, memo),
   Seq()
-)
-
-lazy val search = module("search",
-  Seq(memo),
-  Seq(playWs.ahc, lilaSearch)
 )
 
 lazy val chat = module("chat",
@@ -244,51 +150,15 @@ lazy val room = module("room",
   Seq(lettuce)
 )
 
-lazy val timeline = module("timeline",
-  Seq(memo, ui),
-  Seq()
-)
-
-lazy val event = module("event",
-  Seq(memo, ui),
-  Seq()
-)
-
-lazy val mod = module("mod",
-  Seq(evaluation, report, chat, user),
-  Seq()
-)
-
 lazy val user = module("user",
   Seq(rating, memo),
   Seq(hasher) ++ tests.bundle ++ playWs.bundle
 )
 
 lazy val game = module("game",
-  Seq(tree, rating, memo),
+  Seq(rating, memo),
   Seq(compression) ++ tests.bundle ++ Seq(scalacheck, munitCheck, chess.testKit)
 )
-
-lazy val gameSearch = module("gameSearch",
-  Seq(search, ui),
-  tests.bundle
-)
-
- // good dep to game
-lazy val tv = module("tv",
-  Seq(game),
-  Seq(hasher)
-)
-
-lazy val bot = module("bot",
-  Seq(chat, game),
-  Seq()
-)
-
-lazy val analyse = module("analyse",
-  Seq(tree, memo, ui),
-  tests.bundle
-).dependsOn(coreI18n % "test->test")
 
 lazy val round = module("round",
   Seq(room, game, user, playban, pref, chat),
@@ -300,11 +170,6 @@ lazy val pool = module("pool",
   Seq()
 )
 
-lazy val activity = module("activity",
-  Seq(puzzle),
-  tests.bundle
-)
-
 lazy val lobby = module("lobby",
   Seq(memo, rating),
   Seq(lettuce) ++ tests.bundle
@@ -312,51 +177,6 @@ lazy val lobby = module("lobby",
 
 lazy val setup = module("setup",
   Seq(lobby),
-  Seq()
-)
-
-lazy val insight = module("insight",
-  Seq(analyse, game),
-  Seq()
-)
-
-lazy val tutor = module("tutor",
-  Seq(insight),
-  tests.bundle
-)
-
-lazy val opening = module("opening",
-  Seq(memo, ui),
-  tests.bundle
-)
-
-lazy val gathering = module("gathering",
-  Seq(rating),
-  tests.bundle
-)
-
-lazy val tournament = module("tournament",
-  Seq(gathering, room, memo),
-  Seq(lettuce) ++ tests.bundle
-).dependsOn(coreI18n % "test->test")
-
-lazy val swiss = module("swiss",
-  Seq(gathering, room, memo),
-  Seq(lettuce) ++ tests.bundle
-)
-
-lazy val simul = module("simul",
-  Seq(gathering, room, memo),
-  Seq(lettuce)
-)
-
-lazy val fishnet = module("fishnet",
-  Seq(analyse),
-  Seq(lettuce) ++ tests.bundle
-)
-
-lazy val irwin = module("irwin",
-  Seq(analyse, game, report),
   Seq()
 )
 
@@ -380,64 +200,14 @@ lazy val challenge = module("challenge",
   Seq(lettuce, catsMtl) ++ tests.bundle
 )
 
-lazy val fide = module("fide",
-  Seq(memo, ui),
-  tests.bundle
-)
-
-lazy val title = module("title",
-  Seq(memo, ui),
-  Seq()
-)
-
-lazy val study = module("study",
-  Seq(tree, memo, room, ui),
-  Seq(lettuce) ++ tests.bundle ++ Seq(scalacheck, munitCheck, chess.testKit)
-).dependsOn(common % "test->test")
-
-lazy val relay = module("relay",
-  Seq(study, game),
-  Seq(chess.tiebreak) ++ tests.bundle
-).dependsOn(coreI18n % "test->test")
-
-lazy val studySearch = module("studySearch",
-  Seq(study, search),
-  Seq()
-)
-
-lazy val learn = module("learn",
-  Seq(db),
-  Seq()
-)
-
-lazy val evalCache = module("evalCache",
-  Seq(tree, memo),
-  Seq()
-)
-
-lazy val practice = module("practice",
-  Seq(study),
-  Seq()
-)
-
 lazy val playban = module("playban",
   Seq(memo),
   tests.bundle
 )
 
-lazy val push = module("push",
-  Seq(db, mon),
-  playWs.bundle ++ Seq(googleOAuth)
-)
-
 lazy val mailer = module("mailer",
   Seq(memo, ui),
   Seq(hasher, play.mailer)
-)
-
-lazy val plan = module("plan",
-  Seq(memo, ui),
-  tests.bundle
 )
 
 lazy val relation = module("relation",
@@ -455,31 +225,6 @@ lazy val msg = module("msg",
   Seq()
 )
 
-lazy val forum = module("forum",
-  Seq(memo, ui),
-  Seq()
-)
-
-lazy val forumSearch = module("forumSearch",
-  Seq(search),
-  Seq()
-)
-
-lazy val team = module("team",
-  Seq(memo, room, ui),
-  Seq()
-)
-
-lazy val teamSearch = module("teamSearch",
-  Seq(search),
-  Seq()
-)
-
-lazy val clas = module("clas",
-  Seq(user, puzzle),
-  Seq(probabilisticDataStructures)
-)
-
 lazy val bookmark = module("bookmark",
   Seq(db),
   Seq()
@@ -490,34 +235,14 @@ lazy val report = module("report",
   Seq()
 )
 
-lazy val appeal = module("appeal",
-  Seq(memo, ui),
-  Seq()
-)
-
-lazy val explorer = module("explorer",
-  Seq(game),
-  Seq()
-)
-
 lazy val notifyModule = module("notify",
   Seq(memo, ui),
-  Seq()
-)
-
-lazy val recap = module("recap",
-  Seq(user, game, puzzle),
   Seq()
 )
 
 lazy val socket = module("socket",
   Seq(memo),
   Seq(lettuce)
-)
-
-lazy val tree = module("tree",
-  Seq(core),
-  Seq(chess.playJson)
 )
 
 lazy val ui = module("ui",

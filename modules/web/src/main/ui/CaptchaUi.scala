@@ -2,7 +2,6 @@ package lila.web
 package ui
 
 import play.api.data.{ Field, Form }
-import play.api.libs.json.Json
 
 import lila.core.captcha.Captcha
 import lila.ui.*
@@ -12,7 +11,6 @@ final class CaptchaUi(helpers: Helpers):
   import helpers.{ *, given }
 
   private val dataCheckUrl = attr("data-check-url")
-  private val dataMoves = attr("data-moves")
   private val dataPlayable = attr("data-playable")
 
   def apply(form: Form[?] | Field, captcha: Captcha)(using ctx: Context) =
@@ -20,7 +18,6 @@ final class CaptchaUi(helpers: Helpers):
       form3.hidden(formField(form, "gameId"), captcha.gameId.some),
       if ctx.blind then form3.hidden(formField(form, "move"), captcha.solutions.head.some)
       else
-        val url = routeUrl(routes.Round.watcher(captcha.gameId, captcha.color))
         div(
           cls := List(
             "captcha form-group" -> true,
@@ -29,30 +26,22 @@ final class CaptchaUi(helpers: Helpers):
           dataCheckUrl := routes.Main.captchaCheck(captcha.gameId)
         )(
           div(cls := "challenge")(
-            chessgroundMini(captcha.fen, captcha.color) {
-              div(
-                dataMoves := safeJsonValue(Json.toJson(captcha.moves)),
-                dataPlayable := 1
-              )
-            }
+            div(
+              cls := "goban-captcha",
+              attr("data-board") := captcha.board,
+              attr("data-size") := captcha.size,
+              dataPlayable := 1
+            )
           ),
           div(cls := "captcha-explanation")(
-            label(cls := "form-label")(
-              if captcha.color.white then trans.site.whiteCheckmatesInOneMove()
-              else trans.site.blackCheckmatesInOneMove()
-            ),
+            label(cls := "form-label")("Black to play: capture the white stones"),
             br,
             br,
-            trans.site.thisIsAChessCaptcha(),
-            br,
-            trans.site.clickOnTheBoardToMakeYourMove(),
+            "This is a Go captcha: click the point where Black captures.",
             br,
             br,
-            trans.site.help(),
-            " ",
-            a(title := trans.site.viewTheSolution.txt(), targetBlank, href := s"${url}#last")(url),
-            div(cls := "result success text", dataIcon := Icon.Checkmark)(trans.site.checkmate()),
-            div(cls := "result failure text", dataIcon := Icon.NotAllowed)(trans.site.notACheckmate()),
+            div(cls := "result success text", dataIcon := Icon.Checkmark)("Captured!"),
+            div(cls := "result failure text", dataIcon := Icon.NotAllowed)("That doesn't capture, try again."),
             form3.hidden(formField(form, "move"))
           )
         )

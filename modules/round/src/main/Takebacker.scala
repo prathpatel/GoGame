@@ -7,7 +7,7 @@ import scalalib.data.Preload
 import lila.common.Bus
 import lila.core.i18n.{ I18nKey as trans, Translator, defaultLang }
 import lila.core.round.*
-import lila.game.{ Event, GameRepo, Progress, Rewind, UciMemo }
+import lila.game.{ Event, GameRepo, Progress, Rewind }
 import lila.pref.{ Pref, PrefApi }
 import lila.round.RoundGame.playableByAi
 
@@ -23,7 +23,6 @@ private given takebackBoardZero: Zero[TakebackBoard] = Zero(ByColor.fill(Takebac
 final private class Takebacker(
     messenger: Messenger,
     gameRepo: GameRepo,
-    uciMemo: UciMemo,
     prefApi: PrefApi
 )(using Executor, Translator):
 
@@ -111,14 +110,8 @@ final private class Takebacker(
 
   private def offerTakebackMessage(pov: Pov): String =
     val k = if pov.game.turnOf(pov.color) then 2 else 1
-    val lastSans = pov.game.sans.takeRight(k).toList
-    val startPly = pov.game.ply - k + 1
-    def movePrefix(ply: Ply, secondMove: Boolean): String =
-      if secondMove && ply.turn.white then ""
-      else s"${(ply.value + 1) / 2}${if ply.turn.black then "." else "..."}"
-    val rollbackMoves: List[String] =
-      lastSans.zipWithIndex.map: (san, i) =>
-        s"${movePrefix(startPly + i, i == 1)}$san"
+    val size = pov.game.boardSize.size
+    val rollbackMoves = pov.game.moves.takeRight(k).map(_.human(size))
     val base = pov.color.fold(trans.site.whiteProposesTakeback, trans.site.blackProposesTakeback).txt()
     s"$base (${rollbackMoves.mkString(" ")})"
 
@@ -142,11 +135,9 @@ final private class Takebacker(
 
   private def rewind(pov: Pov, plies: Int)(using GameProxy): Fu[Events] =
     for
-      fen <- gameRepo.initialFen(pov.game)
       progress <- (1 to plies).foldLeft(fuccess(Progress(pov.game))): (prev, _) =>
         prev.flatMap: prog =>
-          Rewind(prog.game, fen).toFuture.dmap(rewinded => prog.withGame(rewinded.game))
-      _ <- fuccess(uciMemo.drop(pov.game, plies))
+          Rewind(prog.game).toFuture.dmap(rewinded => prog.withGame(rewinded.game))
       events <- saveAndNotify(progress, pov)
     yield events
 

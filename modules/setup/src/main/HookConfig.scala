@@ -1,6 +1,5 @@
 package lila.setup
 
-import chess.variant.Variant
 import chess.{ Clock, IntRating, Rated }
 import scalalib.model.Days
 
@@ -11,7 +10,7 @@ import lila.lobby.{ Hook, Seek, TriColor }
 import lila.rating.RatingRange.withinLimits
 
 case class HookConfig(
-    variant: chess.variant.Variant,
+    size: goban.BoardSize,
     timeMode: TimeMode,
     time: Double, // minutes
     increment: Clock.IncrementSeconds,
@@ -21,12 +20,14 @@ case class HookConfig(
     ratingRange: RatingRange
 ) extends HumanConfig:
 
+  val handicap = 0
+
   def withinLimits(using me: Option[Me], perf: Perf): HookConfig =
     if me.isEmpty then this
     else copy(ratingRange = ratingRange.withinLimits(perf.intRating, 500))
 
   def >> = (
-    variant.id,
+    size.size,
     timeMode.id,
     time,
     increment,
@@ -55,9 +56,9 @@ case class HookConfig(
         Left:
           Hook.make(
             sri = sri,
-            variant = variant,
+            size = size,
             clock = clock,
-            rated = if lila.core.game.allowRated(variant, clock.some) then rated else Rated.No,
+            rated = if lila.core.game.allowRated(chess.variant.Standard, clock.some) then rated else Rated.No,
             color = color,
             user = user,
             blocking = blocking,
@@ -68,7 +69,7 @@ case class HookConfig(
         Right:
           user.map: u =>
             Seek.make(
-              variant = variant,
+              size = size,
               daysPerTurn = makeDaysPerTurn,
               rated = rated,
               user = u,
@@ -78,7 +79,7 @@ case class HookConfig(
 
   def updateFrom(game: Game) =
     val h1 = copy(
-      variant = game.variant,
+      size = game.boardSize,
       timeMode = TimeMode.ofGame(game),
       time = game.clock.map(_.limitInMinutes) | time,
       increment = game.clock.map(_.incrementSeconds) | increment,
@@ -96,7 +97,7 @@ case class HookConfig(
 object HookConfig extends BaseConfig:
 
   def from(
-      v: Variant.Id,
+      s: Int,
       tm: Int,
       t: Double,
       i: Clock.IncrementSeconds,
@@ -106,7 +107,7 @@ object HookConfig extends BaseConfig:
       c: Option[String]
   ) =
     new HookConfig(
-      variant = chess.variant.Variant.orDefault(v),
+      size = goban.BoardSize.orDefault(s),
       timeMode = TimeMode(tm).err(s"Invalid time mode $tm"),
       time = t,
       increment = i,
@@ -119,7 +120,7 @@ object HookConfig extends BaseConfig:
   def default(auth: Boolean): HookConfig = default.copy(rated = Rated(auth))
 
   private val default = HookConfig(
-    variant = variantDefault,
+    size = sizeDefault,
     timeMode = TimeMode.RealTime,
     time = 5d,
     increment = Clock.IncrementSeconds(3),
@@ -136,7 +137,7 @@ object HookConfig extends BaseConfig:
 
     def reads(r: BSON.Reader): HookConfig =
       HookConfig(
-        variant = Variant.idOrDefault(r.getO[Variant.Id]("v")),
+        size = goban.BoardSize.orDefault(r.intD("s")),
         timeMode = TimeMode.orDefault(r.int("tm")),
         time = r.double("t"),
         increment = r.get("i"),
@@ -148,7 +149,7 @@ object HookConfig extends BaseConfig:
 
     def writes(w: BSON.Writer, o: HookConfig) =
       bdoc(
-        "v" -> o.variant.id,
+        "s" -> o.size.size,
         "tm" -> o.timeMode.id,
         "t" -> o.time,
         "i" -> o.increment,

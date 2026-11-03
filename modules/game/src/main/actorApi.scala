@@ -1,11 +1,9 @@
 package lila.game
 package actorApi
 
-import chess.format.{ Fen, Uci }
-
 import lila.core.game.{ Game, Pov }
 
-case class MoveGameEvent(game: Game, fen: Fen.Full, move: Uci)
+case class MoveGameEvent(game: Game, move: String)
 object MoveGameEvent:
   def makeChan(gameId: GameId) = s"moveEvent:$gameId"
 

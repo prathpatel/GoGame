@@ -1,6 +1,6 @@
 package lila.game
 
-import chess.{ Black, Centis, CheckCount, Clock, Color, White }
+import chess.{ Black, Centis, Clock, Color, White }
 import reactivemongo.api.bson.*
 
 import scala.util.Try
@@ -57,27 +57,11 @@ object GameDiff:
         byteArrayHandler.writeOpt(BinaryFormat.clockHistory.writeSide(x, y, z))
       }
 
-    if a.variant.standard then dTry(huffmanPgn, _.sans, writeBytes.compose(PgnStorage.Huffman.encode))
-    else
-      val f = PgnStorage.OldBin
-      dTry(oldPgn, _.sans, writeBytes.compose(f.encode))
-      dTry(binaryPieces, _.position.pieces, writeBytes.compose(BinaryFormat.piece.write))
-      d(positionHashes, _.history.positionHashes, ph => w.bytes(ph.value))
-      dTry(unmovedRooks, _.history.unmovedRooks, writeBytes.compose(BinaryFormat.unmovedRooks.write))
-      dTry(castleLastMove, makeCastleLastMove, CastleLastMove.castleLastMoveHandler.writeTry)
-      // since variants are always OldBin
-      if a.variant.threeCheck then
-        dOpt(
-          checkCount,
-          _.history.checkCount,
-          (o: CheckCount) => o.nonEmpty.so(BSONHandlers.checkCountWriter.writeOpt(o))
-        )
-      if a.variant.crazyhouse then
-        dOpt(
-          crazyData,
-          _.position.crazyData,
-          (o: Option[chess.variant.Crazyhouse.Data]) => o.map(BSONHandlers.crazyhouseDataHandler.write)
-        )
+    d(goMoves, _.go.moveKeys, w.str)
+    dOpt(dead, _.scoring.dead, (o: scala.collection.immutable.Set[goban.Point]) =>
+      o.nonEmpty.option(BSONArray(o.toList.map(_.index).sorted.map(BSONInteger(_)))))
+    dOpt(scoringAccepted, _.scoring.accepted, (o: scala.collection.immutable.Set[Color]) =>
+      o.nonEmpty.option(BSONArray(o.toList.map(c => BSONBoolean(c.white)))))
     d(turns, _.ply, ply => w.int(ply.value))
     dOpt(moveTimes, _.binaryMoveTimes, (o: Option[Array[Byte]]) => o.flatMap(arrayByteHandler.writeOpt))
     dOpt(whiteClockHistory, getClockHistory(White), clockHistoryToBytes)
@@ -105,9 +89,3 @@ object GameDiff:
   private val bTrue = BSONBoolean(true)
 
   private val writeBytes = byteArrayHandler.writeTry
-
-  private def makeCastleLastMove(g: Game) =
-    CastleLastMove(
-      lastMove = g.history.lastMove,
-      castles = g.history.castles
-    )

@@ -1,9 +1,6 @@
 package lila.core
 package game
 
-import _root_.chess.Color.White
-import _root_.chess.format.UciDump
-import _root_.chess.format.pgn.SanStr
 import _root_.chess.variant.{ Standard, Variant }
 import _root_.chess.{
   ByColor,
@@ -11,7 +8,6 @@ import _root_.chess.{
   Clock,
   Color,
   CorrespondenceClock,
-  Game as ChessGame,
   IntRating,
   Outcome,
   Ply,
@@ -19,6 +15,7 @@ import _root_.chess.{
   Speed,
   Status
 }
+import _root_.goban.{ BoardSize, Score, Scoring }
 import scalalib.model.Days
 
 import lila.core.game.ClockHistory.bothClockStates
@@ -30,7 +27,7 @@ import lila.core.userId.{ UserId, UserIdOf }
 case class Game(
     id: GameId,
     players: ByColor[Player],
-    chess: ChessGame,
+    go: _root_.goban.Game,
     loadClockHistory: Clock => Option[ClockHistory] = _ => ClockHistory.empty.some,
     status: Status,
     daysPerTurn: Option[Days],
@@ -40,14 +37,21 @@ case class Game(
     createdAt: Instant = nowInstant,
     movedAt: Instant = nowInstant,
     metadata: GameMetadata,
-    abortedBy: Option[Color] = None
+    abortedBy: Option[Color] = None,
+    /** dead stones and agreement, once both players passed */
+    scoring: GoScoring = GoScoring.empty
 ):
 
-  export chess.{ position, ply, clock, sans, startedAtPly, player as turnColor, history, variant }
+  export go.{ position, ply, clock, moves, startedAtPly, player as turnColor, komi, handicap, board }
+
+  def boardSize: BoardSize = go.size
+
+  /** Go has no chess variants; kept so lila's rating plumbing keeps working. */
+  def variant: Variant = Standard
   export metadata.{ tournamentId, simulId, swissId, drawOffers, source, pgnImport, hasRule }
   export players.{ white as whitePlayer, black as blackPlayer, apply as player }
 
-  lazy val clockHistory = chess.clock.flatMap(loadClockHistory)
+  lazy val clockHistory = go.clock.flatMap(loadClockHistory)
 
   def player[U: UserIdOf](user: U): Option[Player] = players.find(_.isUser(user))
   def opponentOf[U: UserIdOf](user: U): Option[Player] = player(user).map(opponent)
@@ -65,8 +69,7 @@ case class Game(
   def opponent(p: Player): Player = opponent(p.color)
   def opponent(c: Color): Player = player(!c)
 
-  lazy val naturalOrientation =
-    if variant.racingKings then White else Color.fromWhite(players.reduce(_.before(_)))
+  lazy val naturalOrientation = Color.fromWhite(players.reduce(_.before(_)))
 
   def turnOf(p: Player): Boolean = p == player
   def turnOf(c: Color): Boolean = c == turnColor
@@ -101,14 +104,14 @@ case class Game(
 
   def bothClockStates: Option[Vector[Centis]] = clockHistory.map(_.bothClockStates(startColor))
 
-  def sansOf(color: Color): Vector[SanStr] =
-    val pivot = if color == startColor then 0 else 1
-    sans.zipWithIndex.collect:
-      case (e, i) if (i % 2) == pivot => e
+  /** SGF key of the last move ("pd", or "pass"), for display purposes. */
+  def lastMoveKey: Option[String] =
+    position.lastMove.map(_.key(board.width))
 
-  // not UCI. Only for lastMove display purposes.
-  def lastMoveKeys: Option[String] =
-    history.lastMove.map(UciDump.lastMove(_, position))
+  /** Both players passed: play is suspended while dead stones are agreed upon. */
+  def inScoringPhase: Boolean = playable && started && go.bothPassed
+
+  def score: Score = Scoring.area(board, scoring.dead, komi)
 
   def updatePlayer(color: Color, f: Player => Player) =
     copy(players = players.update(color, f))
@@ -129,8 +132,7 @@ case class Game(
 
   def perfKey: PerfKey = PerfKey(variant, speed)
 
-  def ratingVariant: Variant =
-    if isTournament && variant.fromPosition then Standard else variant
+  def ratingVariant: Variant = Standard
 
   def started = status >= Status.Started
 
@@ -149,8 +151,9 @@ case class Game(
 
   def aiPov: Option[Pov] = players.findColor(_.isAi).map(pov)
 
-  def swissPreventsDraw = isSwiss && playedPlies < 60
-  def rulePreventsDraw = hasRule(_.noEarlyDraw) && playedPlies < 60
+  // there are no draw offers in Go: a game ends by resignation, time, or counting
+  def swissPreventsDraw = true
+  def rulePreventsDraw = true
 
   def boosted = rated.yes && finished && bothPlayersHaveMoved && playedPlies < 10
 
@@ -164,15 +167,15 @@ case class Game(
   def forceResignable =
     resignable && nonAi && hasClock && !isSwiss && !hasRule(_.noClaimWin)
   def forceResignableNow = forceResignable && bothPlayersHaveMoved
-  def drawable = playable && !abortable && !swissPreventsDraw && !rulePreventsDraw
+  def drawable = false
 
-  def finished = status >= Status.Mate
+  def finished = status >= Status.Mate // Mate is never used, it is the first finished status
 
   def finishedOrAborted = finished || aborted
 
   def replayable = isPgnImport || finished || (aborted && bothPlayersHaveMoved)
 
-  def fromPosition = variant.fromPosition || source.has(Source.Position)
+  def fromPosition = handicap > 0 || source.has(Source.Position)
 
   def sourceIs(f: Source.type => Source): Boolean = source contains f(Source)
   def lobbyOrPool = source.exists(s => s == Source.Lobby || s == Source.Pool)
@@ -250,15 +253,26 @@ case class Game(
     case a :: Nil => Some((a + IntRating(1500)).map(_ / 2))
     case _ => None
 
-  def isStrongOrRecent = averageUsersRating.exists(_.value >= 2200) ||
+  def isStrongOrRecent = averageUsersRating.exists(_.value >= 2000) ||
     createdAt.isAfter(nowInstant.minus(10.days))
 
   def isPgnImport = pgnImport.isDefined
 
-  def hasFewerMovesThanExpected = playedPlies <= reasonableMinimumNumberOfMoves(variant)
+  def hasFewerMovesThanExpected = playedPlies <= reasonableMinimumNumberOfMoves(boardSize)
 
   def pov(c: Color) = Pov(this, c)
   def povs: ByColor[Pov] = ByColor(pov)
 
   override def toString = s"""Game($id)"""
 end Game
+
+/** State of the stone removal phase that follows two consecutive passes. */
+case class GoScoring(dead: Set[_root_.goban.Point], accepted: Set[Color]):
+  def isEmpty = dead.isEmpty && accepted.isEmpty
+  def accept(c: Color) = copy(accepted = accepted + c)
+  def bothAccepted = accepted.size == 2
+  def toggle(board: _root_.goban.Board, p: _root_.goban.Point) =
+    GoScoring(Scoring.toggleDead(board, dead, p), Set.empty)
+
+object GoScoring:
+  val empty = GoScoring(Set.empty, Set.empty)

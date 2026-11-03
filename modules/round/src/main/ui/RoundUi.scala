@@ -1,26 +1,16 @@
 package lila.round
 package ui
 
-import chess.Square
-import chess.variant.{ Crazyhouse, Variant }
-
 import lila.ui.*
 import lila.ui.ScalatagsTemplate.{ *, given }
 
 final class RoundUi(helpers: Helpers, gameUi: lila.game.ui.GameUi):
   import helpers.{ *, given }
 
-  def RoundPage(variant: Variant, title: String)(using ctx: Context) =
+  def RoundPage(title: String)(using ctx: Context) =
     Page(title)
-      .css(if variant == Crazyhouse then "round.zh" else "round")
-      .css(ctx.pref.hasKeyboardMove.option("keyboardMove"))
-      .css(ctx.pref.hasVoice.option("voice"))
-      .css(ctx.blind.option("round.nvui"))
-      .i18nOpt(ctx.pref.hasVoice, _.voiceCommands)
-      .i18nOpt(ctx.speechSynthesis, _.nvui)
-      .i18nOpt(ctx.blind, _.keyboardMove, _.variant)
+      .css("round")
       .flag(_.zoom)
-      .csp(_.withWebAssembly)
 
   def povOpenGraph(pov: Pov)(using Translate) =
     OpenGraph(
@@ -47,9 +37,13 @@ final class RoundUi(helpers: Helpers, gameUi: lila.game.ui.GameUi):
           .map: pov =>
             a(href := routes.Round.player(pov.fullId), cls := pov.isMyTurn.option("my_turn"))(
               span(
-                cls := s"mini-game mini-game--init ${pov.game.variant.key} is2d",
+                cls := s"mini-game mini-game--init goban-${pov.game.boardSize.size}",
                 gameUi.mini.renderState(pov)
-              )(gameUi.mini.cgWrap),
+              )(
+                span(cls := "goban-wrap")(
+                  lila.game.ui.GobanSvg(pov.game.board.serialize, pov.game.boardSize.size, pov.game.lastMoveKey)
+                )
+              ),
               span(cls := "meta")(
                 playerUsername(
                   pov.opponent.light,
@@ -79,55 +73,30 @@ final class RoundUi(helpers: Helpers, gameUi: lila.game.ui.GameUi):
           s"${chess.Speed(c.config).name} (${c.config.show})"
 
     val rated = game.rated.name
-    val variant =
-      if game.variant == chess.variant.FromPosition
-      then "position setup chess"
-      else if game.variant.exotic
-      then game.variant.name
-      else "chess"
+    val variant = s"${game.boardSize.name} Go"
     import chess.Status.*
     val result = (game.winner, game.loser, game.status) match
-      case (Some(w), _, Mate) => s"${playerText(w)} won by checkmate"
+      case (Some(w), _, VariantEnd) => s"${playerText(w)} won by ${game.score.result}"
       case (_, _, Aborted | NoStart) => gameUi.abortReason(game).txt()
       case (_, Some(l), Resign | Timeout | Cheat | NoStart) => s"${playerText(l)} resigned"
       case (_, Some(l), Outoftime) => s"${playerText(l)} ran out of time"
-      case (Some(w), _, UnknownFinish | VariantEnd) => s"${playerText(w)} won"
-      case (_, _, Draw | Stalemate | UnknownFinish) => "Game is a draw"
+      case (Some(w), _, UnknownFinish) => s"${playerText(w)} won"
+      case (_, _, Draw | UnknownFinish) => "Game is a draw (jigo)"
       case _ if game.finished => "Game ended"
       case _ => "Game is still ongoing"
-    val moves = (game.ply.value - game.startedAtPly.value + 1) / 2
+    val moves = game.playedPlies.value
     s"$p1 $plays $p2 in a $rated $speedAndClock game of $variant. $result after ${pluralize("move", moves)}. Click to replay, analyse, and discuss the game!"
-
-  def povChessground(pov: Pov)(using ctx: Context): Frag =
-    val orient = pov.color
-    val lastMove = pov.game.history.lastMove
-      .map(_.origDest)
-      .so: (orig, dest) =>
-        List(orig, dest)
-    chessgroundWrap:
-      cgBoard:
-        raw:
-          if ctx.pref.is3d then ""
-          else
-            def top(p: Square) = orient.fold(7 - p.rank.value, p.rank.value) * 12.5
-            def left(p: Square) = orient.fold(p.file.value, 7 - p.file.value) * 12.5
-            val highlights = ctx.pref.highlight
-              .so(lastMove.distinct.map { pos =>
-                s"""<square class="last-move" style="top:${top(pos)}%;left:${left(pos)}%"></square>"""
-              })
-              .mkString("")
-            val pieces =
-              if pov.player.blindfold then ""
-              else
-                pov.game.position.pieces
-                  .map: (pos, piece) =>
-                    val klass = s"${piece.color.name} ${piece.role.name}"
-                    s"""<piece class="$klass" style="top:${top(pos)}%;left:${left(pos)}%"></piece>"""
-                  .mkString("")
-            s"$highlights$pieces"
 
   def roundAppPreload(pov: Pov)(using Context): Tag =
     div(cls := "round__app")(
-      div(cls := "round__app__board main-board")(povChessground(pov)),
+      div(cls := "round__app__board main-board")(
+        div(cls := "goban-wrap")(
+          lila.game.ui.GobanSvg(
+            if pov.player.blindfold then "." * pov.game.boardSize.points else pov.game.board.serialize,
+            pov.game.boardSize.size,
+            pov.game.lastMoveKey
+          )
+        )
+      ),
       div(cls := "col1-rmoves-preload")
     )

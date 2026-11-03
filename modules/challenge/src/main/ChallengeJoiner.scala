@@ -1,8 +1,6 @@
 package lila.challenge
 
-import chess.format.Fen
-import chess.variant.Variant
-import chess.{ ByColor, Position, Rated }
+import chess.{ ByColor, Rated }
 
 import lila.core.user.GameUser
 
@@ -38,51 +36,22 @@ private object ChallengeJoiner:
       origUser: GameUser,
       destUser: GameUser
   ): Game =
-    val (chessGame, state) = gameSetup(c.variant, c.timeControl, c.initialFen)
+    val goGame = goban.Game(
+      c.boardSize,
+      goban.Game.defaultKomi(c.handicap),
+      c.handicap,
+      c.timeControl.realTime.map(_.toClock)
+    )
     lila.core.game
       .newGame(
-        chess = chessGame,
+        go = goGame,
         players = ByColor: color =>
           lila.game.Player.make(color, if c.finalColor == color then origUser else destUser),
-        rated = c.rated.map(_ && !chessGame.position.variant.fromPosition),
+        rated = c.rated.map(_ && c.handicap == 0),
         source = lila.core.game.Source.Friend,
         daysPerTurn = c.daysPerTurn,
         pgnImport = None,
         rules = c.rules
       )
       .withId(c.gameId)
-      .pipe(addGameHistory(state))
       .start
-
-  def gameSetup(
-      variant: Variant,
-      tc: Challenge.TimeControl,
-      initialFen: Option[Fen.Full]
-  ): (chess.Game, Option[Position.AndFullMoveNumber]) =
-
-    def makeChess(variant: Variant): chess.Game =
-      chess.Game(position = variant.initialPosition, clock = tc.realTime.map(_.toClock))
-
-    val baseState = initialFen
-      .ifTrue(variant.fromPosition || variant.chess960)
-      .flatMap:
-        Fen.readWithMoveNumber(variant, _)
-
-    baseState.fold(makeChess(variant) -> none[Position.AndFullMoveNumber]): sp =>
-      val game = chess.Game(
-        position = sp.position,
-        ply = sp.ply,
-        startedAtPly = sp.ply,
-        clock = tc.realTime.map(_.toClock)
-      )
-      if variant.fromPosition && Fen.write(game).isInitial then makeChess(chess.variant.Standard) -> none
-      else game -> baseState
-
-  def addGameHistory(position: Option[Position.AndFullMoveNumber])(game: Game): Game =
-    position.fold(game): sp =>
-      game.copy(
-        chess = game.chess.copy(
-          position = game.position.copy(history = sp.position.history),
-          ply = sp.ply
-        )
-      )

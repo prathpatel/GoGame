@@ -1,6 +1,5 @@
 package lila.round
 
-import chess.format.Uci
 import chess.{ Black, ByColor, Centis, Color, MoveMetrics, Speed, White }
 import org.apache.pekko.actor.{ Cancellable, CoordinatedShutdown, Scheduler }
 import play.api.libs.json.*
@@ -25,7 +24,6 @@ final class RoundSocket(
     scheduleExpiration: ScheduleExpiration,
     messenger: Messenger,
     goneWeightsFor: Game => Fu[ByColor[Float]],
-    mobileSocket: RoundMobile,
     shutdown: CoordinatedShutdown
 )(using Executor)(using scheduler: Scheduler):
 
@@ -101,9 +99,14 @@ final class RoundSocket(
     roundActor
 
   private val roundHandler: SocketHandler =
-    case Protocol.In.PlayerMove(fullId, uci, blur, lag) if !stopping =>
-      rounds.tell(fullId.gameId, HumanPlay(fullId.playerId, uci, blur, lag, none))
-    case Protocol.In.PlayerDo(fullId, tpe) if !stopping =>
+    case Protocol.In.PlayerMove(fullId, key, blur, lag) if !stopping =>
+      rounds.tell(fullId.gameId, HumanPlay(fullId.playerId, key, blur, lag, none))
+    case Protocol.In.PlayerDo(fullId, "scoring-toggle", Some(data)) if !stopping =>
+      data
+        .asOpt[Int]
+        .foreach: point =>
+          rounds.tell(fullId.gameId, RoundBus.ScoringToggle(fullId.playerId, goban.Point.fromIndex(point)))
+    case Protocol.In.PlayerDo(fullId, tpe, _) if !stopping =>
       def forward(f: GamePlayerId => Any) = rounds.tell(fullId.gameId, f(fullId.playerId))
       tpe match
         case "moretime" => forward(Moretime(_))
@@ -111,14 +114,13 @@ final class RoundSocket(
         case "rematch-no" => forward(RoundBus.Rematch(_, false))
         case "takeback-yes" => forward(RoundBus.Takeback(_, true))
         case "takeback-no" => forward(RoundBus.Takeback(_, false))
-        case "draw-yes" => forward(RoundBus.Draw(_, true))
-        case "draw-no" => forward(RoundBus.Draw(_, false))
-        case "draw-claim" => forward(DrawClaim(_))
+        case "pass" => forward(HumanPlay(_, goban.Move.passKey, false))
+        case "scoring-accept" => forward(RoundBus.ScoringAccept(_))
+        case "scoring-resume" => forward(RoundBus.ScoringResume(_))
         case "resign" => forward(RoundBus.Resign(_))
         case "resign-force" => forward(RoundBus.ResignForce(_))
         case "blindfold-yes" => forward(Blindfold(_, true))
         case "blindfold-no" => forward(Blindfold(_, false))
-        case "draw-force" => forward(RoundBus.DrawForce(_))
         case "abort" => forward(RoundBus.Abort(_))
         case "outoftime" => forward(_ => RoundBus.QuietFlagCheck) // mobile app BC
         case t => logger.warn(s"Unhandled round socket message: $t")
@@ -150,11 +152,8 @@ final class RoundSocket(
       preloadRoundsWithVersions(versions)
       send(Protocol.Out.versioningReady)
     case P.In.Ping(id) => send(P.Out.pong(id))
-    case Protocol.In.GetGame(reqId, anyId, me) =>
-      for
-        game <- rounds.ask(anyId.gameId)(GetGameAndSocketStatus.apply)
-        data <- mobileSocket.online(game.game, anyId, game.socket)(using me)
-      yield sendForGameId(anyId.gameId).exec(Protocol.Out.respond(reqId, data))
+    case Protocol.In.GetGame(_, anyId, _) =>
+      logger.debug(s"mobile game request ignored: $anyId")
 
     case Protocol.In.WsLatency(millis) => MoveLatMonitor.wsLatency.set(millis)
     case P.In.WsBoot =>
@@ -188,13 +187,9 @@ final class RoundSocket(
       sendForGameId(gameId).exec(Protocol.Out.botConnected(gameId, color, v))
     case Tell(gameId, msg) => rounds.tell(gameId, msg)
 
-  Bus.sub[lila.tree.AnalysisProgress]: progress =>
-    rounds.tellIfPresent(progress.gameId, progress)
-
   Bus.sub[lila.game.actorApi.NotifyRematch]: rematch =>
     rounds.tellIfPresent(rematch.rematchOf, rematch)
 
-  Bus.sub[FishnetStart.type](rounds.tellAll(_))
   Bus.sub[TellMany]:
     case TellMany(gameIds, msg) => rounds.tellIds(gameIds, msg)
   Bus.sub[SocketExists]:
@@ -307,12 +302,6 @@ object RoundSocket:
           case Speed.Blitz => 2
           case _ => 1
       } / {
-        import chess.variant.*
-        (pov.game.chess.position.materialImbalance, pov.game.variant) match
-          case (_, Antichess | Crazyhouse | Horde) => 1
-          case (i, _) if (pov.color.white && i <= -4) || (pov.color.black && i >= 4) => 2
-          case _ => 1
-      } / {
         if pov.player.hasUser then 1 else 2
       }
 
@@ -321,8 +310,8 @@ object RoundSocket:
     object In:
 
       case class PlayerOnlines(onlines: Iterable[(GameId, Option[RoomCrowd])]) extends P.In
-      case class PlayerDo(fullId: GameFullId, tpe: String) extends P.In
-      case class PlayerMove(fullId: GameFullId, uci: Uci, blur: Boolean, lag: MoveMetrics) extends P.In
+      case class PlayerDo(fullId: GameFullId, tpe: String, data: Option[JsValue]) extends P.In
+      case class PlayerMove(fullId: GameFullId, key: String, blur: Boolean, lag: MoveMetrics) extends P.In
       case class PlayerChatSay(gameId: GameId, userIdOrColor: Either[UserId, Color], msg: String) extends P.In
       case class WatcherChatSay(gameId: GameId, userId: UserId, msg: String) extends P.In
       case class Bye(fullId: GameFullId) extends P.In
@@ -352,17 +341,16 @@ object RoundSocket:
             for
               obj <- Json.parse(payload).asOpt[JsObject]
               tpe <- obj.str("t")
-            yield PlayerDo(GameFullId(fullId), tpe)
+            yield PlayerDo(GameFullId(fullId), tpe, obj.value.get("d"))
           }
         case P.RawMsg("r/move", raw) =>
           raw.get(6) { case Array(fullId, uciS, blurS, lagS, mtS, fraS) =>
-            Uci(uciS).map: uci =>
-              PlayerMove(
-                GameFullId(fullId),
-                uci,
-                P.In.boolean(blurS),
-                MoveMetrics(centis(lagS), centis(mtS), centis(fraS))
-              )
+            PlayerMove(
+              GameFullId(fullId),
+              uciS,
+              P.In.boolean(blurS),
+              MoveMetrics(centis(lagS), centis(mtS), centis(fraS))
+            ).some
           }
         case P.RawMsg("chat/say", raw) =>
           raw.get(3) { case Array(roomId, author, msg) =>

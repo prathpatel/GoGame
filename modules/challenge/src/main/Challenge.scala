@@ -1,8 +1,6 @@
 package lila.challenge
 
 import cats.derived.*
-import chess.format.Fen
-import chess.variant.{ Chess960, FromPosition, Horde, RacingKings, Variant }
 import chess.{ Color, Rated, Speed }
 import reactivemongo.api.bson.Macros.Annotations.Key
 import scalalib.ThreadLocalRandom
@@ -18,8 +16,8 @@ import lila.rating.PerfType
 case class Challenge(
     @Key("_id") id: ChallengeId,
     status: Challenge.Status,
-    variant: Variant,
-    initialFen: Option[Fen.Full],
+    size: Int,
+    handicap: Int,
     timeControl: Challenge.TimeControl,
     rated: Rated,
     colorChoice: Challenge.ColorChoice,
@@ -68,13 +66,11 @@ case class Challenge(
 
   def speed = speedOf(timeControl)
 
-  def notableInitialFen: Option[Fen.Full] = variant match
-    case FromPosition | Horde | RacingKings | Chess960 => initialFen
-    case _ => none
+  def boardSize = goban.BoardSize.orDefault(size)
 
   def isOpen = open.isDefined
 
-  lazy val perfType = perfTypeOf(variant, timeControl)
+  lazy val perfType = perfTypeOf(timeControl)
 
   def anyDeclineReason = declineReason | DeclineReason.default
 
@@ -155,8 +151,8 @@ object Challenge:
     case TimeControl.Clock(config) => Speed(config)
     case _ => Speed.Correspondence
 
-  private def perfTypeOf(variant: Variant, timeControl: TimeControl): PerfType =
-    lila.rating.PerfType(variant, speedOf(timeControl))
+  private def perfTypeOf(timeControl: TimeControl): PerfType =
+    lila.rating.PerfType(chess.variant.Standard, speedOf(timeControl))
 
   private val idSize = 8
   private def randomId = ChallengeId(ThreadLocalRandom.nextString(idSize))
@@ -173,8 +169,8 @@ object Challenge:
       .getOrElse(TimeControl.Unlimited)
 
   def make(
-      variant: Variant,
-      initialFen: Option[Fen.Full],
+      size: goban.BoardSize,
+      handicap: Int,
       timeControl: TimeControl,
       rated: Rated,
       color: String,
@@ -192,19 +188,16 @@ object Challenge:
       case "black" => ColorChoice.Black -> chess.Black
       case _ => ColorChoice.Random -> randomColor
     val finalRated = timeControl match
-      case TimeControl.Clock(clock) if !lila.core.game.allowRated(variant, clock.some) => Rated.No
+      case TimeControl.Clock(clock) if !lila.core.game.allowRated(chess.variant.Standard, clock.some) =>
+        Rated.No
+      case _ if handicap > 0 => Rated.No
       case _ => rated
     val isOpen = challenger == Challenge.Challenger.Open
     new Challenge(
       id = id.fold(randomId)(_.into(ChallengeId)),
       status = Status.Created,
-      variant = variant,
-      initialFen =
-        if variant == FromPosition then initialFen
-        else if variant == Chess960 then
-          initialFen.filter: fen =>
-            Chess960.positionNumber(fen).isDefined
-        else (!variant.standardInitialPosition).option(variant.initialFen),
+      size = size.size,
+      handicap = handicap,
       timeControl = timeControl,
       rated = finalRated,
       colorChoice = colorChoice,

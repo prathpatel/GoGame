@@ -63,7 +63,7 @@ final class JsonView(
         "status" -> c.status.name,
         "challenger" -> c.challengerUser,
         "destUser" -> c.destUser,
-        "variant" -> c.variant,
+        "size" -> c.size,
         "rated" -> c.rated,
         "speed" -> c.speed.key,
         "timeControl" -> c.timeControl.match
@@ -90,7 +90,7 @@ final class JsonView(
       )
       .add("rematchOf" -> c.rematchOf)
       .add("direction" -> direction.map(_.name))
-      .add("initialFen" -> c.initialFen)
+      .add("handicap" -> (c.handicap > 0).option(c.handicap))
       .add("declineReason" -> c.declineReason.map(_.trans.txt()))
       .add("declineReasonKey" -> c.declineReason.map(_.key))
       .add("open" -> c.open)
@@ -102,6 +102,4 @@ final class JsonView(
   )
 
   private def iconOf(c: Challenge): Icon =
-    if c.variant == chess.variant.FromPosition
-    then Icon.Feather
-    else c.perfType.icon
+    c.perfType.icon

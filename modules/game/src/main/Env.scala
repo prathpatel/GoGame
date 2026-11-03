@@ -14,8 +14,7 @@ final private class GameConfig(
     @ConfigName("collection.game") val gameColl: CollName,
     @ConfigName("collection.crosstable") val crosstableColl: CollName,
     @ConfigName("collection.matchup") val matchupColl: CollName,
-    @ConfigName("captcher.duration") val captcherDuration: FiniteDuration,
-    val gifUrl: String
+    @ConfigName("captcher.duration") val captcherDuration: FiniteDuration
 )
 
 @Module
@@ -38,21 +37,9 @@ final class Env(
 
   given idGenerator: IdGenerator = wire[IdGenerator]
 
-  val divider = wire[Divider]
-
-  val gameOpening = wire[GameOpening]
-
-  val gameOpeningOf: lila.core.game.GameOpening = gameOpening.of
-
   val cached: Cached = wire[Cached]
 
-  val uciMemo = wire[UciMemo]
-
-  lazy val gifExport = GifExport(ws, lightUserApi, routeUrl, config.gifUrl)
-
   lazy val paginator = wire[PaginatorBuilder]
-
-  lazy val pgnDump = wire[PgnDump]
 
   lazy val crosstableApi = new CrosstableApi(
     coll = db(config.crosstableColl),
@@ -70,7 +57,7 @@ final class Env(
 
   lazy val captcha = wire[CaptchaApi]
 
-  lazy val importer = wire[lila.game.importer.Importer]
+  lazy val sgfDump = wire[SgfDump]
 
   lazy val userGameApi = UserGameApi(lightUserApi, getTourName)
 

@@ -1,8 +1,6 @@
 package lila.game
 package ui
 
-import chess.format.Fen
-import chess.format.pgn.PgnStr
 
 import lila.core.game.{ Game, Player }
 import lila.core.i18n.I18nKey
@@ -19,7 +17,6 @@ final class GameUi(helpers: Helpers):
     private val dataLive = attr("data-live")
     private val dataTime = attr("data-time")
     private val dataTimeControl = attr("data-tc")
-    val cgWrap = span(cls := "cg-wrap")(cgWrapContent)
 
     def apply(
         pov: Pov,
@@ -42,12 +39,13 @@ final class GameUi(helpers: Helpers):
       else routes.Round.watcher(pov.gameId, pov.color)
       renderMini(pov, link.url)(using transDefault, None)
 
+    private def boardOf(pov: Pov)(using me: Option[Me]): String =
+      if me.flatMap(pov.game.player).exists(_.blindfold) && pov.game.playable
+      then "." * pov.game.boardSize.points
+      else pov.game.board.serialize
+
     def renderState(pov: Pov)(using me: Option[Me]) =
-      val fen =
-        if me.flatMap(pov.game.player).exists(_.blindfold) && pov.game.playable
-        then chess.format.BoardAndColorFen("8/8/8/8/8/8/8/8 w")
-        else Fen.writeBoardAndColor(pov.game.position)
-      dataState := s"${fen},${pov.color.name},${~pov.game.lastMoveKeys}"
+      dataState := s"${boardOf(pov)},${pov.color.name},${~pov.game.lastMoveKey}"
 
     private def showTimeControl(c: chess.Clock.Config) = s"${c.limitSeconds}+${c.incrementSeconds}"
 
@@ -59,13 +57,13 @@ final class GameUi(helpers: Helpers):
       import pov.game
       gameLink(
         href := link,
-        cls := s"mini-game mini-game-${game.id} mini-game--init ${game.variant.key} is2d",
+        cls := s"mini-game mini-game-${game.id} mini-game--init goban-${game.boardSize.size}",
         dataLive := game.isBeingPlayed.option(game.id),
         dataTimeControl := game.clock.map(_.config).fold("correspondence")(showTimeControl),
         renderState(pov)
       )(
         renderPlayer(!pov, withRating = showRatings),
-        cgWrap,
+        span(cls := "goban-wrap")(GobanSvg(boardOf(pov), game.boardSize.size, game.lastMoveKey)),
         renderPlayer(pov, withRating = showRatings)
       )
 
@@ -96,7 +94,6 @@ final class GameUi(helpers: Helpers):
   def gameIcon(game: Game): Icon =
     if game.fromPosition then Icon.Feather
     else if game.sourceIs(_.Import) then Icon.UploadCloud
-    else if game.variant.exotic then game.perfType.icon
     else if game.hasAi then Icon.Cogs
     else game.perfType.icon
 
@@ -109,7 +106,6 @@ final class GameUi(helpers: Helpers):
 
   def gameEndStatus(game: Game)(using Translate): String =
     import chess.{ White, Black, Status as S }
-    import lila.game.GameExt.drawReason
     game.status match
       case S.Aborted => abortReason(game).txt()
       case S.Mate => trans.site.checkmate.txt()
@@ -124,16 +120,7 @@ final class GameUi(helpers: Helpers):
           case (Some(_), _) => trans.site.blackLeftTheGame.txt()
           case (None, White) => trans.site.whiteLeftTheGame.txt() + " • " + trans.site.draw.txt()
           case (None, Black) => trans.site.blackLeftTheGame.txt() + " • " + trans.site.draw.txt()
-      case S.Draw =>
-        import lila.game.DrawReason.*
-        game.drawReason match
-          case Some(MutualAgreement) => trans.site.drawByMutualAgreement.txt()
-          case Some(FiftyMoves) => trans.site.fiftyMovesWithoutProgress.txt() + " • " + trans.site.draw.txt()
-          case Some(ThreefoldRepetition) =>
-            trans.site.threefoldRepetition.txt() + " • " + trans.site.draw.txt()
-          case Some(InsufficientMaterial) =>
-            trans.site.insufficientMaterial.txt() + " • " + trans.site.draw.txt()
-          case _ => trans.site.draw.txt()
+      case S.Draw => s"Jigo (${game.score.result})"
       case S.InsufficientMaterialClaim =>
         trans.site.drawClaimed.txt() + " • " + trans.site.insufficientMaterial.txt()
       case S.Outoftime =>
@@ -146,12 +133,7 @@ final class GameUi(helpers: Helpers):
         if game.loser.exists(_.color.white) then trans.site.whiteDidntMove.txt()
         else trans.site.blackDidntMove.txt()
       case S.Cheat => trans.site.cheatDetected.txt()
-      case S.VariantEnd =>
-        game.variant match
-          case chess.variant.KingOfTheHill => trans.site.kingInTheCenter.txt()
-          case chess.variant.ThreeCheck => trans.site.threeChecks.txt()
-          case chess.variant.RacingKings => trans.site.raceFinished.txt()
-          case _ => trans.site.variantEnding.txt()
+      case S.VariantEnd => game.score.result
       case _ => ""
 
   object crosstable:
@@ -205,51 +187,6 @@ final class GameUi(helpers: Helpers):
             span(cls := ct.users.winnerId.map(w => if w == u.id then "win" else "loss"))(ct.showScore(u.id))
       )
 
-  object importer:
-
-    private def analyseHelp(using ctx: Context) =
-      (!ctx.isAuth).option:
-        a(cls := "blue", href := routes.Auth.signup)(trans.site.youNeedAnAccountToDoThat())
-
-    def apply(form: play.api.data.Form[?])(using ctx: Context) =
-      Page(trans.site.importGame.txt())
-        .css("bits.importer")
-        .js(esmInitBit("importer"))
-        .graph(
-          title = "Paste PGN chess game",
-          url = routeUrl(routes.Importer.importGame),
-          description = trans.site.importGameExplanation.txt()
-        ):
-          main(cls := "importer page-small box box-pad")(
-            h1(cls := "box__top")(trans.site.importGame()),
-            p(cls := "explanation")(
-              trans.site.importGameExplanation(),
-              br,
-              a(cls := "text", dataIcon := Icon.InfoCircle, href := routes.Study.allDefault(1)):
-                trans.site.importGameDataPrivacyWarning()
-            ),
-            standardFlash,
-            postForm(cls := "form3 import", action := routes.Importer.sendGame)(
-              form3.group(form("pgn"), trans.site.pasteThePgnStringHere())(form3.textarea(_)()),
-              form("pgn").value.flatMap { pgn =>
-                lila.game.importer
-                  .parseImport(PgnStr(pgn), ctx.userId)
-                  .fold(
-                    err => frag(pre(cls := "error")(err), br, br).some,
-                    _ => none
-                  )
-              },
-              form3.group(form("pgnFile"), trans.site.orUploadPgnFile(), klass = "upload"): f =>
-                form3.file.pgn(f.name),
-              form3.checkboxGroup(
-                form("analyse"),
-                trans.site.requestAComputerAnalysis(),
-                help = analyseHelp
-              ),
-              form3.action(form3.submit(trans.site.importGame(), Icon.UploadCloud.some))
-            )
-          )
-
   object widgets:
 
     val separator = span(" • ")(cls := "separator")
@@ -288,13 +225,11 @@ final class GameUi(helpers: Helpers):
       )
 
     def miniBoard(pov: Pov)(using ctx: Context): Tag => Tag =
-      chessgroundMini(
+      val board =
         if ctx.me.flatMap(pov.game.player).exists(_.blindfold) && pov.game.playable
-        then Fen.Board("8/8/8/8/8/8/8/8")
-        else Fen.writeBoard(pov.game.position),
-        if pov.game.variant == chess.variant.RacingKings then chess.White else pov.player.color,
-        pov.game.history.lastMove
-      )
+        then "." * pov.game.boardSize.points
+        else pov.game.board.serialize
+      _(cls := "goban-wrap")(GobanSvg(board, pov.game.boardSize.size, pov.game.lastMoveKey))
 
     def source(g: Game)(using Context) =
       strong(
@@ -305,13 +240,13 @@ final class GameUi(helpers: Helpers):
               frag(" ", trans.site.by(userIdLink(user.some, None, withOnline = false)))
             },
             separator,
-            variantLink(g.variant, g.perfType)
+            g.boardSize.name
           )
         else
           frag(
             showClock(g),
             separator,
-            if g.fromPosition then g.variant.name else g.perfType.trans,
+            s"${g.boardSize.name} • ${g.perfType.trans}",
             separator,
             ratedName(g.rated)
           )
@@ -350,18 +285,9 @@ final class GameUi(helpers: Helpers):
 
     private def opening(g: Game) =
       div(cls := "opening")(
-        gameOpening(g, false).map(o => strong(o.name)),
         div(cls := "pgn")(
-          g.sans
-            .take(6)
-            .grouped(2)
-            .zipWithIndex
-            .map:
-              case (Vector(w, b), i) => s"${i + 1}. $w $b"
-              case (Vector(w), i) => s"${i + 1}. $w"
-              case _ => ""
-            .mkString(" "),
-          (g.ply > 6).option(s" ... ${1 + (g.ply.value - 1) / 2} moves ")
+          g.moves.take(6).map(_.human(g.boardSize.size)).mkString(" "),
+          (g.ply > 6).option(s" ... ${g.playedPlies} moves ")
         )
       )
 

@@ -19,13 +19,6 @@ final private[setup] class Processor(
     _ = onStart.exec(pov.gameId)
   yield pov
 
-  def apiAi(config: ApiAiConfig)(using me: Me): Fu[Pov] = for
-    me <- userApi.withPerf(me, config.perfType)
-    pov <- config.pov(me.some)
-    _ <- gameRepo.insertDenormalized(pov.game)
-    _ = onStart.exec(pov.gameId)
-  yield pov
-
   def hook(
       config: HookConfig,
       sri: lila.core.socket.Sri,
