@@ -77,3 +77,5 @@ instance.lock
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+/gtp_logs/
+/modules/goban/gtp_logs/
