@@ -113,13 +113,13 @@ object RoundClientActor:
             clientIn(in)
             Behaviors.same
 
-          case ClientOut.RoundMove(uci, blur, clientLag, ackId) =>
+          case ClientOut.RoundMove(key, blur, clientLag, ackId) =>
             fullId.foreach: fid =>
               clientIn(ClientIn.RoundPingFrameNoFlush)
               clientIn(ClientIn.Ack(ackId))
               val frameLagCentis = req.user.flatMap(deps.services.lag.sessionLag).map(Centis.ofMillis(_))
               val lag = clientLag.withFrameLag(frameLagCentis)
-              lilaIn.round(LilaIn.RoundMove(fid, uci, blur, lag))
+              lilaIn.round(LilaIn.RoundMove(fid, key, blur, lag))
             Behaviors.same
 
           case ClientOut.RoundPlayerForward(payload) =>

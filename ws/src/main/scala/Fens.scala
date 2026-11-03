@@ -2,7 +2,6 @@ package lila.ws
 
 import cats.syntax.option.*
 import chess.Color
-import chess.format.{ Fen, Uci }
 import org.apache.pekko.actor.typed.ActorRef
 
 import lila.ws.ipc.*
@@ -45,13 +44,12 @@ object Fens:
       val turnColor = moveBy.fold(Color.white)(c => !c)
       json.value
         .match
-          case MoveClockRegex(uciS, fenS, wcS, bcS) =>
+          case MoveClockRegex(uciS, boardS, wcS, bcS) =>
             for
-              uci <- Uci(uciS)
               wc <- wcS.toIntOption
               bc <- bcS.toIntOption
-            yield Position(uci, Fen.Board(fenS), Some(Clock(wc, bc)), turnColor)
-          case MoveRegex(uciS, fenS) => Uci(uciS).map { Position(_, Fen.Board(fenS), None, turnColor) }
+            yield Position(uciS, boardS, Some(Clock(wc, bc)), turnColor)
+          case MoveRegex(uciS, boardS) => Some(Position(uciS, boardS, None, turnColor))
           case _ => None
         .fold(watched): position =>
           val msg = ClientIn.Fen(gameId, position)
@@ -59,6 +57,6 @@ object Fens:
           watched.copy(position = Some(position))
         .some
 
-  // ...,"uci":"h2g2","san":"Rg2","fen":"r2qb1k1/p2nbrpn/6Np/3pPp1P/1ppP1P2/2P1B3/PP2B1R1/R2Q1NK1",...,"clock":{"white":121.88,"black":120.94}
-  private val MoveRegex = """uci":"([^"]+)".+fen":"([^"]+)""".r.unanchored
-  private val MoveClockRegex = """uci":"([^"]+)".+fen":"([^"]+).+white":(\d+).+black":(\d+)""".r.unanchored
+  // {"uci":"pd","san":"Q16","board":"....b....w...",...,"clock":{"white":121.88,"black":120.94}
+  private val MoveRegex = """uci":"([^"]+)".+board":"([^"]+)""".r.unanchored
+  private val MoveClockRegex = """uci":"([^"]+)".+board":"([^"]+).+white":(\d+).+black":(\d+)""".r.unanchored

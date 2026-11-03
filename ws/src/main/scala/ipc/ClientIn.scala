@@ -11,8 +11,6 @@ sealed trait ClientIn extends ClientMsg:
 
 object ClientIn:
 
-  import chess.json.Json.given
-
   case object Pong extends ClientIn:
     val write = "0"
 
@@ -46,8 +44,9 @@ object ClientIn:
         Json
           .obj(
             "id" -> gameId.value,
-            "lm" -> position.lastUci,
-            "fen" -> position.fenWithColor
+            "lm" -> position.lastMove,
+            "board" -> position.board,
+            "color" -> position.turnColor.name
           )
           .add("wc" -> position.clock.map(_.white))
           .add("bc" -> position.clock.map(_.black))

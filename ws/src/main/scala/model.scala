@@ -1,6 +1,5 @@
 package lila.ws
 
-import chess.format.{ Fen, Uci }
 import chess.{ ByColor, Color }
 import scalalib.SecureRandom
 
@@ -138,8 +137,8 @@ opaque type UserTv = String
 object UserTv extends OpaqueString[UserTv]
 
 case class Clock(white: Int, black: Int)
-case class Position(lastUci: Uci, fen: Fen.Board, clock: Option[Clock], turnColor: Color):
-  def fenWithColor = fen.andColor(turnColor)
+/** A Go board, one char per point ('.', 'b', 'w'), as sent to mini boards. */
+case class Position(lastMove: String, board: String, clock: Option[Clock], turnColor: Color)
 
 opaque type MultiPv = Int
 object MultiPv extends RelaxedOpaqueInt[MultiPv]

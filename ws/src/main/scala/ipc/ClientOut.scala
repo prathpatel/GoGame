@@ -2,7 +2,7 @@ package lila.ws
 package ipc
 
 import cats.data.NonEmptyList
-import chess.format.{ Fen, Uci, UciPath }
+import chess.format.{ Fen, UciPath }
 import chess.variant.Variant
 import chess.{ Centis, Color }
 import play.api.libs.json.*
@@ -71,7 +71,8 @@ object ClientOut:
   // round
 
   case class RoundPlayerForward(payload: JsValue) extends ClientOutRound
-  case class RoundMove(uci: Uci, blur: Boolean, lag: ClientMoveMetrics, ackId: Option[Int])
+  /** a Go move: SGF coordinates ("pd") or "pass" */
+  case class RoundMove(key: String, blur: Boolean, lag: ClientMoveMetrics, ackId: Option[Int])
       extends ClientOutRound
   case class RoundHold(mean: Int, sd: Int) extends ClientOutRound
   case class RoundBerserk(ackId: Option[Int]) extends ClientOutRound
@@ -141,19 +142,10 @@ object ClientOut:
               case "move" =>
                 for
                   d <- o.obj("d")
-                  move <- d.str("u").flatMap(Uci.Move.apply).orElse(parseOldMove(d))
+                  move <- d.str("u").filter(GoMove.valid)
                   blur = d.int("b") contains 1
                   ackId = d.int("a")
                 yield RoundMove(move, blur, parseMetrics(d), ackId)
-              case "drop" =>
-                for
-                  d <- o.obj("d")
-                  role <- d.str("role")
-                  square <- d.str("pos")
-                  drop <- Uci.Drop.fromStrings(role, square)
-                  blur = d.int("b") contains 1
-                  ackId = d.int("a")
-                yield RoundMove(drop, blur, parseMetrics(d), ackId)
               case "hold" =>
                 for
                   d <- o.obj("d")
@@ -166,7 +158,8 @@ object ClientOut:
               case "bye2" => Some(RoundBye)
               case "blindfold-yes" | "blindfold-no" | "moretime" | "rematch-yes" | "rematch-no" |
                   "takeback-yes" | "takeback-no" | "draw-yes" | "draw-no" | "draw-claim" | "resign" |
-                  "resign-force" | "draw-force" | "abort" | "outoftime" =>
+                  "resign-force" | "draw-force" | "abort" | "outoftime" | "pass" | "scoring-toggle" |
+                  "scoring-accept" | "scoring-resume" =>
                 Some(RoundPlayerForward(o))
               // chat
               case "talk" => o.str("d").map { ChatSay.apply }
@@ -198,13 +191,6 @@ object ClientOut:
 
   private val emptyPing: Try[ClientOut] = Success(Ping(None))
 
-  private def parseOldMove(d: JsObject) = for
-    orig <- d.str("from")
-    dest <- d.str("to")
-    prom = d.str("promotion")
-    move <- Uci.Move.fromStrings(orig, dest, prom)
-  yield move
-
   private def parseMetrics(d: JsObject) =
     ClientMoveMetrics(
       d.int("l").map { Centis.ofMillis(_) },
@@ -212,3 +198,8 @@ object ClientOut:
         Try(Centis(Integer.parseInt(v, 36))).toOption
       }
     )
+
+/** Go move keys, validated before being forwarded to lila. */
+object GoMove:
+  private val sgf = "^[a-s]{2}$".r
+  def valid(key: String): Boolean = key == "pass" || sgf.matches(key)
