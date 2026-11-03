@@ -21,34 +21,21 @@ sealed trait ThemeObject:
 
   def contains(name: String) = allByName contains name
 
+/** Go board styles. `file` is unused: boards are drawn with CSS colors,
+  * see ui/lib/css/go/_goban.scss.
+  */
 object Theme extends ThemeObject:
 
   val all = List(
-    Theme("brown", "brown.png", Featured.Yes), // 52/1 poll votes [for]/[against]
-    Theme("wood", "wood.jpg"), // 14/20
-    Theme("wood2", "wood2.jpg"), // 7/26
-    Theme("wood3", "wood3.jpg"), // 13/17
-    Theme("wood4", "wood4.jpg", Featured.Yes), // 29/3
-    Theme("maple", "maple.jpg", Featured.Yes), // 24/7
-    Theme("maple2", "maple2.jpg"), // 9/20
-    Theme("horsey", "horsey.jpg", Featured.Yes), // 20/11
-    Theme("leather", "leather.jpg"), // 6/24
-    Theme("blue", "blue.png", Featured.Yes), // 29/4
-    Theme("blue2", "blue2.jpg", Featured.Yes), // 18/13
-    Theme("blue3", "blue3.jpg", Featured.Yes), // 23/9
-    Theme("canvas", "canvas2.jpg"), // 14/17
-    Theme("blue-marble", "blue-marble.jpg"), // 8/23
-    Theme("ic", "ic.png"), // 13/17
-    Theme("green", "green.png", Featured.Yes), // 26/5
-    Theme("marble", "marble.jpg", Featured.Yes), // 17/14
-    Theme("green-plastic", "green-plastic.png"), // 12/20
-    Theme("olive", "olive.jpg", Featured.Yes), // 21/11
-    Theme("grey", "grey.jpg", Featured.Yes), // 20/13
-    Theme("metal", "metal.jpg", Featured.Yes), // 17/14
-    Theme("newspaper", "svg/newspaper.svg", Featured.Yes), // 19/13
-    Theme("purple", "purple.png", Featured.Yes), // 19/11
-    Theme("purple-diag", "purple-diag.png", Featured.Yes), // 20/11
-    Theme("pink", "pink-pyramid.png") // 12/18
+    Theme("kaya", "", Featured.Yes),
+    Theme("shin-kaya", "", Featured.Yes),
+    Theme("katsura", "", Featured.Yes),
+    Theme("walnut", "", Featured.Yes),
+    Theme("bamboo", "", Featured.Yes),
+    Theme("paper", "", Featured.Yes),
+    Theme("slate", "", Featured.Yes),
+    Theme("green", "", Featured.Yes),
+    Theme("night", "", Featured.Yes)
   )
 
 object Theme3d extends ThemeObject:

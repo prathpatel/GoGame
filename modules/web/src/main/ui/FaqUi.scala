@@ -4,16 +4,14 @@ package ui
 import lila.ui.*
 import lila.ui.ScalatagsTemplate.{ *, given }
 
-val fideHandbookUrl = "https://handbook.fide.com/chapter/E012023"
+val sourceUrl = "https://github.com/prathpatel/GoGame"
 
-final class FaqUi(helpers: Helpers, sitePages: SitePages)(
+/** The FAQ and About pages, written for Go. */
+final class FaqUi(helpers: Helpers, sitePages: SitePages, siteName: String)(
     standardRankableDeviation: Int,
     variantRankableDeviation: Int
 ):
   import helpers.{ given, * }
-  import trans.faq as trf
-
-  private def cmsPageUrl(key: String) = lila.ui.deadLink
 
   private def question(id: String, title: String, answer: Frag*) =
     details(
@@ -33,366 +31,166 @@ final class FaqUi(helpers: Helpers, sitePages: SitePages)(
       )
       .css("bits.faq"):
         div(cls := "faq box box-pad")(
-          h1(cls := "box__top")(trf.frequentlyAskedQuestions()),
-          h2("Lichess"),
+          h1(cls := "box__top")("Frequently Asked Questions"),
+          h2("Playing"),
           question(
-            "name",
-            trf.whyIsLichessCalledLichess.txt(),
+            "rules",
+            "What are the rules?",
             p(
-              trf.lichessCombinationLiveLightLibrePronounced(em(trf.leechess())),
-              " ",
-              a(href := "https://www.youtube.com/watch?v=KRpPqcrdE-o")(trf.hearItPronouncedBySpecialist())
+              "Players take turns placing a stone on an empty intersection, Black first. ",
+              "A stone or a group of connected stones is captured when it has no empty neighbouring point ",
+              "(no liberty) left."
             ),
             p(
-              trf.whyLiveLightLibre()
+              "You may not play a move that leaves your own group without liberties (suicide), ",
+              "unless it captures. You may not recreate a previous board position (positional superko), ",
+              "which settles every ko fight."
             ),
             p(
-              trf.whyIsLilaCalledLila(
-                a(href := "https://github.com/lichess-org/lila")("lila"),
-                a(href := "https://scala-lang.org/")("Scala")
-              )
+              "New to Go? The ",
+              a(href := "https://en.wikipedia.org/wiki/Rules_of_Go", targetBlank)("Rules of Go"),
+              " article is a good start."
             )
           ),
           question(
-            "contributing",
-            trf.howCanIContributeToLichess.txt(),
-            p(trf.lichessPoweredByDonationsAndVolunteers()),
+            "end",
+            "How does a game end?",
+            p("A game ends when a player resigns, runs out of time, or when both players pass in a row."),
             p(
-              trf.findMoreAndSeeHowHelp(
-                a(href := lila.ui.deadLink)(trf.beingAPatron()),
-                a(href := routes.Main.costs)(trf.breakdownOfOurCosts()),
-                a(href := lila.ui.deadLink)(trf.otherWaysToHelp())
-              )
+              "After two passes, the game enters the counting phase: the server proposes which stones are dead. ",
+              "Click a group to mark it dead or alive. When both players accept, the game is scored. ",
+              "If you disagree about the position, choose ",
+              em("Resume play"),
+              " and play it out."
             )
           ),
           question(
-            "sites_based_on_Lichess",
-            trf.areThereWebsitesBasedOnLichess.txt(),
+            "scoring",
+            "How is the score counted?",
             p(
-              trf.yesLichessInspiredOtherOpenSourceWebsites(
-                a(href := "/source")(trans.site.sourceCode()),
-                a(href := "/api")("API"),
-                a(href := "https://database.lichess.org")(trans.site.database())
-              )
-            ),
-            ul(
-              li(a(href := "https://blitztactics.com/about")("Blitz Tactics")),
-              li(a(href := "https://tailuge.github.io/chess-o-tron/html/blunder-bomb.html")("Blunder Bomb")),
-              li(a(href := "https://lidraughts.org")("lidraughts.org")),
-              li(a(href := "https://playstrategy.org")("playstrategy.org")),
-              li(a(href := "https://lishogi.org")("lishogi.org"))
-            )
-          ),
-          question(
-            "keyboard-shortcuts",
-            trf.keyboardShortcuts.txt(),
-            p(
-              trf.keyboardShortcutsExplanation()
-            )
-          ),
-          h2(trf.fairPlay()),
-          question(
-            "rating-refund",
-            trf.whenAmIEligibleRatinRefund.txt(),
-            p(
-              trf.ratingRefundExplanation()
-            )
-          ),
-          question(
-            "leaving",
-            trf.preventLeavingGameWithoutResigning.txt(),
-            p(
-              trf.leavingGameWithoutResigningExplanation()
-            )
-          ),
-          question(
-            "mod-application",
-            trf.howCanIBecomeModerator.txt(),
-            p(
-              trf.youCannotApply()
-            )
-          ),
-          question(
-            "correspondence",
-            trf.isCorrespondenceDifferent.txt(),
-            p(
-              trf.youCanUseOpeningBookNoEngine()
+              "With area scoring (Chinese rules): each player gets one point per stone on the board and one ",
+              "point per empty intersection surrounded only by their stones. Dead stones are removed first."
             ),
             p(
-              trf.pleaseReadFairPlayPage(a(href := cmsPageUrl("fair-play"))(trf.fairPlayPage()))
-            )
-          ),
-          h2(trf.gameplay()),
-          question(
-            "time-controls",
-            trf.howBulletBlitzEtcDecided.txt(),
-            p(
-              trf.basedOnGameDuration(strong(trf.durationFormula()))
-            ),
-            ul(
-              li(trf.inferiorThanXsEqualYtimeControl(29, trans.site.ultraBullet())),
-              li(trf.inferiorThanXsEqualYtimeControl(179, trans.site.bullet())),
-              li(trf.inferiorThanXsEqualYtimeControl(479, trans.site.blitz())),
-              li(trf.inferiorThanXsEqualYtimeControl(1499, trans.site.rapid())),
-              li(trf.superiorThanXsEqualYtimeControl(1500, trans.site.classical()))
+              "White receives komi to compensate for moving second: 7.5 points in even games, 0.5 points in ",
+              "handicap games. The half point means there are no draws."
             )
           ),
           question(
-            "variants",
-            trf.whatVariantsCanIplay.txt(),
+            "handicap",
+            "What is a handicap game?",
             p(
-              trf.lichessSupportChessAnd(
-                a(href := lila.ui.deadLink)(trf.eightVariants())
-              )
+              "When challenging a friend or the computer you can give Black 2 to 9 stones (up to 5 on 9×9), ",
+              "placed on the traditional star points. White then moves first. Handicap games are never rated."
             )
           ),
           question(
-            "acpl",
-            trf.whatIsACPL.txt(),
+            "boards",
+            "Which board should I pick?",
             p(
-              trf.acplExplanation()
+              "9×9 games are quick and tactical: a good place to start. 13×13 introduces strategy, and 19×19 ",
+              "is the full game. Quick pairing in the lobby is for 19×19; custom seeks can use any size."
             )
           ),
           question(
-            "timeout",
-            trf.insufficientMaterial.txt(),
+            "computer",
+            "How strong is the computer?",
             p(
-              trf.lichessFollowFIDErules(a(href := fideHandbookUrl)(trf.fideHandbookX("§6.9")))
+              "Levels 1 to 8 use a built-in Monte-Carlo player: friendly for beginners, weak for experienced ",
+              "players. Servers can also connect ",
+              a(href := "https://github.com/lightvector/KataGo", targetBlank)("KataGo"),
+              ", one of the strongest Go programs, for the higher levels."
             )
           ),
           question(
-            "en-passant",
-            trf.discoveringEnPassant.txt(),
+            "takeback",
+            "Can I take back a move?",
             p(
-              trf.explainingEnPassant(
-                a(href := "https://en.wikipedia.org/wiki/En_passant")(trf.goodIntroduction()),
-                a(href := fideHandbookUrl)(trf.fideHandbook()),
-                a(href := s"${lila.ui.deadLink}#/15")(trf.lichessTraining())
-              )
-            ),
-            p(
-              trf.watchIMRosenCheckmate(
-                a(href := "https://www.reddit.com/r/AnarchyChess/comments/p9wuic/eric_rosen_ascending/")(
-                  "en passant"
-                )
-              )
+              "Yes, if your opponent agrees, or always against the computer. You can disable takebacks in your ",
+              "preferences."
             )
           ),
+          h2("Ratings"),
           question(
-            "threefold",
-            trf.threefoldRepetition.txt(),
+            "rating-system",
+            "What rating system is used?",
             p(
-              trf.threefoldRepetitionExplanation(
-                a(href := "https://en.wikipedia.org/wiki/Threefold_repetition")(
-                  trf.threefoldRepetitionLowerCase()
-                ),
-                a(href := fideHandbookUrl)(trf.fideHandbook())
-              )
-            ),
-            h4(trf.notRepeatedMoves()),
-            p(
-              trf.repeatedPositionsThatMatters(
-                em(trf.positions())
-              )
-            ),
-            h4(trf.weRepeatedthreeTimesPosButNoDraw()),
-            p(
-              trf.threeFoldHasToBeClaimed(
-                a(href := routes.Pref.form("game-behavior"))(trf.configure())
-              )
-            )
-          ),
-          h2(trf.accounts()),
-          question(
-            "titles",
-            trf.titlesAvailableOnLichess.txt(),
-            p(
-              trf.lichessRecognizeAllOTBtitles(
-                a(href := "https://github.com/lichess-org/lila/wiki/Handling-title-verification-requests")(
-                  trf.asWellAsManyNMtitles()
-                )
-              )
-            ),
-            ul(
-              li("Grandmaster (GM)"),
-              li("International Master (IM)"),
-              li("FIDE Master (FM)"),
-              li("Candidate Master (CM)"),
-              li("Woman Grandmaster (WGM)"),
-              li("Woman International Master (WIM)"),
-              li("Woman FIDE Master (WFM)"),
-              li("Woman Candidate Master (WCM)")
-            ),
-            p(
-              trf.showYourTitle(
-                a(href := lila.ui.deadLink)(trf.verificationForm()),
-                a(href := "#lm")("Lichess Master (LM)")
-              )
-            )
-          ),
-          question(
-            "lm",
-            trf.canIbecomeLM.txt(),
-            p(strong(trf.noUpperCaseDot())),
-            p(trf.lMtitleComesToYouDoNotRequestIt())
-          ),
-          question(
-            "usernames",
-            trf.whatUsernameCanIchoose.txt(),
-            p(
-              trf.usernamesNotOffensive(
-                a(href := "https://lichess.org/page/username-policy")(trf.guidelines())
-              )
-            )
-          ),
-          question(
-            "change-username",
-            trf.canIChangeMyUsername.txt(),
-            p(trf.usernamesCannotBeChanged.txt())
-          ),
-          question(
-            "trophies",
-            trf.uniqueTrophies.txt(),
-            h4("The Golden Zee"),
-            p(
-              trf.ownerUniqueTrophies(
-                a(href := "https://lichess.org/@/ZugAddict")("ZugAddict")
-              )
-            ),
-            p(
-              trf.goldenZeeExplanation()
-            )
-          ),
-          h2(trf.lichessRatings()),
-          question(
-            "ratings",
-            trf.whichRatingSystemUsedByLichess.txt(),
-            p(
-              trf.ratingSystemUsedByLichess()
-            ),
-            p(
-              a(href := cmsPageUrl("rating-systems"))("More about rating systems")
+              "Ratings use the Glicko-2 system, separately for each time control: bullet, blitz, rapid, ",
+              "classical and correspondence. New players start at 1500."
             )
           ),
           question(
             "provisional",
-            trf.whatIsProvisionalRating.txt(),
-            p(trf.provisionalRatingExplanation()),
-            ul(
-              li(
-                trf.notPlayedEnoughRatedGamesAgainstX(
-                  em(trf.similarOpponents())
-                )
-              ),
-              li(
-                trf.notPlayedRecently()
-              )
-            ),
+            "Why is there a question mark next to a rating?",
             p(
-              trf.ratingDeviationMorethanOneHundredTen()
-            )
-          ),
-          question(
-            "leaderboards",
-            trf.howDoLeaderoardsWork.txt(),
-            p(
-              trf.inOrderToAppearsYouMust(
-                a(href := routes.User.list)(trf.ratingLeaderboards())
-              )
-            ),
-            ol(
-              li(trf.havePlayedMoreThanThirtyGamesInThatRating()),
-              li(trf.havePlayedARatedGameAtLeastOneWeekAgo()),
-              li(
-                trf.ratingDeviationLowerThanXinChessYinVariants(
-                  standardRankableDeviation,
-                  variantRankableDeviation
-                )
-              ),
-              li(trf.beInTopTen())
-            ),
-            p(
-              trf.secondRequirementToStopOldPlayersTrustingLeaderboards()
-            )
-          ),
-          question(
-            "high-ratings",
-            trf.whyAreRatingHigher.txt(),
-            p(
-              trf.whyAreRatingHigherExplanation()
-            ),
-            p(
-              a(href := cmsPageUrl("rating-systems"))("More about rating systems")
+              "The rating is provisional: it is based on too few games to be reliable. It stays provisional ",
+              s"while the rating deviation is above $standardRankableDeviation."
             )
           ),
           question(
             "hide-ratings",
-            trf.howToHideRatingWhilePlaying.txt(),
+            "How do I hide ratings while playing?",
+            p("Open your preferences, then Display, and turn off ratings.")
+          ),
+          h2("This site"),
+          question(
+            "lichess",
+            "Is this Lichess?",
             p(
-              trf.enableZenMode(
-                a(href := routes.Pref.form("display"))(trf.displayPreferences()),
-                em("z")
-              )
+              strong(siteName),
+              " is an independent Go server built from the source code of ",
+              a(href := "https://lichess.org", targetBlank)("Lichess"),
+              ", the free chess server. It is not run by or affiliated with Lichess."
             )
           ),
           question(
-            "disconnection-loss",
-            trf.connexionLostCanIGetMyRatingBack.txt(),
+            "source",
+            "Where is the source code?",
             p(
-              trf.weCannotDoThatEvenIfItIsServerSideButThatsRare()
+              "The server is free software under the GNU Affero General Public License. The code is at ",
+              a(href := sourceUrl, targetBlank)(sourceUrl),
+              "."
             )
           ),
-          h2(trf.howToThreeDots()),
           question(
-            "browser-notifications",
-            trf.enableDisableNotificationPopUps.txt(),
+            "sgf",
+            "Can I download my games?",
+            p("Yes: finished games have a ", em("Download SGF"), " link, readable by any Go software.")
+          )
+        )
+
+  def about(using Context) =
+    sitePages
+      .SitePage(
+        title = s"About $siteName",
+        active = "about",
+        contentCls = "page box box-pad"
+      )
+      .css("bits.page"):
+        frag(
+          h1(cls := "box__top")(s"About $siteName"),
+          div(cls := "body")(
             p(
-              img(
-                src := assetPath("images/connection-info.png"),
-                alt := trf.viewSiteInformationPopUp.txt()
-              )
+              strong(siteName),
+              " is a free, open source server for the game of Go, also called Baduk or Weiqi. ",
+              "There are no ads and no paid features."
             ),
             p(
-              trf.lichessCanOptionnalySendPopUps()
-            )
-          ),
-          question(
-            "autoplay",
-            trf.enableAutoplayForSoundsQ.txt(),
-            p(trf.mostBrowsersPreventSoundAutoplay()),
-            h3("Mozilla Firefox (", trf.desktop(), ")"),
-            p(trf.enableAutoplayForSoundsFirefox()),
-            h3("Google Chrome (", trf.desktop(), ")"),
-            p(trf.enableAutoplayForSoundsChromeSiteInformation()),
-            h3("Safari (", trf.desktop(), ")"),
-            p(trf.enableAutoplayForSoundsSafari()),
-            h3("Microsoft Edge (", trf.desktop(), ")"),
-            p(trf.enableAutoplayForSoundsMicrosoftEdge())
-          ),
-          question(
-            "make-a-bot",
-            trf.makeBotTitle.txt(),
+              "Play 9×9, 13×13 and 19×19 games in real time or by correspondence, against people from the ",
+              "lobby, against a friend with a challenge link, or against the computer. Rated games use ",
+              "Glicko-2 ratings, and every game can be downloaded as SGF."
+            ),
             p(
-              trf.makeBotDescription.rawHtml(
-                "https://lichess.org/blog/WvDNticAAMu_mHKP/welcome-lichess-bots",
-                "https://lichess.org/@/thibault/blog/how-to-create-a-lichess-bot/FuKyvDuB"
-              )
-            )
-          ),
-          question(
-            "stop-chess-addiction",
-            trf.stopMyselfFromPlaying.txt(),
-            p(
-              trf.adviceOnMitigatingAddiction(
-                a(href := "https://getcoldturkey.com")("ColdTurkey"),
-                a(href := "https://freedom.to")("Freedom"),
-                a(href := "https://www.proginosko.com/leechblock")("LeechBlock"),
-                a(href := "https://lichess.org/page/userstyles")(trf.lichessUserstyles()),
-                a(href := "https://github.com/ornicar/userstyles/blob/master/lichess.fewer-pools.user.css")(
-                  trf.fewerLobbyPools()
-                ),
-                a(href := "https://icd.who.int/browse/2024-01/mms/en#1448597234")(trf.mentalHealthCondition())
-              )
+              "The server is built from the source code of ",
+              a(href := "https://lichess.org", targetBlank)("Lichess"),
+              " (",
+              a(href := "https://github.com/lichess-org/lila", targetBlank)("lila"),
+              " and ",
+              a(href := "https://github.com/lichess-org/lila-ws", targetBlank)("lila-ws"),
+              "), with chess replaced by Go. Like Lichess, it is licensed under the GNU Affero General ",
+              "Public License: its ",
+              a(href := sourceUrl, targetBlank)("source code"),
+              " is available to everyone. It is not affiliated with Lichess."
             )
           )
         )

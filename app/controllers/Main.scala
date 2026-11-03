@@ -66,6 +66,13 @@ final class Main(env: Env, assetsC: ExternalAssets) extends LilaController(env):
     pageHit
     Ok.page(views.site.page.contact)
 
+  def about = Open:
+    pageHit
+    Ok.page(views.site.page.about)
+
+  def source = Anon:
+    Redirect(lila.web.ui.sourceUrl)
+
   def faq = Open:
     pageHit
     Ok.page(views.site.page.faq)

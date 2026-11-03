@@ -119,6 +119,23 @@ propose dead stones when counting starts. If the engine is missing, crashes, ans
 illegal move or takes longer than `timeout`, the built-in bot plays that move instead and the
 engine is restarted for the next one.
 
+#### Checking that KataGo is playing
+
+1. Check KataGo on its own first. It should print `= ` followed by a move:
+
+   ```bash
+   printf 'boardsize 9\ngenmove b\nquit\n' | katago gtp -model model.bin.gz -config default_gtp.cfg
+   ```
+
+2. Restart lila. Its log prints `AI engine ready: KataGo` once the network is loaded. If it
+   prints `AI engine failed to start` instead, check `command` (KataGo's own messages appear
+   in the log too).
+3. Open *Play against computer* and pick a level of at least `min_level` (4 by default).
+   The computer's name in the game reads **KataGo · level N**. At lower levels, or if the
+   engine is off or failing, it reads **Computer level N** (the built-in bot).
+4. With `logAllGTPCommunication = true` in KataGo's config, every command the server sends
+   is written to `gtp_logs/` in `work_dir`.
+
 Tests:
 
 ```bash

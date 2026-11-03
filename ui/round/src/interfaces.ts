@@ -53,6 +53,8 @@ export interface PlayerData {
   ratingDiff?: number;
   provisional?: boolean;
   ai?: number;
+  /** external engine playing this computer level, e.g. "KataGo" */
+  aiEngine?: string;
   onGame?: boolean;
   isGone?: number | boolean;
   spectator?: boolean;

@@ -22,10 +22,9 @@ final class UserList(helpers: Helpers, bits: UserBits):
       .css("user.list")
       .flag(_.fullScreen)
       .graph(
-        title = "Chess players and leaderboards",
+        title = "Go players and leaderboards",
         url = routeUrl(routes.User.list),
-        description =
-          "Best chess players in bullet, blitz, rapid, classical, Chess960 and more chess variants"
+        description = "Best Go players in bullet, blitz, rapid and classical"
       ):
         main(cls := "page-menu")(
           bits.communityMenu("leaderboard"),
@@ -46,22 +45,7 @@ final class UserList(helpers: Helpers, bits: UserBits):
                 userTopPerf(leaderboards.blitz, PerfKey.blitz),
                 userTopPerf(leaderboards.rapid, PerfKey.rapid),
                 userTopPerf(leaderboards.classical, PerfKey.classical),
-                userTopPerf(leaderboards.ultraBullet, PerfKey.ultraBullet),
-                userTopActive(nbAllTime, trans.site.activePlayers(), icon = Icon.Swords.some),
-                st.section(cls := "user-top")(
-                  h2(cls := "text", dataIcon := Icon.Trophy)(
-                    a(href := lila.ui.deadLink)(trans.site.tournament())
-                  ),
-                  tournamentWinners
-                ),
-                userTopPerf(leaderboards.crazyhouse, PerfKey.crazyhouse),
-                userTopPerf(leaderboards.chess960, PerfKey.chess960),
-                userTopPerf(leaderboards.antichess, PerfKey.antichess),
-                userTopPerf(leaderboards.atomic, PerfKey.atomic),
-                userTopPerf(leaderboards.threeCheck, PerfKey.threeCheck),
-                userTopPerf(leaderboards.kingOfTheHill, PerfKey.kingOfTheHill),
-                userTopPerf(leaderboards.horde, PerfKey.horde),
-                userTopPerf(leaderboards.racingKings, PerfKey.racingKings)
+                userTopActive(nbAllTime, trans.site.activePlayers(), icon = Icon.Swords.some)
               )
             )
           )

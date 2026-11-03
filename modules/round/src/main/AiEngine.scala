@@ -22,12 +22,22 @@ final class AiEngine(config: AiEngine.Config)(using Executor):
       timeout = k.timeout
     )
 
+  /** The engine's own name ("KataGo"), once it answered. */
+  @volatile private var engineName: Option[String] = None
+
   // start the engine now: loading the network takes a few seconds
   katago.foreach:
-    _.run(_.send("name"))
-      .foreach(name => logger.info(s"AI engine ready: $name"))
+    _.run(_.send("name")).onComplete:
+      case scala.util.Success(name) =>
+        engineName = Some(name)
+        logger.info(s"AI engine ready: $name")
+      case scala.util.Failure(e) =>
+        logger.warn(s"AI engine failed to start (${e.getMessage}), the built-in bot will play")
 
   def usesEngine(level: Int): Boolean = config.katago.exists(level >= _.minLevel)
+
+  /** Which engine plays this level, for display: None for the built-in bot. */
+  def engineFor(level: Int): Option[String] = engineName.filter(_ => usesEngine(level))
 
   def move(game: goban.Game, level: Int): Fu[Choice] =
     config.katago

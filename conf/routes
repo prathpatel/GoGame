@@ -261,6 +261,8 @@ GET   /prometheus-metrics/:key         controllers.Main.prometheusMetrics(key: S
 # Pages
 GET   /contact                         controllers.Main.contact
 GET   /faq                             controllers.Main.faq
+GET   /about                           controllers.Main.about
+GET   /source                          controllers.Main.source
 GET   /qa/:id/:slug                    controllers.Main.legacyQaQuestion(id: Int, slug)
 
 # Help

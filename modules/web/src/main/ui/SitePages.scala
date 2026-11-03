@@ -20,25 +20,12 @@ final class SitePages(helpers: Helpers):
     val external = frag(" ", iconTag(Icon.ExternalArrow))
     def activeCls(c: String) = cls := active.activeO(c)
     lila.ui.bits.pageMenuSubnav(
-      a(activeCls("about"), href := "/about")(trans.site.aboutX("lichess.org")),
-      a(activeCls("news"), href := lila.ui.deadLink)(trans.site.lichessUpdates()),
+      a(activeCls("about"), href := "/about")(trans.site.about()),
       a(activeCls("faq"), href := routes.Main.faq)(trans.faq.faqAbbreviation()),
       a(activeCls("contact"), href := routes.Main.contact)(trans.contact.contact()),
-      a(activeCls("tos"), href := lila.ui.deadLink)(trans.site.termsOfService()),
-      a(activeCls("privacy"), href := "/privacy")(trans.site.privacy()),
-      a(activeCls("title"), href := lila.ui.deadLink)(trans.site.titleVerification()),
       sep,
-      a(activeCls("source"), href := lila.ui.deadLink)(trans.site.sourceCode()),
-      a(activeCls("help"), href := lila.ui.deadLink)(trans.site.contribute()),
-      a(activeCls("changelog"), href := lila.ui.deadLink)(trans.site.changelog()),
-      a(activeCls("thanks"), href := "/thanks")(trans.site.thankYou()),
-      sep,
-
-      a(activeCls("database"), href := "https://database.lichess.org")(trans.site.database(), external),
-      a(activeCls("api"), href := "/api")("API", external),
-      sep,
-      a(activeCls("lag"), href := routes.Main.lag)(trans.lag.isLichessLagging()),
-      a(activeCls("ads"), href := "/ads")(trans.site.blockAds())
+      a(activeCls("source"), href := sourceUrl, targetBlank)(trans.site.sourceCode(), external),
+      a(activeCls("lag"), href := routes.Main.lag)("Is the server lagging?")
     )
 
   def webmasters(pieceNames: List[String])(using Context) =

@@ -24,51 +24,15 @@ sealed trait PieceSetObject:
 
   def contains(name: String) = allByName contains name
 
+/** Go stone styles, drawn with SVG gradients, see ui/lib/css/go/_goban.scss. */
 object PieceSet extends PieceSetObject:
 
   val all = List(
-    PieceSet("cburnett", Featured.Yes),
-    PieceSet("merida", Featured.Yes),
-    PieceSet("alpha", Featured.Yes),
-    PieceSet("pirouetti"),
-    PieceSet("chessnut"),
-    PieceSet("chess7"),
-    PieceSet("reillycraig"),
-    PieceSet("companion", Featured.Yes),
-    PieceSet("riohacha"),
-    PieceSet("kosal", Featured.Yes),
-    PieceSet("leipzig"),
-    PieceSet("fantasy"),
-    PieceSet("spatial"),
-    PieceSet("celtic"),
-    PieceSet("california"),
-    PieceSet("caliente", Featured.Yes),
-    PieceSet("pixel"),
-    PieceSet("firi"),
-    PieceSet("rhosgfx", Featured.Yes),
-    PieceSet("maestro", Featured.Yes),
-    PieceSet("fresca", Featured.Yes),
-    PieceSet("cardinal", Featured.Yes),
-    PieceSet("gioco", Featured.Yes),
-    PieceSet("tatiana"),
-    PieceSet("staunty", Featured.Yes),
-    PieceSet("cooke"),
-    PieceSet("monarchy", Featured.Yes),
-    PieceSet("papercut"),
-    PieceSet("minimal-warmth"),
-    PieceSet("governor"),
-    PieceSet("dubrovny", Featured.Yes),
-    PieceSet("shahi-ivory-brown"),
-    PieceSet("icpieces"),
-    PieceSet("mpchess", Featured.Yes),
-    PieceSet("kiwen-suwi"),
-    PieceSet("totoy"),
-    PieceSet("horsey", Featured.Yes),
-    PieceSet("anarcandy", Featured.Yes),
-    PieceSet("xkcd"),
-    PieceSet("shapes"),
-    PieceSet("letter"),
-    PieceSet("disguised")
+    PieceSet("shell-slate", Featured.Yes),
+    PieceSet("yunzi", Featured.Yes),
+    PieceSet("flat", Featured.Yes),
+    PieceSet("glass", Featured.Yes),
+    PieceSet("outline", Featured.Yes)
   )
 
 object PieceSet3d extends PieceSetObject:

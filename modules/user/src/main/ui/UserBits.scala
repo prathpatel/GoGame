@@ -11,27 +11,7 @@ final class UserBits(helpers: Helpers):
 
   def communityMenu(active: String)(using Translate) =
     lila.ui.bits.pageMenuSubnav(
-      a(cls := active.active("leaderboard"), href := routes.User.list)(trans.site.leaderboard()),
-      a(
-        cls := active.active("ratings"),
-        href := lila.ui.deadLink
-      )(
-        trans.site.ratingStats()
-      ),
-      a(cls := active.active("tournament"), href := lila.ui.deadLink)(
-        trans.arena.tournamentWinners()
-      ),
-      a(cls := active.active("shield"), href := lila.ui.deadLink)(
-        trans.arena.tournamentShields()
-      ),
-      div(cls := "sep"),
-      a(cls := active.active("bots"), href := lila.ui.deadLink)(
-        trans.site.onlineBots()
-      ),
-      div(cls := "sep"),
-      a(cls := active.active("fide"), href := addQueryParam(lila.ui.deadLink.url, "community", "1"))(
-        trans.broadcast.fidePlayers()
-      )
+      a(cls := active.active("leaderboard"), href := routes.User.list)(trans.site.leaderboard())
     )
 
   def miniClosed(u: User, relation: Option[Relation])(using Translate) = Snippet:

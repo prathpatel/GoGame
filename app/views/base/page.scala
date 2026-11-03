@@ -23,12 +23,6 @@ object page:
   private def metaThemeColor(using ctx: Context): Frag =
     raw(s"""<meta name="theme-color" content="${ctx.pref.themeColor}">""")
 
-  private def boardPreload(using ctx: Context) = frag(
-    imagePreload(assetPath(s"images/board/${ctx.pref.currentTheme.file}")),
-    ctx.pref.is3d.option:
-      imagePreload(assetPath(s"images/staunton/board/${ctx.pref.currentTheme3d.file}"))
-  )
-
   def boardStyle(zoomable: Boolean)(using ctx: Context) =
     s"---board-opacity:${ctx.pref.board.opacity};" +
       s"---board-brightness:${ctx.pref.board.brightness};" +
@@ -94,12 +88,10 @@ object page:
                 s"""<style id="bg-data">html.transp::before{background-image:url("$url");opacity:calc(var(---bg-opacity)/100);}</style>"""
           ,
           fontsPreload,
-          boardPreload,
           manifests,
           p.withHrefLangs.map(hrefLangs),
           sitePreload(p.i18nModules, ctx.data.inquiry.isDefined.option(Esm("mod.inquiry")) :: allModules),
           lichessFontFaceCss,
-          pieceSetImages.load(ctx.pref.currentPieceSet.name),
           (ctx.pref.bg === lila.pref.Pref.Bg.SYSTEM || ctx.pref.bg === lila.pref.Pref.Bg.SYSTEM_TRANSP || ctx.impersonatedBy.isDefined)
             .so(systemThemeScript(ctx.nonce, ctx.pref.isTransparentBg))
         ).pipe(p.transformHead),

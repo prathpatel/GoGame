@@ -34,6 +34,7 @@ function board(ctrl: RoundCtrl): VNode {
   const coord = (i: number) => [MARGIN + (i % size) * CELL, MARGIN + Math.floor(i / size) * CELL];
   const children: VNode[] = [];
 
+  children.push(stoneGradients());
   children.push(s('rect', { class: 'goban__wood', x: 0, y: 0, width: full, height: full, rx: 1 }));
   const end = MARGIN + (size - 1) * CELL;
   for (let k = 0; k < size; k++) {
@@ -139,6 +140,48 @@ function board(ctrl: RoundCtrl): VNode {
   );
 }
 
+// Gradients used by the stone styles (see ui/lib/css/go/_goban.scss).
+const radial = (id: string, stops: [number, string][], cx = '35%', cy = '30%') =>
+  s(
+    'radialGradient',
+    { id, cx, cy, r: '70%' },
+    stops.map(([offset, color]) => s('stop', { offset: `${offset}%`, 'stop-color': color })),
+  );
+
+const stoneGradients = (): VNode =>
+  s('defs', {}, [
+    radial('goban-slate', [
+      [0, '#5a5a5a'],
+      [45, '#1c1c1c'],
+      [100, '#000'],
+    ]),
+    radial('goban-shell', [
+      [0, '#ffffff'],
+      [60, '#efebe2'],
+      [100, '#c9c2b2'],
+    ]),
+    radial('goban-yunzi-black', [
+      [0, '#3a3d38'],
+      [70, '#1a1c19'],
+      [100, '#0d0e0c'],
+    ], '45%', '40%'),
+    radial('goban-yunzi-white', [
+      [0, '#fbf8ee'],
+      [80, '#e9e3cf'],
+      [100, '#d4ccb3'],
+    ], '45%', '40%'),
+    radial('goban-glass-black', [
+      [0, '#8a8f99'],
+      [20, '#2b2f36'],
+      [100, '#050608'],
+    ], '30%', '25%'),
+    radial('goban-glass-white', [
+      [0, '#ffffff'],
+      [25, '#f4f7fb'],
+      [100, '#b8c2cf'],
+    ], '30%', '25%'),
+  ]);
+
 const formatClock = (millis: number, tenths: boolean): string => {
   const total = Math.max(0, millis);
   const secs = Math.floor(total / 1000);
@@ -160,7 +203,11 @@ function player(ctrl: RoundCtrl, p: PlayerData): VNode {
         p.user.username,
       ])
     : p.ai
-      ? h('span', `Computer level ${p.ai}`)
+      ? h(
+          'span',
+          { attrs: { title: p.aiEngine ? `Played by ${p.aiEngine}` : 'Played by the built-in bot' } },
+          p.aiEngine ? `${p.aiEngine} · level ${p.ai}` : `Computer level ${p.ai}`,
+        )
       : h('span', p.name || 'Anonymous');
   const emerg = millis !== undefined && ctrl.data.clock && millis < ctrl.data.clock.emerg * 1000;
   return h(`div.go-player.go-player--${p.color}`, { class: { 'to-move': game.player === p.color && ctrl.isPlayable() } }, [

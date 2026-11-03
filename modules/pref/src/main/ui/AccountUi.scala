@@ -18,7 +18,7 @@ final class AccountUi(helpers: Helpers):
 
   def categName(categ: PrefCateg)(using Translate): String = categ match
     case PrefCateg.Display => trans.preferences.display.txt()
-    case PrefCateg.ChessClock => trans.preferences.chessClock.txt()
+    case PrefCateg.ChessClock => "Clock"
     case PrefCateg.GameBehavior => trans.preferences.gameBehavior.txt()
     case PrefCateg.Privacy => trans.preferences.privacy.txt()
 
@@ -94,13 +94,6 @@ final class AccountUi(helpers: Helpers):
           a(activeCls("username"), href := routes.Account.username)(
             trans.site.changeUsername()
           ),
-          Granter
-            .opt(_.Coach)
-            .option(
-              a(activeCls("coach"), href := lila.ui.deadLink)(
-                trans.coach.lichessCoach()
-              )
-            ),
           a(activeCls("password"), href := routes.Account.passwd)(
             trans.site.changePassword()
           ),
@@ -119,11 +112,6 @@ final class AccountUi(helpers: Helpers):
           div(cls := "sep"),
           a(activeCls("network"), href := routes.Pref.network)(
             trans.preferences.network()
-          ),
-          ctx.noBot.option(
-            a(href := lila.ui.deadLink)(
-              trans.dgt.dgtBoard()
-            )
           ),
           div(cls := "sep"),
           a(activeCls("close"), href := routes.Account.close)(

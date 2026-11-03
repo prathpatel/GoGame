@@ -1,106 +1,78 @@
 import { h, type VNode } from 'snabbdom';
 
-import { type Toggle, toggle } from 'lib';
 import { bind } from 'lib/view';
 import { text as xhrText, form as xhrForm } from 'lib/xhr';
 
-import type { DasherCtrl } from '@/ctrl';
+import { PaneCtrl } from './interfaces';
+import { header } from './util';
 
-import { type Dimension, PaneCtrl } from './interfaces';
-import { header, elementScrollBarWidthSlowGuess, moreButton } from './util';
+// Go stone styles. Names match modules/pref PieceSet and ui/lib/css/go/_goban.scss.
+const stoneStyles: Record<string, { label: string; black: string; white: string; whiteStroke: string }> = {
+  'shell-slate': {
+    label: 'Shell & slate',
+    black: 'radial-gradient(circle at 35% 30%, #5a5a5a, #1c1c1c 45%, #000)',
+    white: 'radial-gradient(circle at 35% 30%, #fff, #efebe2 60%, #c9c2b2)',
+    whiteStroke: '#8c8578',
+  },
+  yunzi: {
+    label: 'Yunzi',
+    black: 'radial-gradient(circle at 45% 40%, #3a3d38, #1a1c19 70%, #0d0e0c)',
+    white: 'radial-gradient(circle at 45% 40%, #fbf8ee, #e9e3cf 80%, #d4ccb3)',
+    whiteStroke: '#b9b2a2',
+  },
+  flat: { label: 'Flat', black: '#111', white: '#f6f4ee', whiteStroke: '#8c8578' },
+  glass: {
+    label: 'Glass',
+    black: 'radial-gradient(circle at 30% 25%, #8a8f99, #2b2f36 20%, #050608)',
+    white: 'radial-gradient(circle at 30% 25%, #fff, #f4f7fb 25%, #b8c2cf)',
+    whiteStroke: '#8c8578',
+  },
+  outline: { label: 'Outline', black: '#111', white: 'transparent', whiteStroke: '#111' },
+};
 
 export class PieceCtrl extends PaneCtrl {
-  featured: Record<Dimension, string[]> = { d2: [], d3: [] };
-  more: Toggle;
-
-  constructor(root: DasherCtrl) {
-    super(root);
-    this.more = toggle(false, root.redraw);
-    for (const dim of ['d2', 'd3'] as Dimension[]) {
-      this.featured[dim] = this.root.data.piece[dim].list.filter(t => t.featured).map(t => t.name);
-    }
-  }
-
-  get pieceList(): string[] {
-    const all = this.dimData.list.map(t => t.name);
-    const visible = this.featured[this.dimension].slice();
-    if (!visible.includes(this.dimData.current)) visible.push(this.dimData.current);
-    return this.more() ? all : visible;
-  }
-
   render(): VNode {
-    const maxHeight = window.innerHeight - 150; // safari vh brokenness
-    const pieceSize = (222 - elementScrollBarWidthSlowGuess()) / (this.more() ? 4 : 3);
-    const pieceImage = (t: string) =>
-      this.is3d
-        ? `images/staunton/piece/${t}/White-Knight${t === 'Staunton' ? '-Preview' : ''}.webp`
-        : site.manifest.hashed[`piece/${t}/wN.webp`]
-          ? `piece/${t}/wN.webp`
-          : `piece/${t}/wN.svg`;
-
-    return h('div.sub.piece.' + this.dimension, [
-      header(i18n.site.pieceSet, () => this.close()),
+    return h('div.sub.piece.go-stones', [
+      header('Stones', () => this.close()),
       h(
         'div.list',
-        { attrs: { style: `max-height:${maxHeight}px;` } },
-        this.pieceList.map((t: string) =>
-          h(
-            'button.no-square',
+        this.data.list.map(({ name }) => {
+          const st = stoneStyles[name] ?? stoneStyles.flat;
+          return h(
+            'button.go-stone-style',
             {
-              key: t,
-              attrs: { title: t, type: 'button', style: `width: ${pieceSize}px; height: ${pieceSize}px` },
-              hook: bind('click', () => this.set(t)),
-              class: { active: this.dimData.current === t },
+              key: name,
+              attrs: { title: st.label, type: 'button' },
+              hook: bind('click', () => this.set(name)),
+              class: { active: this.data.current === name },
             },
-            [h('piece', { attrs: { style: `background-image:url(${site.asset.url(pieceImage(t))})` } })],
-          ),
-        ),
+            [
+              h('span.stones', [
+                h('span.stone', { attrs: { style: `background:${st.black}` } }),
+                h('span.stone', { attrs: { style: `background:${st.white};border-color:${st.whiteStroke}` } }),
+              ]),
+              h('span.name', st.label),
+            ],
+          );
+        }),
       ),
-      moreButton(this.more),
     ]);
   }
 
-  apply = (t: string = this.dimData.current): void => {
-    this.dimData.current = t;
-    document.body.dataset[this.is3d ? 'pieceSet3d' : 'pieceSet'] = t;
-    if (!this.is3d) {
-      pieceVarRules(t);
-    }
+  apply = (t: string = this.data.current): void => {
+    this.data.current = t;
+    document.body.dataset.pieceSet = t;
   };
 
-  private get dimData() {
-    return this.root.data.piece[this.dimension];
+  private get data() {
+    return this.root.data.piece.d2;
   }
 
   private readonly set = (t: string) => {
     this.apply(t);
-    const field = `pieceSet${this.is3d ? '3d' : ''}`;
-    xhrText(`/pref/${field}`, { body: xhrForm({ [field]: t }), method: 'post' }).catch(() =>
-      site.announce({ msg: 'Failed to save piece set  preference' }),
+    xhrText('/pref/pieceSet', { body: xhrForm({ pieceSet: t }), method: 'post' }).catch(() =>
+      site.announce({ msg: 'Failed to save stone preference' }),
     );
     this.redraw();
   };
-}
-
-const pieceVars = [
-  ['---white-pawn', 'wP'],
-  ['---black-pawn', 'bP'],
-  ['---white-knight', 'wN'],
-  ['---black-knight', 'bN'],
-  ['---white-bishop', 'wB'],
-  ['---black-bishop', 'bB'],
-  ['---white-rook', 'wR'],
-  ['---black-rook', 'bR'],
-  ['---white-queen', 'wQ'],
-  ['---black-queen', 'bQ'],
-  ['---white-king', 'wK'],
-  ['---black-king', 'bK'],
-];
-
-function pieceVarRules(theme: string) {
-  const ext = site.manifest.hashed[`piece/${theme}/wP.webp`] ? 'webp' : 'svg';
-  for (const [varName, fileName] of pieceVars) {
-    const url = site.asset.url(`piece/${theme}/${fileName}.${ext}`, { pathOnly: true });
-    document.body.style.setProperty(varName, `url(${url})`);
-  }
 }

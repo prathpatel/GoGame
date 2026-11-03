@@ -24,7 +24,7 @@ object DasherJson:
         )
         .add("gallery", gallery),
       "board" -> Json.obj(
-        "is3d" -> pref.is3d,
+        "is3d" -> false, // there is no 3D Go board
         "d2" -> Json.obj(
           "current" -> pref.currentTheme.name,
           "list" -> Theme.all

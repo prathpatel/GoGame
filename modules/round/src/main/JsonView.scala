@@ -22,6 +22,7 @@ final class JsonView(
     getSocketStatus: Game => Fu[SocketStatus],
     takebacker: Takebacker,
     moretimer: Moretimer,
+    aiEngine: AiEngine,
     isOfferingRematch: lila.core.round.IsOfferingRematch
 )(using Executor):
 
@@ -79,6 +80,7 @@ final class JsonView(
           commonPlayerJson(game, opponent, users(pov.opponent.color), flags) ++ Json
             .obj("color" -> opponent.color.name)
             .add("ai" -> opponent.aiLevel)
+            .add("aiEngine" -> opponent.aiLevel.flatMap(aiEngine.engineFor))
             .add("isGone" -> (pov.game.forceResignable && socket.isGone(opponent.color)))
             .add("onGame" -> (opponent.isAi || socket.onGame(opponent.color)))
         },
@@ -127,6 +129,7 @@ final class JsonView(
         case _ if p.hasUser => userJsonView.ghost.some
         case _ => none)
       .add("ai" -> p.aiLevel)
+      .add("aiEngine" -> p.aiLevel.flatMap(aiEngine.engineFor))
       .add("rating" -> p.rating.ifTrue(withFlags.rating))
       .add("ratingDiff" -> p.ratingDiff.ifTrue(withFlags.rating))
       .add("provisional" -> (p.provisional.yes && withFlags.rating))

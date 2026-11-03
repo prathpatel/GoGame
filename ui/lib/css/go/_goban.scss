@@ -1,8 +1,55 @@
 // Shared Go board styles: the interactive goban and the mini boards.
+//
+// Board styles follow the "Board" setting (body[data-board]), stone styles the
+// "Stones" setting (body[data-piece-set]). Names match modules/pref Theme / PieceSet.
 
-$goban-wood: #dcb35c;
-$goban-wood-dark: #c79a42;
 $goban-line: #3b2a14;
+
+:root,
+body[data-board='kaya'] {
+  --goban-wood: #dcb35c;
+  --goban-line: #3b2a14;
+}
+
+body[data-board='shin-kaya'] {
+  --goban-wood: #ecd29a;
+  --goban-line: #4a3820;
+}
+
+body[data-board='katsura'] {
+  --goban-wood: #e3b27a;
+  --goban-line: #45301b;
+}
+
+body[data-board='walnut'] {
+  --goban-wood: #a8743e;
+  --goban-line: #24170a;
+}
+
+body[data-board='bamboo'] {
+  --goban-wood: #d4ba74;
+  --goban-line: #3e3015;
+}
+
+body[data-board='paper'] {
+  --goban-wood: #f2ead8;
+  --goban-line: #5a5246;
+}
+
+body[data-board='slate'] {
+  --goban-wood: #9fb0bb;
+  --goban-line: #23313b;
+}
+
+body[data-board='green'] {
+  --goban-wood: #9fb57e;
+  --goban-line: #233016;
+}
+
+body[data-board='night'] {
+  --goban-wood: #343a42;
+  --goban-line: #a7b0ba;
+}
 
 .goban-wrap {
   display: block;
@@ -20,23 +67,24 @@ svg.goban-mini {
 
 .goban__wood,
 .goban-mini__bg {
-  fill: $goban-wood;
+  fill: var(--goban-wood);
 }
 
 .goban__line,
 .goban-mini__lines line {
-  stroke: $goban-line;
+  stroke: var(--goban-line);
   stroke-width: 0.35;
 }
 
 .goban__star,
 .goban-mini__star {
-  fill: $goban-line;
+  fill: var(--goban-line);
 }
 
 .goban__coord {
   font-size: 3px;
-  fill: rgba($goban-line, 0.7);
+  fill: var(--goban-line);
+  opacity: 0.7;
   text-anchor: middle;
   font-family: 'Noto Sans', sans-serif;
 }
@@ -76,7 +124,7 @@ svg.goban-mini {
 
 .goban__ko {
   fill: none;
-  stroke: $goban-line;
+  stroke: var(--goban-line);
   stroke-width: 0.5;
 }
 
@@ -117,3 +165,55 @@ svg.goban.scoring {
   overflow: hidden;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
 }
+
+// Stone styles for the main board. The gradients are <defs> in the board's SVG (ui/round/src/view.ts).
+body[data-piece-set='shell-slate'] svg.goban,
+body:not([data-piece-set]) svg.goban {
+  .goban__stone.black {
+    fill: url(#goban-slate);
+  }
+
+  .goban__stone.white {
+    fill: url(#goban-shell);
+  }
+}
+
+body[data-piece-set='yunzi'] svg.goban {
+  .goban__stone.black {
+    fill: url(#goban-yunzi-black);
+    stroke: none;
+  }
+
+  .goban__stone.white {
+    fill: url(#goban-yunzi-white);
+    stroke: #b9b2a2;
+  }
+}
+
+body[data-piece-set='glass'] svg.goban {
+  .goban__stone.black {
+    fill: url(#goban-glass-black);
+  }
+
+  .goban__stone.white {
+    fill: url(#goban-glass-white);
+  }
+}
+
+body[data-piece-set='outline'] svg.goban,
+body[data-piece-set='outline'] svg.goban-mini {
+  .goban__stone.black,
+  .goban-mini__stone.black {
+    fill: #111;
+    stroke: #111;
+  }
+
+  .goban__stone.white,
+  .goban-mini__stone.white {
+    fill: transparent;
+    stroke: #111;
+    stroke-width: 0.8;
+  }
+}
+
+// 'flat' uses the plain fills above
