@@ -18,7 +18,7 @@ object page:
   )
   import ui.*
 
-  private val topnav = lila.web.ui.TopNav(helpers)
+  private val topnav = lila.web.ui.TopNav(helpers, siteName)
 
   private def metaThemeColor(using ctx: Context): Frag =
     raw(s"""<meta name="theme-color" content="${ctx.pref.themeColor}">""")
@@ -78,7 +78,7 @@ object page:
             content := p.openGraph.fold(trans.site.siteDescription.txt())(o => o.description),
             name := "description"
           ),
-          link(rel := "mask-icon", href := staticAssetPath("logo/lichess.svg"), attr("color") := "black"),
+          link(rel := "mask-icon", href := staticAssetPath("logo/gogame-favicon.svg"), attr("color") := "black"),
           favicons,
           preventIndexing.option(noRobots),
           noTranslate,

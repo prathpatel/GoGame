@@ -6,7 +6,7 @@ import scalalib.model.Days
 import lila.ui.*
 import lila.ui.ScalatagsTemplate.{ *, given }
 
-final class TopNav(helpers: Helpers):
+final class TopNav(helpers: Helpers, siteName: String):
   import helpers.{ *, given }
 
   private def linkTitle(url: String, name: Frag)(using ctx: Context) =

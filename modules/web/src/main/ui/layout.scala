@@ -109,8 +109,8 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
   val noRobots = raw("""<meta content="noindex,nofollow" name="robots">""")
 
   val favicons = raw:
-    s"""<link rel="alternate icon" type="image/png" href="/assets/logo/lichess-favicon-64.png">""" +
-      s"""<link id="favicon" rel="icon" type="image/svg+xml" href="/assets/logo/lichess-favicon.svg">"""
+    s"""<link rel="alternate icon" type="image/png" href="/assets/logo/gogame-favicon-64.png">""" +
+      s"""<link id="favicon" rel="icon" type="image/svg+xml" href="/assets/logo/gogame-favicon.svg">"""
 
   def blindModeForm(using ctx: Context) = raw:
     val btnText =
@@ -309,16 +309,13 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
           a(cls := "site-title", href := langHref("/"), testId("site-title"))(
             if ctx.kid.yes then span(title := trans.site.kidMode.txt(), cls := "kiddo")(":)")
             else ctx.isBot.option(botImage),
-            div(cls := "site-icon", dataIcon := Icon.Logo),
+            div(cls := "site-icon")(
+              img(src := staticAssetPath("logo/gogame-favicon.svg"), alt := "", attr("width") := "32", attr("height") := "32")
+            ),
             div(cls := "site-name")(siteNameFrag)
           ),
           (!isAppealUser).option(
-            frag(
-              topnav,
-              (ctx.kid.no && !ctx.me.exists(_.isPatron) && !zenable).option(
-                a(cls := "site-title-nav__donate")(href := lila.ui.deadLink)(trans.patron.donate())
-              )
-            )
+            topnav
           ),
           ctx.blind.option(h2("Navigation"))
         ),

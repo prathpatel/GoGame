@@ -29,15 +29,15 @@ Allow: /game/export/gif/thumbnail/
 
   val manifest = Json.obj(
     "name" -> net.domain,
-    "short_name" -> "Lichess",
+    "short_name" -> "GoGame",
     "start_url" -> "/",
     "display" -> "standalone",
     "background_color" -> "#161512",
     "theme_color" -> "#161512",
-    "description" -> "The (really) free, no-ads, open source chess server.",
-    "icons" -> List(32, 64, 128, 192, 256, 512, 1024).map: size =>
+    "description" -> "A free, open source server for the game of Go.",
+    "icons" -> List(32, 64, 128, 192, 256, 512).map: size =>
       Json.obj(
-        "src" -> s"//${net.domain}/assets/logo/lichess-favicon-$size.png",
+        "src" -> s"//${net.domain}/assets/logo/gogame-favicon-$size.png",
         "sizes" -> s"${size}x$size",
         "type" -> "image/png"
       ),
@@ -139,10 +139,10 @@ Allow: /game/export/gif/thumbnail/
         "https://huggingface.co/Lichess",
         "https://www.kaggle.com/organizations/lichess"
       ),
-      "logo" -> s"${net.baseUrl}/assets/logo/lichess.svg",
-      "name" -> "Lichess",
+      "logo" -> s"${net.baseUrl}/assets/logo/gogame-favicon.svg",
+      "name" -> "GoGame",
       "legalName" -> "LICHESS.ORG",
-      "description" -> "The (really) free, no-ads, open source chess server.", // should be kept in English unless /about receives more localisations
+      "description" -> "A free, open source server for the game of Go.", // should be kept in English unless /about receives more localisations
       "email" -> "contact@lichess.org",
       "foundingDate" -> "2010-06-20",
       "taxID" -> "830378717", // SIREN

@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  server:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: sbt/setup-sbt@v1
+      - name: Compile and test lila
+        run: |
+          cp .sbtopts.default .sbtopts
+          cp conf/application.conf.default conf/application.conf
+          sbt "test; compile"
+      - name: Compile lila-ws
+        working-directory: ws
+        run: sbt compile
+
+  ui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.20.0
+      - run: npm i -g pnpm@12.9.0
+      - name: Build assets
+        run: ./ui/build

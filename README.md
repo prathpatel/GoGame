@@ -1,89 +1,119 @@
-# [lichess.org](https://lichess.org)
+# GoGame — a Go server forked from Lichess
 
-[![Crowdin](https://d322cqt584bo4o.cloudfront.net/lichess/localized.svg)](https://crowdin.com/project/lichess)
-[![Mastodon](https://img.shields.io/mastodon/follow/109298525492334687?domain=mastodon.online)](https://mastodon.online/@lichess)
-[![Bluesky](https://img.shields.io/badge/Bluesky-0285FF?logo=bluesky&logoColor=fff)](https://bsky.app/profile/lichess.org)
-[![Discord](https://img.shields.io/discord/280713822073913354?label=Discord&logo=discord&style=flat)](https://discord.gg/lichess)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/lichess-org/lila)
+GoGame is a free, open source server for the game of **Go** (Baduk, Weiqi), built by
+forking [lila](https://github.com/lichess-org/lila), the server behind
+[lichess.org](https://lichess.org), and its websocket server
+[lila-ws](https://github.com/lichess-org/lila-ws), and replacing chess with Go.
 
-<img src="https://raw.githubusercontent.com/lichess-org/lila/master/public/images/home-bicolor.png" alt="Lichess homepage" title="Lichess comes with light and dark theme, this screenshot shows both." />
+It keeps Lichess's architecture and platform features — accounts, ratings, a realtime
+lobby with seeks and quick pairing, friend challenges, rematches, chat, takebacks,
+clocks, correspondence games, notifications, messages — and swaps the game itself.
 
-Lila (li[chess in sca]la) is a free online chess game server focused on [realtime](https://lichess.org/games) gameplay and ease of use.
+> This branch replaces the earlier Flutter app that lives on `main` / `development`.
 
-It features a [search engine](https://lichess.org/games/search),
-[computer analysis](https://lichess.org/ief49lif) distributed with [fishnet](https://github.com/lichess-org/fishnet),
-[tournaments](https://lichess.org/tournament),
-[simuls](https://lichess.org/simul),
-[forums](https://lichess.org/forum),
-[teams](https://lichess.org/team),
-[tactic trainer](https://lichess.org/training),
-a [mobile app](https://lichess.org/app),
-and a [shared analysis board](https://lichess.org/study).
-The UI is available in more than [140 languages](https://crowdin.com/project/lichess) thanks to the community.
+![A 9×9 game against the computer](docs/screenshots/game.png)
 
-Lichess is written in [Scala 3](https://www.scala-lang.org/),
-and relies on a modified [Play 2.8](https://www.playframework.com/) framework.
-[scalatags](https://com-lihaoyi.github.io/scalatags/) is used for templating.
-Pure chess logic is contained in the [scalachess](https://github.com/lichess-org/scalachess) submodule.
-The server is fully asynchronous, making heavy use of Scala Futures and [Pekko streams](https://pekko.apache.org).
-WebSocket connections are handled by a [separate server](https://github.com/lichess-org/lila-ws) that communicates using [redis](https://redis.io/).
-Lichess talks to [Stockfish](https://stockfishchess.org/) deployed in an [AI cluster](https://github.com/lichess-org/fishnet) of donated servers.
-It uses [MongoDB](https://www.mongodb.com) to store more than 12 billion games, which are indexed by [elasticsearch](https://github.com/elastic/elasticsearch).
-HTTP requests and WebSocket connections can be proxied by [nginx](https://nginx.org).
-The web client is written in [TypeScript](https://www.typescriptlang.org/) and [snabbdom](https://github.com/snabbdom/snabbdom), using [Sass](https://sass-lang.com/) to generate CSS.
-All rated games are published in a [free PGN database](https://database.lichess.org).
-Browser testing done with [Browserstack](https://www.browserstack.com).
-Proxy detection done with [IP2Proxy database](https://www.ip2location.com/database/ip2proxy).
-Software builds and CI/CD done with [Depot](https://depot.dev/).
-Please help us [translate Lichess with Crowdin](https://crowdin.com/project/lichess).
+## What you can do
 
-See [lichess.org/source](https://lichess.org/source) for a list of repositories.
+- Play **9×9, 13×13 and 19×19** games, with an optional **handicap** (2–9 stones, komi 0.5)
+- Play against people: lobby seeks, quick-pairing pools (19×19), or a challenge link
+- Play against the **built-in computer**, levels 1–8 (Monte-Carlo search, no external engine)
+- Real time, correspondence, or unlimited games, Glicko-2 ratings per speed
+- Pass, resign, abort, takebacks, rematch
+- **Counting phase** after two passes: the server proposes dead stones, players click
+  groups to toggle them, both accept, and the game is scored with **area (Chinese) rules**
+- Review finished games move by move, and **download them as SGF**
+- A signup captcha that is a small "capture the stones" Go problem
 
-[Join us on Discord](https://discord.gg/lichess) for more info.
-Use [GitHub issues](https://github.com/lichess-org/lila/issues) for bug reports and feature requests.
+| New game dialog | Counting after two passes |
+| --- | --- |
+| ![Setup dialog](docs/screenshots/setup.png) | ![Counting phase](docs/screenshots/counting.png) |
 
-## Installation
+## How the fork is organised
+
+| Path | What it is |
+| --- | --- |
+| `modules/goban` | **New.** The Go rules engine: board, captures, suicide, positional superko, handicap placement, area scoring, SGF read/write, and the Monte-Carlo bot. Pure Scala, unit tested. |
+| `modules/core`, `game`, `round`, `lobby`, `setup`, `challenge`, `pool` | Lichess modules converted from chess to Go. `core.Game` now wraps `goban.Game`; games are stored as SGF move keys plus board size, komi, handicap and dead stones. |
+| `modules/*` (others) | Lichess platform modules kept as-is or lightly trimmed: users, security, OAuth, prefs, ratings, chat, messages, notifications, relations, reports, playbans, i18n, web. |
+| `app/` | The Play application: controllers, views and routes for the kept features. |
+| `ws/` | lila-ws, adapted to forward Go moves, passes and scoring actions, and to push Go boards to live mini games. |
+| `ui/round` | **New.** The game page: an SVG goban, move list and replay, clocks and controls, written with snabbdom. |
+| `ui/lobby`, `ui/lib`, `ui/site`, `ui/bits` | Lichess's front end, converted to Go (setup dialog, mini boards, captcha). |
+
+Removed from Lichess because they are chess specific: puzzles, studies, the analysis
+board and Stockfish/fishnet, opening explorer, insights, tutor, learn and practice,
+tournaments/swiss/simuls (they depend on chess pairing and display code), broadcasts,
+TV, forums, teams, blogs, streamers, coaches, classes and the chess board editor.
+Links that pointed to them now go to the home page (`lila.ui.deadLink` in the code
+marks them).
+
+### How a move travels
 
 ```
-./lila.sh # thin wrapper around sbt
-run
+browser ── websocket ──> lila-ws ── redis ──> lila (round module)
+   ^                                              │ goban.Game.apply(move)
+   └──────── move event (board, captures, clock) ─┘
 ```
 
-The Wiki describes [how to setup a development environment](https://github.com/lichess-org/lila/wiki/Lichess-Development-Onboarding).
+The client sends SGF coordinates (`"pd"`) or `"pass"`. The server is authoritative;
+the client also checks legality (occupied, suicide, ko) to avoid sending illegal moves.
+After two consecutive passes, `round` enters the counting phase, estimates dead stones
+with playouts, and finishes the game when both players accept the score.
 
-## HTTP API
+## Running it locally
 
-Feel free to use the [Lichess API](https://lichess.org/api) in your applications and websites.
+Requirements: **Java 21**, **sbt**, **Node.js 24.20+** with **pnpm 12**, **MongoDB**
+(7.x works) and **Redis**.
 
-## Supported browsers
+1. Start MongoDB on `localhost:27017` and Redis on `localhost:6379`.
+2. Build the front end:
 
-| Name              | Version | Notes                      |
-| ----------------- | ------- | -------------------------- |
-| Firefox           | 100+    | Full support (recommended) |
-| Chromium / Chrome | 100+    | Full support               |
-| Edge              | 100+    | Full support               |
-| Opera             | 97+     | Reasonable support         |
-| Safari            | 14+     | Reasonable support         |
+   ```bash
+   ./ui/build
+   ```
 
-Older browsers will not work.
-For your own sake, please upgrade. Security and performance, think about it!
+3. Start lila (HTTP on port 9663):
 
-## License
+   ```bash
+   ./lila.sh run
+   ```
 
-Lila is licensed under the GNU Affero General Public License 3 or any later
-version at your choice. See [copying](https://github.com/lichess-org/lila/blob/master/COPYING.md) for
-details.
+4. In another terminal, start lila-ws (websockets on port 9664):
 
-## Production architecture (as of July 2022)
+   ```bash
+   cd ws && sbt run
+   ```
 
-![Lichess production server architecture diagram](https://raw.githubusercontent.com/lichess-org/lila/master/public/images/architecture.png)
+5. Open <http://localhost:9663>.
 
-## Credits
+Tests:
 
-See [lichess.org/thanks](https://lichess.org/thanks) and the contributors here:
+```bash
+./lila.sh test           # server, including the goban engine tests
+./ui/build --tsc         # front-end type checking
+```
 
-[![GitHub contributors](https://contrib.rocks/image?repo=lichess-org/lila)](https://github.com/lichess-org/lila/graphs/contributors)
+## License and credits
 
-## Competence development program
+GoGame is derived from **lila** and **lila-ws** by the Lichess authors
+(Copyright © 2012–2026 the lila authors), and is distributed under the
+**GNU Affero General Public License v3 or later**, like the originals. See
+[`LICENSE`](LICENSE) and [`COPYING.md`](COPYING.md) for the full terms and for the
+fonts and assets that carry their own licenses. Because this is AGPL software, if you
+run a modified version as a network service you must offer its source to your users.
 
-Lichess would like to support its contributors in their competence development by covering costs of relevant training materials and activities. This is a small way to further empower contributors who have given their time to Lichess and to enable or improve additional contributions to Lichess in the future. For more information, including how to apply, check [Competence Development for Lichess contributors](https://lichess.org/page/competence-development).
+GoGame is not affiliated with or endorsed by Lichess. The Lichess name and logo are
+not used for this project.
+
+The first commit on this branch imports lila at
+`2e3e641c32b361c113e696cee34f9fddefef6727` and lila-ws at
+`95f3f97121825c5bb5b8d5c006a47300bc05050c` unchanged (minus Lichess's Git LFS assets),
+so every later change can be reviewed against upstream.
+
+**AI disclosure:** the conversion to Go (the `goban` engine, the module and UI changes,
+this README) was written with Claude Code, an AI coding assistant, and has been compiled
+and tested in a local environment, including browser-driven games against the computer
+and between two players. Review it before deploying. Don't send these changes to
+Lichess: their [AI policy](AI_POLICY.md) requires a human to have written, understood and
+tested any contribution.

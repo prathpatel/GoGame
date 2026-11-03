@@ -10,8 +10,8 @@ sw.addEventListener('push', (event: PushEvent) => {
   const data = event.data!.json();
   return event.waitUntil(
     sw.registration.showNotification(data.title, {
-      badge: '/assets/logo/lichess-mono-128.png',
-      icon: '/assets/logo/lichess-favicon-192.png',
+      badge: '/assets/logo/gogame-favicon-128.png',
+      icon: '/assets/logo/gogame-favicon-192.png',
       body: data.body,
       tag: data.tag,
       data: data.payload,
