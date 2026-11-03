@@ -175,7 +175,8 @@ final class AuthUi(helpers: Helpers):
             input(id := "signup-fp-input", name := "fp", tpe := "hidden"),
             simple.not.option:
               div(cls := "form-group text", dataIcon := Icon.InfoCircle)(
-                trans.site.computersAreNotAllowedToPlay(),
+                "Computers and computer-assisted players are not allowed to play. ",
+                "Please do not get help from Go engines (AI), game records or other players while playing.",
                 br,
                 small(
                   tosLink,
@@ -262,7 +263,7 @@ final class AuthUi(helpers: Helpers):
     Page(trans.site.signUp.txt())
       .css("bits.email-confirm"):
         main(cls := "page-small box box-pad signup-confirm")(
-          h1(iconFlair(Flair("activity.party-popper")), trans.onboarding.welcomeToLichessX(user.username)),
+          h1(iconFlair(Flair("activity.party-popper")), s"Welcome, ${user.username}!"),
           postForm(action := addReferrer(routes.Auth.signupConfirmEmailPost(token).url)):
             submitButton(cls := "button button-fat button-no-upper")(
               trans.onboarding.verifyYourAccount()
@@ -371,7 +372,7 @@ final class AuthUi(helpers: Helpers):
         postForm(action := addReferrer(routes.Auth.loginWithTokenPost(token).url))(
           form3.actions(
             a(href := routes.Lobby.home)(trans.site.cancel()),
-            submitButton(cls := "button")(s"${user.username} is my Lichess username, log me in")
+            submitButton(cls := "button")(s"${user.username} is my username, log me in")
           )
         )
       )
@@ -386,8 +387,8 @@ final class AuthUi(helpers: Helpers):
     Page("Public proxy"):
       main(cls := "page-small box box-pad")(
         boxTop(h1(cls := "text")("Ooops")),
-        p("Sorry, you can't signup to Lichess through Tor or public proxies!"),
-        p("You can play, train and use almost all Lichess features as an anonymous user.")
+        p("Sorry, you can't sign up through Tor or public proxies!"),
+        p("You can still play as an anonymous user.")
       )
 
   def logout(using Context) =
@@ -413,13 +414,16 @@ final class AuthUi(helpers: Helpers):
     div(cls := "form-group agreement")(
       error.option(p:
         strong(cls := "error"):
-          "You must agree to the Lichess policies listed below:"),
+          "You must agree to the policies listed below:"),
       agreements.map: (field, text) =>
         form3.checkboxGroup(form(field), text)
     )
 
   private def agreements(using Context) = List(
-    "assistance" -> trans.site.agreementAssistance(),
+    "assistance" -> frag(
+      "I agree that I will at no time receive assistance during my games ",
+      "(from a Go engine, a book, a game database or another person)."
+    ),
     "nice" -> trans.site.agreementNice(),
     "account" -> trans.site.agreementMultipleAccounts(a(href := lila.ui.deadLink)(trans.site.termsOfService()))
   )

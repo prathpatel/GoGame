@@ -31,6 +31,12 @@
     letter-spacing: 0.1em;
   }
 
+  .size {
+    font-size: 0.75em;
+    font-weight: bold;
+    letter-spacing: 0.05em;
+  }
+
   @keyframes range-sweep {
     0% {
       background-position: 180% 0;

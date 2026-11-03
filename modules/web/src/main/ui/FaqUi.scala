@@ -89,7 +89,21 @@ final class FaqUi(helpers: Helpers, sitePages: SitePages, siteName: String)(
             "Which board should I pick?",
             p(
               "9×9 games are quick and tactical: a good place to start. 13×13 introduces strategy, and 19×19 ",
-              "is the full game. Quick pairing in the lobby is for 19×19; custom seeks can use any size."
+              "is the full game. Quick pairing offers each size; custom games can use any time control."
+            )
+          ),
+          question(
+            "time",
+            "How does the clock work?",
+            p(
+              "Clocks use Fischer timing: a main time, plus an increment added after each of your moves. ",
+              "For example, 10+15 is 10 minutes each, plus 15 seconds per move. ",
+              "A player makes about 40 moves on 9×9, 80 on 13×13 and 120 to 150 on 19×19, ",
+              "so quick pairing gives the bigger boards more time."
+            ),
+            p(
+              "Many Go servers use byo-yomi (a main time, then periods of a fixed number of seconds per move). ",
+              "It is not available here yet. Correspondence and unlimited games have no clock pressure at all."
             )
           ),
           question(

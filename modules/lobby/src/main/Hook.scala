@@ -80,13 +80,13 @@ case class Hook(
     .add("size" -> (size != 19).option(size))
     .add("ra" -> rated.yes.option(1))
 
-  def seemsCompatibleWithPools = rated.yes && size == 19 && color == TriColor.Random
+  def seemsCompatibleWithPools = rated.yes && color == TriColor.Random
 
   def compatibleWithPools(using isClockCompatible: IsClockCompatible) =
-    seemsCompatibleWithPools && isClockCompatible.exec(clock)
+    seemsCompatibleWithPools && isClockCompatible.exec(size, clock)
 
-  def compatibleWithPool(poolClock: chess.Clock.Config) =
-    clock == poolClock && seemsCompatibleWithPools
+  def compatibleWithPool(poolSize: Int, poolClock: chess.Clock.Config) =
+    size == poolSize && clock == poolClock && seemsCompatibleWithPools
 
   private lazy val speed = Speed(clock)
 

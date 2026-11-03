@@ -42,8 +42,8 @@ final class PoolApi(
 
   def leave(poolId: PoolConfigId, userId: UserId) = sendTo(poolId, Leave(userId))
 
-  def poolOf(clock: chess.Clock.Config): Option[PoolConfigId] =
-    configs.find(_.clock == clock).map(_.id)
+  def poolOf(size: Int, clock: chess.Clock.Config): Option[PoolConfigId] =
+    configs.find(c => c.size.size == size && c.clock == clock).map(_.id)
 
   def setOnlineSris(ids: Sris): Unit = actors.values.foreach(_ ! ids)
 

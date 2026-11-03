@@ -16,7 +16,10 @@ export default class LobbySocket {
     this.handlers = {
       had(hook: Hook) {
         hookRepo.add(ctrl, hook);
-        if (hook.action === 'cancel') ctrl.flushHooks(true);
+        // show new games right away (lichess waits up to 8 seconds, which on a
+        // quiet server looks like nobody is seeking). Other players' games are
+        // briefly unclickable while the list shifts, to avoid misclicks.
+        ctrl.flushHooks(hook.action === 'cancel');
         ctrl.redraw();
       },
       hrm(ids: string) {

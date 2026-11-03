@@ -4,11 +4,11 @@
   <string name="display">Display</string>
   <string name="privacy">Privacy</string>
   <string name="notifications">Notifications</string>
-  <string name="pieceAnimation">Piece animation</string>
+  <string name="pieceAnimation">Stone animation</string>
   <string name="materialDifference">Material difference</string>
   <string name="boardHighlights">Board highlights (last move and check)</string>
   <string name="pieceDestinations">Piece destinations (valid moves and premoves)</string>
-  <string name="boardCoordinates">Board coordinates (A-H, 1-8)</string>
+  <string name="boardCoordinates">Board coordinates</string>
   <string name="moveListWhilePlaying">Move list while playing</string>
   <string name="pgnPieceNotation">Move notation</string>
   <string name="chessPieceSymbol">Chess piece symbol</string>
@@ -16,13 +16,13 @@
   <string name="zenMode" comment="zenMode&#10;&#10;This is not the religious meaning. Turning this option on takes away make elements of the user interface.&#10;&#10;Can also translate as 'Focus mode' as one example.">Zen mode</string>
   <string name="showPlayerRatings">Show player ratings</string>
   <string name="showFlairs">Show player flairs</string>
-  <string name="explainShowPlayerRatings">Hides all ratings from Lichess, to help you focus on the game.
+  <string name="explainShowPlayerRatings">Hides all ratings from the site, to help you focus on the game.
 This setting only affects what you see. Rated games will still impact your rating.</string>
   <string name="displayBoardResizeHandle">Show board resize handle</string>
   <string name="onlyOnInitialPosition">Only on initial position</string>
   <string name="inGameOnly">In-game only</string>
   <string name="exceptInGame">Except in-game</string>
-  <string name="chessClock">Chess clock</string>
+  <string name="chessClock">Clock</string>
   <string name="tenthsOfSeconds">Tenths of seconds</string>
   <string name="whenTimeRemainingLessThanTenSeconds" comment="whenTimeRemainingLessThanTenSeconds&#10;&#10;The &amp;lt; symbol is not required (you can write it as a word), just do NOT use &lt; in its place.&#10;&#10;Technical information: &lt; is a reserved character in HTML, which is why it cannot be used.">When time remaining &lt; 10 seconds</string>
   <string name="horizontalGreenProgressBars">Horizontal green progress bars</string>
@@ -66,8 +66,8 @@ This setting only affects what you see. Rated games will still impact your ratin
   <string name="notifyTournamentStartReminders" comment="notifyTournamentSoon&#10;&#10;A notification setting - notifies players if a tournament is starting soon.">Tournaments start reminders</string>
   <string name="notifyBroadcasts">Broadcasts</string>
   <string name="notifyTimeAlarm">Correspondence time running out</string>
-  <string name="notifyBell">Notification within Lichess</string>
-  <string name="notifyPush">Device notification when you're not on Lichess</string>
+  <string name="notifyBell">On the site</string>
+  <string name="notifyPush">On your device, when you're away</string>
   <string name="notifyWeb">Browser</string>
   <string name="notifyDevice">Device</string>
   <string name="bellNotificationSound">Bell notification sound</string>

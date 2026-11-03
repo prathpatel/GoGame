@@ -41,6 +41,8 @@ export interface Seek {
 
 export interface Pool extends ClockConfig {
   id: PoolId;
+  /** board size: 9, 13 or 19 */
+  size: number;
 }
 
 export interface LobbyOpts {

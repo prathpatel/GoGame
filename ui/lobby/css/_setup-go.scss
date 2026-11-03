@@ -24,6 +24,10 @@
   }
 
   .go-handicap {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.8em;
     margin-bottom: 1rem;
   }
 }

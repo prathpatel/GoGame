@@ -19,8 +19,9 @@ object Blocking extends TotalWrapper[Blocking, Set[UserId]]:
 opaque type PoolConfigId = String
 object PoolConfigId extends OpaqueString[PoolConfigId]
 
-opaque type IsClockCompatible = Clock.Config => Boolean
-object IsClockCompatible extends FunctionWrapper[IsClockCompatible, Clock.Config => Boolean]
+/** Whether a quick pairing pool exists for this board size (9, 13, 19) and clock. */
+opaque type IsClockCompatible = (Int, Clock.Config) => Boolean
+object IsClockCompatible extends FunctionWrapper[IsClockCompatible, (Int, Clock.Config) => Boolean]
 
 enum PoolFrom:
   case Socket, Api, Hook
@@ -44,7 +45,7 @@ case class Pairings(pairings: List[Pairing])
 object HookThieve:
 
   enum HookBus:
-    case GetCandidates(clock: Clock.Config, promise: Promise[PoolHooks])
+    case GetCandidates(size: Int, clock: Clock.Config, promise: Promise[PoolHooks])
     case StolenHookIds(ids: Vector[String])
 
   case class PoolHook(hookId: String, member: PoolMember) extends NotBuseable
@@ -56,4 +57,4 @@ trait PoolApi:
   def poolPerfKeys: Map[PoolConfigId, PerfKey]
   def join(poolId: PoolConfigId, member: PoolMember): Unit
   def leave(poolId: PoolConfigId, user: UserId): Unit
-  def poolOf(clock: Clock.Config): Option[PoolConfigId]
+  def poolOf(size: Int, clock: Clock.Config): Option[PoolConfigId]

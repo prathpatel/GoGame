@@ -132,12 +132,8 @@ object OAuthScope:
     trans.oauthCatUserAccount -> List(Email.Read, Preference.Read, Preference.Write, Web.Mod),
     trans.oauthCatInteractions -> List(Follow.Read, Follow.Write, Msg.Write, Note.Write),
     trans.oauthCatPlayGames -> List(Challenge.Read, Challenge.Write, Challenge.Bulk),
-    lila.core.i18n.I18nKey.team.teams -> List(Team.Read, Team.Write, Team.Lead),
-    lila.core.i18n.I18nKey.puzzle.puzzles -> List(Puzzle.Read, Puzzle.Write, Racer.Write),
-    lila.core.i18n.I18nKey.site.tournaments -> List(Tournament.Read, Tournament.Write),
-    trans.oauthCatStudiesBroadcasts -> List(Study.Read, Study.Write),
-    trans.oauthCatExternalPlay -> List(Board.Play, Bot.Play),
-    trans.oauthCatExternalEngine -> List(Engine.Read, Engine.Write)
+    // teams, puzzles, tournaments, studies and external analysis engines were chess features
+    trans.oauthCatExternalPlay -> List(Board.Play, Bot.Play)
   )
 
   val dangerList: OAuthScopes = OAuthScope.select(

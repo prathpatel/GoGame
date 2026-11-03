@@ -28,174 +28,7 @@ final class SitePages(helpers: Helpers):
       a(activeCls("lag"), href := routes.Main.lag)("Is the server lagging?")
     )
 
-  def webmasters(pieceNames: List[String])(using Context) =
-    def parameters(extra: Modifier*) = frag(
-      p("Parameters:"),
-      ul(
-        // actual supported board theme list from lila-gif/src/assets.rs
-        li(strong("theme"), ": ", List("blue", "brown", "green", "ic", "purple").mkString(", ")),
-        li(strong("pieceSet"), ": ", pieceNames.mkString(", ")),
-        li(strong("bg"), ": light, dark, system"),
-        extra
-      )
-    )
-    SitePage(
-      title = "Webmasters",
-      active = "webmasters",
-      contentCls = "page force-ltr"
-    ).css("bits.page")
-      .csp(_.copy(frameSrc = "https://lichess.org" :: Nil)):
-        frag(
-          st.section(cls := "box box-pad developers")(
-            h1(cls := "box__top")("HTTP API"),
-            p(
-              "Lichess exposes a RESTish HTTP/JSON API that you are welcome to use. Read the ",
-              a(href := "/api")("HTTP API documentation"),
-              "."
-            )
-          ),
-          br,
-          st.section(cls := "box box-pad developers") {
-            val args =
-              """style="width: 400px; aspect-ratio: 10/11;" allowtransparency="true" frameborder="0""""
-            frag(
-              a(href := "#embed-tv")(
-                h1(cls := "box__top", id := "embed-tv")("Embed Lichess TV in your site")
-              ),
-              div(cls := "body")(
-                div(cls := "center")(raw(s"""<iframe src="/tv/frame?theme=brown&bg=dark" $args></iframe>""")),
-                p("Add the following HTML to your site:"),
-                copyMeInput(s"""<iframe src="$netBaseUrl/tv/frame?theme=brown&bg=dark" $args></iframe>"""),
-                parameters(),
-                p(
-                  "You can also show the channel for a specific variant or time control by adding the channel key to the URL, corresponding to the channels available at ",
-                  a(href := "/tv")("lichess.org/tv"),
-                  ". If not included, the top rated game will be shown."
-                ),
-                copyMeInput(
-                  s"""<iframe src="$netBaseUrl/tv/rapid/frame?theme=brown&bg=dark" $args></iframe>"""
-                )
-              )
-            )
-          },
-          br,
-          st.section(cls := "box box-pad developers") {
-            val args =
-              """style="width: 400px; aspect-ratio: 10/11;" allowtransparency="true" frameborder="0""""
-            frag(
-              a(href := "#embed-puzzle")(
-                h1(cls := "box__top", id := "embed-puzzle")("Embed the daily puzzle in your site")
-              ),
-              div(cls := "body")(
-                div(cls := "center")(
-                  raw(s"""<iframe src="/training/frame?theme=brown&bg=dark" $args></iframe>""")
-                ),
-                p("Add the following HTML to your site:"),
-                copyMeInput(
-                  s"""<iframe src="$netBaseUrl/training/frame?theme=brown&bg=dark" $args></iframe>"""
-                ),
-                parameters(),
-                p("The text is automatically translated to your visitor's language.")
-              )
-            )
-          },
-          br,
-          st.section(cls := "box box-pad developers") {
-            val args = """style="width: 100%; aspect-ratio: 3/2;" frameborder="0""""
-            frag(
-              a(href := "#embed-study")(
-                h1(cls := "box__top", id := "embed-study")("Embed a chess analysis in your site")
-              ),
-              div(cls := "body")(
-                div(cls := "center"):
-                  raw(s"""<iframe src="/study/embed/XtFCFYlM/GCUTf2Jk?bg=auto&theme=auto" $args></iframe>""")
-                ,
-                p(
-                  "Create ",
-                  a(href := lila.ui.deadLink)("a study"),
-                  ", then click the share button to get the HTML code for the current chapter."
-                ),
-                parameters(),
-                p("The text is automatically translated to your visitor's language.")
-              )
-            )
-          },
-          br,
-          st.section(cls := "box box-pad developers") {
-            val args = """style="width: 100%; aspect-ratio: 3/2;" frameborder="0""""
-            frag(
-              a(href := "#embed-game")(
-                h1(cls := "box__top", id := "embed-game")("Embed a chess game in your site")
-              ),
-              div(cls := "body")(
-                div(cls := "center"):
-                  raw(s"""<iframe src="/embed/game/MPJcy1JW?bg=auto&theme=auto" $args></iframe>""")
-                ,
-                p(
-                  "On a game analysis page, click the ",
-                  em("FEN & PGN"),
-                  " tab at the bottom, then ",
-                  "\"",
-                  em(trans.site.embedInYourWebsite(), "\".")
-                ),
-                parameters(),
-                p("The text is automatically translated to your visitor's language.")
-              )
-            )
-          },
-          br,
-          st.section(cls := "box box-pad developers", id := "broadcast") {
-            val args = """style="width: 100%; aspect-ratio: 4/3;" frameborder="0""""
-            frag(
-              a(href := "#embed-broadcast")(
-                h1(cls := "box__top", id := "embed-broadcast")("Embed a broadcast in your site")
-              ),
-              div(cls := "body")(
-                div(cls := "center"):
-                  raw:
-                    s"""<iframe src="https://lichess.org/embed/broadcast/fide-world-rapidblitz-team-championships-2024--rapid-matches-1-10/G1YjiG7j" $args></iframe>"""
-                ,
-                p(
-                  "On a broadcast page, select the embed iframe code, then optionally add query parameters to customize the appearance."
-                ),
-                parameters(),
-                p("The text is automatically translated to your visitor's language.")
-              )
-            )
-          },
-          br,
-          st.section(cls := "box box-pad developers", id := "analysis") {
-            val args = """style="width: 100%; aspect-ratio: 4/3;" frameborder="0""""
-            val iframe =
-              s"""<iframe src="https://lichess.org/embed/analysis" $args></iframe>"""
-            frag(
-              a(href := "#embed-analysis")(
-                h1(cls := "box__top", id := "embed-analysis")("Embed an analysis board")
-              ),
-              div(cls := "body")(
-                div(cls := "center")(raw(iframe)),
-                p(
-                  "Embeds the ",
-                  a(href := lila.ui.deadLink)("fully-featured Lichess analysis board"),
-                  " with stockfish evaluation, opening explorer and tablebase."
-                ),
-                copyMeInput(iframe),
-                parameters(
-                  li(strong("fen"), ": custom initial position as a FEN with underscores instead of spaces"),
-                  li(strong("color"), ": initial orientation, either black or white")
-                ),
-                div(
-                  "Example using a custom initial position:",
-                  copyMeInput:
-                    s"""<iframe src="https://lichess.org/embed/analysis?fen=r1bqkb1r/pp2pppp/2np1n2/6B1/3NP3/2N5/PPP2PPP/R2QKB1R_b_KQkq_-_1_6&color=black" $args></iframe>"""
-                ),
-                p("The text is automatically translated to your visitor's language.")
-              )
-            )
-          }
-        )
-
-  private val repoRoot = "https://github.com/lichess-org/lila"
+  private val repoRoot = sourceUrl
 
   def source(pageTitle: String, rendered: Frag, version: Option[WebConfig.LilaVersion])(using
       Context
@@ -245,7 +78,7 @@ final class SitePages(helpers: Helpers):
 
   def lag(using Context) =
     import trans.lag as trl
-    SitePage(title = "Is Lichess lagging?", active = "lag")
+    SitePage(title = "Is the server lagging?", active = "lag")
       .css("bits.lag")
       .js(esmInit("chart.lag")):
         div(cls := "box box-pad lag")(
@@ -283,17 +116,6 @@ final class SitePages(helpers: Helpers):
             p(trl.lagCompensationExplanation())
           )
         )
-
-  def getFishnet =
-    Page("fishnet API key request")
-      .csp(_.withGoogleForm):
-        main:
-          iframe(
-            src := "https://docs.google.com/forms/d/e/1FAIpQLSeGgDHgWGP0uobQknF92eCMXqebyNBTyzJoJqbeGjRezlbWOw/viewform?embedded=true",
-            style := "width:100%;height:1400px",
-            st.frameborder := 0,
-            frame.credentialless
-          )(spinner)
 
   def errorPage =
     Page("Internal server error"):

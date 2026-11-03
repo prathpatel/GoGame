@@ -7,11 +7,12 @@ import lila.core.pool.PoolConfigId
 import lila.rating.PerfType
 
 case class PoolConfig(
+    size: goban.BoardSize,
     clock: chess.Clock.Config,
     wave: PoolConfig.Wave
 ):
   val perfKey = PerfKey(chess.Speed(clock).key.value) | PerfKey.classical
-  val id = PoolConfig.clockToId(clock)
+  val id = PoolConfig.makeId(size, clock)
 
 object PoolConfig:
 
@@ -20,7 +21,8 @@ object PoolConfig:
 
   case class Wave(every: FiniteDuration, players: NbPlayers)
 
-  def clockToId(clock: chess.Clock.Config) = PoolConfigId(clock.show)
+  /** e.g. "19-10+15": board size, then the clock */
+  def makeId(size: goban.BoardSize, clock: chess.Clock.Config) = PoolConfigId(s"${size.size}-${clock.show}")
 
   import play.api.libs.json.*
   import lila.common.Json.given
@@ -28,6 +30,7 @@ object PoolConfig:
   given (using Translator): OWrites[PoolConfig] = OWrites: p =>
     Json.obj(
       "id" -> p.id,
+      "size" -> p.size.size,
       "lim" -> p.clock.limitInMinutes,
       "inc" -> p.clock.incrementSeconds,
       "perf" -> PerfType(p.perfKey).trans

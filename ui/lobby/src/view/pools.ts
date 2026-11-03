@@ -42,6 +42,7 @@ export function render({ pools, poolMember, opts }: LobbyController) {
         },
         [
           div('.clock', `${pool.lim}+${pool.inc}`),
+          div('.size', `${pool.size}×${pool.size}`),
           active
             ? poolMember.range && opts.showRatings
               ? div('.range', poolMember.range.replace('-', '–'))

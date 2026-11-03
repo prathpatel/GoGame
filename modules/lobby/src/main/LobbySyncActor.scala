@@ -128,8 +128,8 @@ final private class LobbySyncActor(
     case HookSub(member, true) =>
       socket ! AllHooksFor(member, hookRepo.filter(biter.showHookTo(_, member)).toSeq)
 
-    case HookThieve.HookBus.GetCandidates(clock, promise) =>
-      promise.success(HookThieve.PoolHooks(hookRepo.poolCandidates(clock)))
+    case HookThieve.HookBus.GetCandidates(size, clock, promise) =>
+      promise.success(HookThieve.PoolHooks(hookRepo.poolCandidates(size, clock)))
 
     case HookThieve.HookBus.StolenHookIds(ids) =>
       hookRepo.byIds(ids.toSet).foreach(remove)

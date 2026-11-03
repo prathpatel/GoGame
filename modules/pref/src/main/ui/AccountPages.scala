@@ -122,7 +122,7 @@ final class AccountPages(helpers: Helpers, ui: AccountUi, flagApi: lila.core.use
       )
 
   private def linksHelp()(using Translate) = frag(
-    "Mastodon, Facebook, GitHub, Chess.com, ...",
+    "Mastodon, Facebook, GitHub, OGS, KGS, ...",
     br,
     trans.site.oneUrlPerLine()
   )

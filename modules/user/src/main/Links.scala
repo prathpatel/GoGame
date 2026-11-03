@@ -47,9 +47,10 @@ object Link:
     case Twitch extends Site("Twitch", List("twitch.tv"))
     case GitHub extends Site("GitHub", List("github.com"))
     case VKontakte extends Site("VKontakte", List("vk.com"))
-    case ChessCom extends Site("Chess.com", List("chess.com"))
-    case ChessMonitor extends Site("ChessMonitor", List("chessmonitor.com"))
-    case ChessTempo extends Site("ChessTempo", List("chesstempo.com"))
+    // Go servers
+    case Ogs extends Site("OGS", List("online-go.com"))
+    case Kgs extends Site("KGS", List("gokgs.com"))
+    case Fox extends Site("Fox Weiqi", List("foxwq.com"))
     case Other(domain: String) extends Site(domain, List(domain))
 
   object Site:
@@ -63,9 +64,9 @@ object Link:
       Twitch,
       GitHub,
       VKontakte,
-      ChessCom,
-      ChessMonitor,
-      ChessTempo
+      Ogs,
+      Kgs,
+      Fox
     )
 
     val mastodonRegex = """@([\w-\+]+)@([\w-]+\.\w{2,})""".r

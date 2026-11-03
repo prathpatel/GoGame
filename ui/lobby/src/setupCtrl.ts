@@ -6,7 +6,7 @@ import { alert, type Dialog } from 'lib/view';
 import * as xhr from 'lib/xhr';
 
 import type LobbyController from './ctrl';
-import type { ForceSetupOptions, GameMode, GameType, PoolMember, SetupStore } from './interfaces';
+import type { ForceSetupOptions, GameMode, GameType, Pool, PoolMember, SetupStore } from './interfaces';
 import setupModal from './view/setup/modal';
 
 const getPerf = (tc: TimeControl): Perf => tc.speed();
@@ -31,6 +31,8 @@ export default class SetupController {
   aiLevel: Prop<number>;
 
   timeControl: TimeControl;
+  // time presets: the quick pairing pools of the selected board size, updated in place
+  private readonly presets: Pool[] = [];
 
   constructor(readonly root: LobbyController) {
     this.color = propWithEffect('random', this.onPropChange);
@@ -47,8 +49,8 @@ export default class SetupController {
       size: gameType === 'ai' ? 9 : 19,
       handicap: 0,
       timeMode: gameType === 'hook' ? 'realTime' : 'unlimited',
-      time: 5,
-      increment: 3,
+      time: 10,
+      increment: 15,
       days: 2,
       gameMode: gameType === 'ai' || !this.root.me ? 'casual' : 'rated',
       color: 'random',
@@ -70,7 +72,7 @@ export default class SetupController {
       forceOptions?.increment ?? storeProps.increment,
       forceOptions?.days ?? storeProps.days,
       this.onPropChange,
-      this.root.pools,
+      this.presets,
     );
     this.gameMode = this.propWithApply(forceOptions?.mode ?? storeProps.gameMode);
     this.ratingMin = this.propWithApply(storeProps.ratingMin);
@@ -87,6 +89,8 @@ export default class SetupController {
 
   private readonly enforcePropRules = () => {
     // reassign with this.propWithApply in this function to avoid calling this.onPropChange
+
+    this.presets.splice(0, this.presets.length, ...this.root.pools.filter(p => p.size === this.size()));
 
     // keep the handicap within what the board size allows
     const maxHandicap = this.size() === 9 ? 5 : 9;
@@ -192,10 +196,9 @@ export default class SetupController {
     const valid =
       color === 'random' &&
       this.gameType === 'hook' &&
-      this.size() === 19 &&
       this.gameMode() === 'rated' &&
       this.timeControl.isRealTime();
-    const id = this.timeControl.clockStr();
+    const id = `${this.size()}-${this.timeControl.clockStr()}`;
     return valid && this.root.pools.some(p => p.id === id)
       ? {
           id,

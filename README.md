@@ -16,7 +16,11 @@ clocks, correspondence games, notifications, messages — and swaps the game its
 ## What you can do
 
 - Play **9×9, 13×13 and 19×19** games, with an optional **handicap** (2–9 stones, komi 0.5)
-- Play against people: lobby seeks, quick-pairing pools (19×19), or a challenge link
+- Play against people: lobby seeks, quick-pairing pools (three per board size), or a challenge link
+- Clocks are Fischer (main time plus an increment per move), with times sized for Go:
+  quick pairing offers 1+5, 3+5 and 5+10 on 9×9, 5+10, 10+10 and 15+15 on 13×13, and
+  10+15, 20+20 and 30+30 on 19×19 (`modules/pool/src/main/PoolList.scala`). Byo-yomi is
+  not implemented yet
 - Play against the computer, levels 1–8: a **built-in** Monte-Carlo bot, or optionally
   **[KataGo](https://github.com/lightvector/KataGo)** (see below)
 - Real time, correspondence, or unlimited games, Glicko-2 ratings per speed

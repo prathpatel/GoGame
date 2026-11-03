@@ -66,7 +66,7 @@ final private class PoolActor(
     case RunWave =>
       nextWave.cancel()
       // #TODO #FIXME race condition.
-      hookThieve.candidates(config.clock).pipeTo(self)
+      hookThieve.candidates(config.size.size, config.clock).pipeTo(self)
 
     case HookThieve.PoolHooks(hooks) =>
       monitor.withRange(monId).record(members.count(_.hasRange))

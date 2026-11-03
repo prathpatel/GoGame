@@ -51,11 +51,11 @@ interface I18n {
     rankedInSwissTournament: I18nFormat;
     /** Ranked #%1$s (top %2$s%%) with %3$s games in %4$s */
     rankedInTournament: I18nPlural;
-    /** Signed up to lichess.org */
+    /** Signed up */
     signedUp: string;
     /** Solved %s training puzzles */
     solvedNbPuzzles: I18nPlural;
-    /** Supported lichess.org for %1$s months as a %2$s */
+    /** Supported GoGame for %1$s months as a %2$s */
     supportedNbMonths: I18nPlural;
   };
   app: {
@@ -507,7 +507,7 @@ interface I18n {
     declineTooSlow: string;
     /** I'm not willing to play this variant right now. */
     declineVariant: string;
-    /** Or invite a Lichess user: */
+    /** Or invite a registered player: */
     inviteLichessUser: string;
     /** Please register to send challenges to this user. */
     registerToSendChallenges: string;
@@ -807,15 +807,15 @@ interface I18n {
     accountLost: string;
     /** I need account support */
     accountSupport: string;
-    /** Authorisation to use Lichess */
+    /** Authorisation to use GoGame */
     authorizationToUse: string;
     /** Appeal for a ban or IP restriction */
     banAppeal: string;
     /** In certain circumstances when playing against a bot account, a rated game may not award points if we determine that the player is abusing the bot for rating points. */
     botRatingAbuse: string;
-    /** Broadcast a tournament on Lichess */
+    /** Broadcast a tournament on GoGame */
     broadcastTournamentOnLichess: string;
-    /** Buying Lichess */
+    /** Buying GoGame */
     buyingLichess: string;
     /** It is called "en passant" and is one of the rules of chess. */
     calledEnPassant: string;
@@ -837,7 +837,7 @@ interface I18n {
     collaboration: string;
     /** Contact */
     contact: string;
-    /** Contact Lichess */
+    /** Contact GoGame */
     contactLichess: string;
     /** Credit is appreciated but not required. */
     creditAppreciated: string;
@@ -859,7 +859,7 @@ interface I18n {
     engineAppeal: string;
     /** Error page */
     errorPage: string;
-    /** Please explain your request clearly and thoroughly. State your Lichess username, and any information that could help us help you. */
+    /** Please explain your request clearly and thoroughly. State your GoGame username, and any information that could help us help you. */
     explainYourRequest: string;
     /** False positives do happen sometimes, and we're sorry about that. */
     falsePositives: string;
@@ -875,7 +875,7 @@ interface I18n {
     iCantLogIn: string;
     /** If your appeal is legitimate, we will lift the ban ASAP. */
     ifLegit: string;
-    /** If you want to officially broadcast a tournament on Lichess, or have any questions about our broadcasts: */
+    /** If you want to officially broadcast a tournament on GoGame, or have any questions about our broadcasts: */
     ifYouWantToBroadcastClause1: string;
     /** Please contact our Broadcast Team at %1$s or on %2$s. */
     ifYouWantToBroadcastClause2: I18nFormat;
@@ -887,7 +887,7 @@ interface I18n {
     insufficientMaterial: string;
     /** It is possible to checkmate with only a knight or a bishop, if the opponent has more than a king on the board. */
     knightMate: string;
-    /** Learn how to make your own broadcasts on Lichess */
+    /** Learn how to make your own broadcasts on GoGame */
     learnHowToMakeBroadcasts: string;
     /** I lost access to my two-factor authentication codes */
     lost2FA: string;
@@ -899,9 +899,9 @@ interface I18n {
     monetiseNoAdsTrackingOrTraffic: string;
     /** Please do not email us about marketing, tracking, or advertising. */
     monetiseNoMarketingEmail: string;
-    /** We are not interested in any way of monetising Lichess. */
+    /** We are not interested in any way of monetising GoGame. */
     monetiseNotInterested: string;
-    /** Monetising Lichess */
+    /** Monetising GoGame */
     monetizing: string;
     /** I didn't receive my confirmation email */
     noConfirmationEmail: string;
@@ -923,15 +923,15 @@ interface I18n {
     ratedGame: string;
     /** You can reopen your account on this page. */
     reopenOnThisPage: string;
-    /** In the Lichess Discord server */
+    /** In the GoGame Discord server */
     reportBugInDiscord: string;
-    /** In the Lichess Feedback section of the forum */
+    /** In the GoGame Feedback section of the forum */
     reportBugInForum: string;
-    /** As a Lichess mobile app issue on GitHub */
+    /** As a GoGame mobile app issue on GitHub */
     reportMobileIssue: string;
     /** You may report it: */
     reportTheBug: string;
-    /** As a Lichess website issue on GitHub */
+    /** As a GoGame website issue on GitHub */
     reportWebsiteIssue: string;
     /** Security vulnerability */
     securityVulnerability: string;
@@ -945,11 +945,11 @@ interface I18n {
     tryCastling: string;
     /** Try this little interactive game to learn more about "en passant". */
     tryEnPassant: string;
-    /** You can show it in your videos, and you can print screenshots of Lichess in your books. */
+    /** You can show it in your videos, and you can print screenshots of GoGame in your books. */
     videosAndBooks: string;
     /** Visit this page to solve the issue */
     visitThisPage: string;
-    /** To show your title on your Lichess profile, and participate in Titled Arenas, visit the title confirmation page */
+    /** To show your title on your GoGame profile, and participate in Titled Arenas, visit the title confirmation page */
     visitTitleConfirmation: string;
     /** I want to change my username */
     wantChangeUsername: string;
@@ -963,9 +963,9 @@ interface I18n {
     wantReport: string;
     /** I want to report a bug */
     wantReportBug: string;
-    /** I want my title displayed on Lichess */
+    /** I want my title displayed on GoGame */
     wantTitle: string;
-    /** You are welcome to use Lichess for your activity, even commercial. */
+    /** You are welcome to use GoGame for your activity, even commercial. */
     welcomeToUse: string;
     /** What can we help you with? */
     whatCanWeHelpYouWith: string;
@@ -1121,25 +1121,25 @@ interface I18n {
     emailChange_intro: string;
     /** Confirm new email address, %s */
     emailChange_subject: I18nFormat;
-    /** Click the link to enable your Lichess account: */
+    /** Click the link to enable your GoGame account: */
     emailConfirm_click: string;
-    /** Thanks for registering with Lichess! */
+    /** Thanks for registering with GoGame! */
     emailConfirm_intro: string;
-    /** If you did not register with Lichess, you can safely ignore this message. The unconfirmed account and all traces of your email address will be deleted from our system after 48 hours. */
+    /** If you did not register with GoGame, you can safely ignore this message. The unconfirmed account and all traces of your email address will be deleted from our system after 48 hours. */
     emailConfirm_justIgnore: string;
-    /** Confirm your lichess.org account, %s */
+    /** Confirm your GoGame account, %s */
     emailConfirm_subject: I18nFormat;
-    /** Log in to lichess.org, %s */
+    /** Log in to GoGame, %s */
     logInToLichess: I18nFormat;
     /** If you made this request, click the link below. If not, you can ignore this email. */
     passwordReset_clickOrIgnore: string;
     /** We received a request to reset the password for your account. */
     passwordReset_intro: string;
-    /** Reset your lichess.org password, %s */
+    /** Reset your GoGame password, %s */
     passwordReset_subject: I18nFormat;
-    /** Welcome to lichess.org, %s */
+    /** Welcome to GoGame, %s */
     welcome_subject: I18nFormat;
-    /** You have successfully created your account on https://lichess.org. */
+    /** You have successfully created your account. */
     welcome_text: I18nFormat;
   };
   faq: {
@@ -1495,19 +1495,19 @@ interface I18n {
   lag: {
     /** And now, the long answer! Game lag is composed of two unrelated values (lower is better): */
     andNowTheLongAnswerLagComposedOfTwoValues: string;
-    /** Is Lichess lagging? */
+    /** Is the server lagging? */
     isLichessLagging: string;
     /** Lag compensation */
     lagCompensation: string;
-    /** Lichess compensates for network lag. This includes sustained lag and occasional lag spikes. Compensation limits and rules are based on time control and already-compensated lag, ensuring the game stays fair for both players. As a result, having a higher network lag than your opponent is not a handicap! */
+    /** The server compensates for network lag. This includes sustained lag and occasional lag spikes. Compensation limits and rules are based on time control and already-compensated lag, ensuring the game stays fair for both players. As a result, having a higher network lag than your opponent is not a handicap! */
     lagCompensationExplanation: string;
-    /** Lichess server latency */
+    /** Server latency */
     lichessServerLatency: string;
     /** Measurements in progress... */
     measurementInProgressThreeDot: string;
-    /** Network between Lichess and you */
+    /** Network between the server and you */
     networkBetweenLichessAndYou: string;
-    /** The time it takes to send a move from your computer to Lichess's server, and get a response back. The ping depends on your distance to Lichess (France) as well as the quality of your Internet connection. Lichess developers cannot fix your Wi-Fi or make light go faster. */
+    /** The time it takes to send a move from your computer to the server, and get a response back. The ping depends on your distance to the server as well as the quality of your Internet connection. */
     networkBetweenLichessAndYouExplanation: string;
     /** No. And your network is bad. */
     noAndYourNetworkIsBad: string;
@@ -1919,13 +1919,13 @@ interface I18n {
     youCanPublish: string;
   };
   msg: {
-    /** There is a new Lichess mobile app available! */
+    /** There is a new GoGame mobile app available! */
     lichobileNewAppAvailable: string;
-    /** Please download the new official Lichess app at %s. */
+    /** Please download the new official GoGame app at %s. */
     lichobileNewAppDownload: I18nFormat;
     /** Hello, */
     modActionFeedback: string;
-    /** The old app no longer supports puzzles. Please install the new Lichess app: %s */
+    /** The old app no longer supports puzzles. Please install the new GoGame app: %s */
     oldAppNoLongerSupportsPuzzles: I18nFormat;
     /** %s doesn't accept new messages. */
     xDoesntAcceptNewMessages: I18nFormat;
@@ -2173,17 +2173,17 @@ interface I18n {
     whatTheTokenCanDo: string;
   };
   onboarding: {
-    /** Configure Lichess to your liking. */
+    /** Set up the site to your liking. */
     configureLichess: string;
     /** Will a child use this account? You might want to enable %s. */
     enabledKidModeSuggestion: I18nFormat;
     /** Explore the site and have fun :) */
     exploreTheSiteAndHaveFun: string;
-    /** Follow your friends on Lichess. */
+    /** Follow your friends. */
     followYourFriendsOnLichess: string;
-    /** Improve with chess tactics puzzles. */
+    /** Improve with Go problems. */
     improveWithChessTacticsPuzzles: string;
-    /** Learn the rules of chess. */
+    /** Learn the rules of Go. */
     learnChessRules: string;
     /** Learn from %1$s and %2$s. */
     learnFromXAndY: I18nFormat;
@@ -2201,9 +2201,9 @@ interface I18n {
     verifyYourAccount: string;
     /** Welcome! */
     welcome: string;
-    /** Welcome to Lichess! */
+    /** Welcome! */
     welcomeToLichess: string;
-    /** Welcome to Lichess, %s! */
+    /** Welcome, %s! */
     welcomeToLichessX: I18nFormat;
     /** What now? Here are a few suggestions: */
     whatNowSuggestions: string;
@@ -2567,7 +2567,7 @@ interface I18n {
     bellNotificationSound: string;
     /** Blindfold */
     blindfold: string;
-    /** Board coordinates (A-H, 1-8) */
+    /** Board coordinates */
     boardCoordinates: string;
     /** Board highlights (last move and check) */
     boardHighlights: string;
@@ -2581,7 +2581,7 @@ interface I18n {
     castleByMovingTheKingTwoSquaresOrOntoTheRook: string;
     /** Move king two squares */
     castleByMovingTwoSquares: string;
-    /** Chess clock */
+    /** Clock */
     chessClock: string;
     /** Chess piece symbol */
     chessPieceSymbol: string;
@@ -2609,7 +2609,7 @@ interface I18n {
     explainCanThenBeTemporarilyDisabled: string;
     /** Hold the ctrl key while promoting to temporarily disable auto-promotion */
     explainPromoteToQueenAutomatically: string;
-    /** Hides all ratings from Lichess, to help you focus on the game. */
+    /** Hides all ratings from the site, to help you focus on the game. */
     explainShowPlayerRatings: string;
     /** If you have frequent disconnects, try changing the routing. */
     frequentDisconnectsAdvice: string;
@@ -2653,7 +2653,7 @@ interface I18n {
     network: string;
     /** Notifications */
     notifications: string;
-    /** Notification within Lichess */
+    /** On the site */
     notifyBell: string;
     /** Broadcasts */
     notifyBroadcasts: string;
@@ -2667,7 +2667,7 @@ interface I18n {
     notifyForumMentions: string;
     /** Correspondence game updates */
     notifyGameEvent: string;
-    /** Device notification when you're not on Lichess */
+    /** On your device, when you're away */
     notifyPush: string;
     /** Streamer goes live */
     notifyStreamStart: string;
@@ -2685,7 +2685,7 @@ interface I18n {
     pgnLetter: string;
     /** Move notation */
     pgnPieceNotation: string;
-    /** Piece animation */
+    /** Stone animation */
     pieceAnimation: string;
     /** Piece destinations (valid moves and premoves) */
     pieceDestinations: string;
@@ -3325,7 +3325,7 @@ interface I18n {
     processReportFasterInEnglish: string;
     /** Please provide at least one link to a game for review. */
     provideOneCheatedGameLink: string;
-    /** Read more about Lichess reports */
+    /** Read more about GoGame reports */
     readMoreAboutLichessReports: string;
     /** Sandbagging / Boosting / Match fixing */
     reportBoost: string;
@@ -3429,7 +3429,7 @@ interface I18n {
     closeYourAccount: string;
     /** I understand that deleted accounts aren't recoverable */
     deleteAccountConfirmText: string;
-    /** Once you delete your account, it's removed from Lichess and our administrators won't be able to bring it back for you. */
+    /** Once you delete your account, it's removed from the site and our administrators won't be able to bring it back for you. */
     deleteAccountWarning: string;
     /** Delete your account */
     deleteYourAccount: string;
@@ -3451,7 +3451,7 @@ interface I18n {
     abortTheGame: string;
     /** About */
     about: string;
-    /** About bots on Lichess */
+    /** About bots */
     aboutBotsOnLichess: string;
     /** Simuls involve a single player facing several players at once. */
     aboutSimul: string;
@@ -3491,7 +3491,7 @@ interface I18n {
     advancedSettings: string;
     /** Advantage */
     advantage: string;
-    /** I agree that I will at no time receive assistance during my games (from a chess computer, book, database or another person). */
+    /** I agree that I will at no time receive assistance during my games (from a Go engine, a book, a game database or another person). */
     agreementAssistance: string;
     /** I agree that I will not create multiple accounts (except for the reasons stated in the %s). */
     agreementMultipleAccounts: I18nFormat;
@@ -3505,7 +3505,7 @@ interface I18n {
     allLanguages: string;
     /** All set! */
     allSet: string;
-    /** All squares */
+    /** All points */
     allSquaresOfTheBoard: string;
     /** Always */
     always: string;
@@ -3525,7 +3525,7 @@ interface I18n {
     apply: string;
     /** as black */
     asBlack: string;
-    /** Your account is managed. Ask your chess teacher about removing kid mode. */
+    /** Your account is managed. Ask your teacher about removing kid mode. */
     askYourChessTeacherAboutLiftingKidMode: string;
     /** as white */
     asWhite: string;
@@ -3563,7 +3563,7 @@ interface I18n {
     bewareTheGameIsRatedButHasNoClock: string;
     /** Biography */
     biography: string;
-    /** Talk about yourself, your interests, what you like in chess, your favourite openings, players, ... */
+    /** Talk about yourself, your interests, what you like in Go, your favourite players, ... */
     biographyDescription: string;
     /** Black */
     black: string;
@@ -3601,7 +3601,7 @@ interface I18n {
     blackWins: string;
     /** Black wins */
     blackWinsGame: string;
-    /** You have used the same password on another site, and that site has been compromised. To ensure the safety of your Lichess account, we need you to set a new password. Thank you for your understanding. */
+    /** You have used the same password on another site, and that site has been compromised. To ensure the safety of your GoGame account, we need you to set a new password. Thank you for your understanding. */
     blankedPassword: string;
     /** Blitz */
     blitz: string;
@@ -3695,7 +3695,7 @@ interface I18n {
     checkAllEmailFolders: string;
     /** Checkmate */
     checkmate: string;
-    /** If you do not receive a confirmation email, check your Spam or Junk folder. Be sure to indicate messages from lichess.org as safe and "not spam", so you can stay informed of important communications. */
+    /** If you do not receive a confirmation email, check your Spam or Junk folder. Be sure to indicate messages from GoGame as safe and "not spam", so you can stay informed of important communications. */
     checkSpamOrJunkFolder: string;
     /** Check your Email */
     checkYourEmail: string;
@@ -3755,7 +3755,7 @@ interface I18n {
     computerAnalysisAvailable: string;
     /** Computer analysis disabled */
     computerAnalysisDisabled: string;
-    /** Computers and computer-assisted players are not allowed to play. Please do not get assistance from chess engines, databases, or from other players while playing. Also note that making multiple accounts is strongly discouraged and excessive multi-accounting will lead to being banned. */
+    /** Computers and computer-assisted players are not allowed to play. Please do not get assistance from Go engines (AI), game records, or from other players while playing. */
     computersAreNotAllowedToPlay: string;
     /** Computer thinking ... */
     computerThinking: string;
@@ -3879,7 +3879,7 @@ interface I18n {
     downloadRaw: string;
     /** Download results */
     downloadResults: string;
-    /** Draw */
+    /** Jigo (draw) */
     draw: string;
     /** Draw and defeat */
     drawAndDefeat: string;
@@ -4121,7 +4121,7 @@ interface I18n {
     incrementInSeconds: string;
     /** Infinite analysis */
     infiniteAnalysis: string;
-    /** In kid mode, the Lichess logo gets a %s icon, so you know your kids are safe. */
+    /** In kid mode, the GoGame logo gets a %s icon, so you know your kids are safe. */
     inKidModeTheLichessLogoGetsIconX: I18nFormat;
     /** Inline notation */
     inlineNotation: string;
@@ -4215,13 +4215,13 @@ interface I18n {
     letOtherPlayersMessageYou: string;
     /** Level */
     level: string;
-    /** Rated games played on Lichess */
+    /** Rated games played on GoGame */
     lichessDbExplanation: string;
-    /** Lichess is a charity and entirely free/libre open source software. We depend on user donations to support our operating costs, development, and content. Without our generous community, we would not be able to keep the site running. Thank you for joining us! */
+    /** GoGame is a charity and entirely free/libre open source software. We depend on user donations to support our operating costs, development, and content. Without our generous community, we would not be able to keep the site running. Thank you for joining us! */
     lichessPatronInfo: string;
-    /** Lichess tournaments */
+    /** GoGame tournaments */
     lichessTournaments: string;
-    /** Lichess updates */
+    /** GoGame updates */
     lichessUpdates: string;
     /** Lifetime score */
     lifetimeScore: string;
@@ -4257,7 +4257,7 @@ interface I18n {
     lossOr50MovesByPriorMistake: string;
     /** Loss prevented by 50-move rule */
     lossSavedBy50MoveRule: string;
-    /** You lost rating points to someone who violated the Lichess TOS */
+    /** You lost rating points to someone who violated the Terms of Service */
     lostAgainstTOSViolator: string;
     /** For safekeeping and sharing, consider making a study. */
     makeAStudy: string;
@@ -4315,7 +4315,7 @@ interface I18n {
     mode: string;
     /** More */
     more: string;
-    /** More chess engines created by the Lichess community. They are hosted by their creators, and might not always be online. */
+    /** More Go engines created by the community. They are hosted by their creators, and might not always be online. */
     moreChessEnginesCreatedByTheLichessCommunity: string;
     /** ≥ %1$s rated %2$s games */
     moreThanNbPerfRatedGames: I18nPlural;
@@ -4395,11 +4395,11 @@ interface I18n {
     needNbMoreGames: I18nPlural;
     /** You need to play %1$s more %2$s rated games */
     needNbMorePerfGames: I18nPlural;
-    /** Network lag between you and Lichess */
+    /** Network lag between you and the server */
     networkLagBetweenYouAndLichess: string;
     /** Never */
     never: string;
-    /** Never type your Lichess password on another site! */
+    /** Never type your GoGame password on another site! */
     neverTypeYourPassword: string;
     /** New opponent */
     newOpponent: string;
@@ -4461,7 +4461,7 @@ interface I18n {
     numberInaccuracies: I18nPlural;
     /** %s Mistakes */
     numberMistakes: I18nPlural;
-    /** Offer draw */
+    /** Offer a draw (jigo) */
     offerDraw: string;
     /** offline */
     offline: string;
@@ -4577,7 +4577,7 @@ interface I18n {
     playVariationToCreateConditionalPremoves: string;
     /** Play %s */
     playX: I18nFormat;
-    /** We aim to provide a pleasant chess experience for everyone. */
+    /** We aim to provide a pleasant Go experience for everyone. */
     pleasantChessExperience: string;
     /** Please be nice in the forum. */
     pleaseBeNiceInTheForum: string;
@@ -4601,7 +4601,7 @@ interface I18n {
     practiceWithComputer: string;
     /** Preview */
     preview: string;
-    /** Previously on Lichess TV */
+    /** Previously on GoGame TV */
     previouslyOnLichessTV: string;
     /** Ctrl or shift = red; command, alt, or meta = blue; a key from each = yellow. */
     primaryColorArrowsHowTo: string;
@@ -4793,7 +4793,7 @@ interface I18n {
     setTheBoard: string;
     /** Settings */
     settings: string;
-    /** Share your chess insights data */
+    /** Share your game statistics */
     shareYourInsightsData: string;
     /** View this help overlay */
     showHelpDialog: string;
@@ -4803,7 +4803,7 @@ interface I18n {
     showPassword: string;
     /** Show threat */
     showThreat: string;
-    /** You have received a private message from Lichess. */
+    /** You have received a private message from the site. */
     showUnreadLichessMessage: string;
     /** Show variation arrows */
     showVariationArrows: string;
@@ -4843,7 +4843,7 @@ interface I18n {
     simulVariantsHint: string;
     /** Since */
     since: string;
-    /** Free online chess server. Play chess in a clean interface. No registration, no ads, no plugin required. Play chess with the computer, friends or random opponents. */
+    /** Free online Go server. Play Go (Baduk, Weiqi) in a clean interface. No registration, no ads, no plugin required. Play Go against the computer, friends or random opponents. */
     siteDescription: string;
     /** Size */
     size: string;
@@ -4929,7 +4929,7 @@ interface I18n {
     theme: string;
     /** No results for "%s" */
     thereAreNoResultsForX: I18nFormat;
-    /** The Lichess Terms of Service were violated on this account */
+    /** The Terms of Service were violated on this account */
     thisAccountViolatedTos: string;
     /** This game is rated */
     thisGameIsRated: string;
@@ -4959,7 +4959,7 @@ interface I18n {
     timeControl: string;
     /** Timeline */
     timeline: string;
-    /** Time to process a move on Lichess's server */
+    /** Time to process a move on the server */
     timeToProcessAMoveOnLichessServer: string;
     /** Titled players bypass this restriction. */
     titledPlayersBypassRestriction: string;
@@ -5039,11 +5039,11 @@ interface I18n {
     tryAnotherMoveForBlack: string;
     /** Try another move for white */
     tryAnotherMoveForWhite: string;
-    /** Try playing these innovative chess engines! They are our favourites. */
+    /** Try playing these Go engines! They are our favourites. */
     tryPlayingTheseInnovativeChessEngines: string;
     /** try the contact page */
     tryTheContactPage: string;
-    /** Try to win (or at least draw) every game you play. */
+    /** Try to win every game you play. */
     tryToWin: string;
     /** Type private notes here */
     typePrivateNotesHere: string;
@@ -5209,7 +5209,7 @@ interface I18n {
     winRate: string;
     /** Wins */
     wins: string;
-    /** and wish you great games on lichess.org. */
+    /** and wish you great games on GoGame. */
     wishYouGreatGames: string;
     /** Withdraw */
     withdraw: string;
@@ -5259,7 +5259,7 @@ interface I18n {
     yesterday: string;
     /** You are better than %1$s of %2$s players. */
     youAreBetterThanPercentOfPerfTypePlayers: I18nFormat;
-    /** You are leaving Lichess */
+    /** You are leaving GoGame */
     youAreLeavingLichess: string;
     /** You are not in the team %s */
     youAreNotInTeam: I18nFormat;
@@ -5293,7 +5293,7 @@ interface I18n {
     youPlayTheBlackPieces: string;
     /** You play the white pieces */
     youPlayTheWhitePieces: string;
-    /** Your opponent offers a draw */
+    /** Your opponent offers a draw (jigo) */
     yourOpponentOffersADraw: string;
     /** Your opponent proposes a takeback */
     yourOpponentProposesATakeback: string;
@@ -6229,7 +6229,7 @@ interface I18n {
     openTwoFactorApp: string;
     /** Scan the QR code with the app. */
     scanTheCode: string;
-    /** Please enable two-factor authentication to secure your account at https://lichess.org/account/twofactor. */
+    /** Please enable two-factor authentication in your account security settings, to secure your account. */
     setupReminder: string;
     /** Get an app for two-factor authentication. We recommend the following apps: */
     twoFactorAppRecommend: string;

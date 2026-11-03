@@ -53,15 +53,6 @@ final class Main(env: Env, assetsC: ExternalAssets) extends LilaController(env):
   val manifest = Anon:
     Ok(env.web.static.manifest).publicCache(1.hour)
 
-  def getFishnet = Open:
-    pageHit
-    Ok.page(views.site.ui.getFishnet)
-
-  def costs = Anon:
-    pageHit
-    Redirect:
-      "https://docs.google.com/spreadsheets/d/1Si3PMUJGR9KrpE5lngSkHLJKJkb0ZuI4/preview"
-
   def contact = Open:
     pageHit
     Ok.page(views.site.page.contact)
@@ -84,19 +75,10 @@ final class Main(env: Env, assetsC: ExternalAssets) extends LilaController(env):
     path match
       case "keyboard-move" => Ok.snip(lila.web.ui.help.keyboardMove)
       case "voice/move" => Ok.snip(lila.web.ui.help.voiceMove)
-      case "master" => Redirect(lila.ui.deadLink.url)
       case _ => notFound
 
   def movedPermanently(to: String) = Anon:
     MovedPermanently(to)
-
-  def instantChess = Open:
-    pageHit
-    if ctx.isAuth then Redirect(routes.Lobby.home)
-    else
-      Redirect(s"${routes.Lobby.home}#pool/10+0").withCookies:
-        env.security.lilaCookie.withSession(remember = true): s =>
-          s + ("theme" -> "ic") + ("pieceSet" -> "icpieces")
 
   def prometheusMetrics(key: String) = Anon:
     if key == env.web.config.prometheusKey

@@ -1,7 +1,6 @@
 import { type VNode } from 'snabbdom';
 
-import { licon } from 'lib/licon';
-import { a, button, div, form, span } from 'lib/view';
+import { button, div, form, span } from 'lib/view';
 
 import { PaneCtrl } from './interfaces';
 import { header } from './util';
@@ -37,11 +36,6 @@ export class LangsCtrl extends PaneCtrl {
             [name, span('.lang-code', code)],
           ),
         ),
-      ),
-      a('https://crowdin.com/project/lichess')(
-        '.help.text',
-        { 'data-icon': licon.Heart },
-        'Help translate Lichess',
       ),
     ]);
 

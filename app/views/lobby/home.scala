@@ -18,7 +18,15 @@ object home:
           Json
             .obj(
               "data" -> data,
-              "showRatings" -> ctx.pref.showRatings
+              "showRatings" -> ctx.pref.showRatings,
+              // quick pairing pools: board size and clock (modules/pool PoolList)
+              "pools" -> lila.pool.PoolList.all.map: p =>
+                Json.obj(
+                  "id" -> p.id.value,
+                  "size" -> p.size.size,
+                  "lim" -> p.clock.limitInMinutes,
+                  "inc" -> p.clock.incrementSeconds.value
+                )
             )
             .add("hasUnreadLichessMessage", hasUnreadLichessMessage)
             .add("playban", playban.map(lila.playban.TempBan.lobbyJson))
@@ -45,11 +53,10 @@ object home:
               ctx.blind.option(h2(trans.site.about())),
               p(
                 strong(siteName),
-                " is a free and open source server for the game of Go, ",
-                "forked from the Lichess chess server."
+                " is a free and open source server for the game of Go, also called Baduk or Weiqi."
               ),
               p(
-                "Play 9×9, 13×13 and 19×19 games against people or the built-in computer. ",
+                "Play 9×9, 13×13 and 19×19 games against people or the computer. ",
                 "Captures, ko, passing and area scoring work just like on a real board."
               ),
               a(href := "/about")(trans.site.aboutX(siteName), "...")

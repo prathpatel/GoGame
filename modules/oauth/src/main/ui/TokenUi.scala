@@ -151,7 +151,7 @@ final class TokenUi(helpers: Helpers)(
           br,
           div(cls := "force-ltr") {
             val url =
-              s"${routeUrl(routes.OAuthToken.create)}?scopes[]=challenge:write&scopes[]=puzzle:read&description=Prefilled+token+example"
+              s"${routeUrl(routes.OAuthToken.create)}?scopes[]=challenge:write&scopes[]=preference:read&description=Prefilled+token+example"
             frag(
               h2(ot.attentionOfDevelopers()),
               p(
@@ -160,8 +160,8 @@ final class TokenUi(helpers: Helpers)(
                 ot.forExample(a(href := url)(url)),
                 br,
                 ot.ticksTheScopes(
-                  "challenge:create",
-                  "puzzle:read"
+                  "challenge:write",
+                  "preference:read"
                 ),
                 br,
                 ot.givingPrefilledUrls()

@@ -31,16 +31,6 @@ final class UserActionMenu(helpers: Helpers):
       ).flatten ++
         relationActions ++
         List(
-          Some(
-            MenuItem(
-              trans.site.openingExplorer.txt(),
-              Icon.Book,
-              s"${lila.ui.deadLink}#explorer/${u.username}"
-            )
-          ),
-          Some(
-            MenuItem(trans.site.exportGames.txt(), Icon.Download, lila.ui.deadLink.url)
-          ),
           (ctx.isAuth && ctx.kid.no && ctx.isnt(u)).option(
             MenuItem(
               trans.site.reportXToModerators.txt(u.username),
@@ -67,7 +57,7 @@ final class UserActionMenu(helpers: Helpers):
             .filter(_.is(u))
             .ifTrue(Granter.opt(_.LichessTeam))
             .map: me =>
-              MenuItem("My permissions", Icon.Logo, lila.ui.deadLink.url),
+              MenuItem("My permissions", Icon.Gear, lila.ui.deadLink.url),
           canImpersonate.option(
             MenuItem(
               "Impersonate",

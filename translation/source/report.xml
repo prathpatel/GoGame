@@ -11,7 +11,7 @@
   <string name="reportSelfHarm">Suicide / Self-Injury</string>
   <string name="reportHate">Hate Speech / Sexism</string>
   <string name="reportSpam">Spamming</string>
-  <string name="readMoreAboutLichessReports">Read more about Lichess reports</string>
+  <string name="readMoreAboutLichessReports">Read more about GoGame reports</string>
   <string name="reportMaximumCharacters">Maximum 3000 characters.</string>
   <string name="reportCheatBoostHelp">Paste the link to the game(s) and explain what is wrong about this user's behaviour. Don't just say "they cheat", but tell us how you came to this conclusion.</string>
   <string name="reportUsernameHelp">Explain why this username is offensive. Don't just say "it's offensive/inappropriate," but tell us how you came to this conclusion, especially if the offense is obscure, not in English, in slang, or a historical/cultural reference.</string>

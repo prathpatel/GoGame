@@ -65,7 +65,7 @@ final private class GameStarter(
   ) =
     Game(
       id = id,
-      go = goban.Game(goban.BoardSize.Nineteen, goban.Komi(7.5), 0, pool.clock.toClock.some),
+      go = goban.Game(pool.size, pool.size.defaultKomi, 0, pool.clock.toClock.some),
       players = ByColor(whiteUser, blackUser).mapWithColor((u, p) => newPlayer(u, p)),
       rated = chess.Rated.Yes,
       status = chess.Status.Created,

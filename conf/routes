@@ -240,9 +240,6 @@ POST   /api/token/test                 controllers.OAuth.testTokens
 
 # Misc
 GET   /lag                             controllers.Main.lag
-GET   /get-fishnet                     controllers.Main.getFishnet
-GET   /costs                           controllers.Main.costs
-GET   /InstantChess.com                controllers.Main.instantChess
 POST  /upload/image/user/:realm        controllers.Main.uploadImage(realm: MarkdownRealm)
 POST  /markdown/preview/:realm         controllers.Main.markdownPreview(realm: MarkdownRealm)
 GET   /image-url/:realm/:id            controllers.Main.imageUrl(realm: MarkdownRealm, id: ImageId, width: Int)

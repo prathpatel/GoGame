@@ -1,24 +1,26 @@
+// Side picker: a black stone, half black half white for random, a white stone
 .color-picker {
-  --king-size: 32px;
+  --stone-size: 30px;
 
   &__button {
     icon {
       display: block;
-      width: var(--king-size);
-      height: var(--king-size);
-      background-size: var(--king-size) var(--king-size);
-    }
-
-    &.white icon {
-      background-image: url('../piece/cburnett/wK.svg');
+      width: var(--stone-size);
+      height: var(--stone-size);
+      border-radius: 50%;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
     }
 
     &.black icon {
-      background-image: url('../piece/cburnett/bK.svg');
+      background: radial-gradient(circle at 35% 30%, #666 0%, #222 45%, #000 100%);
+    }
+
+    &.white icon {
+      background: radial-gradient(circle at 35% 30%, #fff 0%, #f2f0ea 55%, #c9c4b8 100%);
     }
 
     &.random icon {
-      background-image: url('../images/wbK.svg');
+      background: linear-gradient(90deg, #111 0 50%, #f4f2ec 50% 100%);
     }
   }
 }

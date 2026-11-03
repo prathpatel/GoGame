@@ -88,7 +88,7 @@ final class UserShow(helpers: Helpers, bits: UserBits):
   def newPlayer(u: User)(using Translate) =
     import trans.onboarding as tro
     div(cls := "new-player")(
-      h2(tro.welcomeToLichess()),
+      h2("Welcome!"),
       p(tro.thisIsYourProfilePage()),
       p(
         if u.kid.yes then trans.site.kidModeIsEnabled()
@@ -98,19 +98,17 @@ final class UserShow(helpers: Helpers, bits: UserBits):
       ),
       p(tro.whatNowSuggestions()),
       ul(
-        li(a(href := lila.ui.deadLink)(tro.learnChessRules())),
-        li(a(href := lila.ui.deadLink)(tro.improveWithChessTacticsPuzzles())),
-        li(a(href := s"${routes.Lobby.home}#ai")(tro.playTheArtificialIntelligence())),
-        li(a(href := s"${routes.Lobby.home}#hook")(tro.playOpponentsFromAroundTheWorld())),
-        li(a(href := routes.User.list)(tro.followYourFriendsOnLichess())),
-        li(a(href := lila.ui.deadLink)(tro.playInTournaments())),
         li(
-          tro.learnFromXAndY(
-            a(href := lila.ui.deadLink)(trans.site.toStudy()),
-            a(href := lila.ui.deadLink)(trans.learn.videos())
-          )
+          "Learn the ",
+          a(href := "https://en.wikipedia.org/wiki/Rules_of_Go", targetBlank)("rules of Go"),
+          ", or read the ",
+          a(href := routes.Main.faq)("FAQ"),
+          "."
         ),
-        li(a(href := routes.Pref.form("display"))(tro.configureLichess())),
+        li(a(href := s"${routes.Lobby.home}#ai")("Play a 9×9 game against the computer.")),
+        li(a(href := s"${routes.Lobby.home}#hook")(tro.playOpponentsFromAroundTheWorld())),
+        li(a(href := routes.User.list)("Find other players and follow your friends.")),
+        li(a(href := routes.Pref.form("display"))("Choose your board and stones in the preferences.")),
         li(tro.exploreTheSiteAndHaveFun())
       )
     )
