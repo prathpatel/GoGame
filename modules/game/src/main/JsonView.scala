@@ -131,7 +131,9 @@ object JsonView:
       .add("handicap" -> (game.handicap > 0).option(game.handicap))
       .add("lastMove" -> game.lastMoveKey)
       .add("ko" -> game.position.koPoint.map(_.index))
-      .add("scoring" -> (game.inScoringPhase || game.scoring.dead.nonEmpty).option:
+      // also for a game finished by counting (a win is VariantEnd, a jigo is Draw), dead stones or not
+      .add("scoring" -> (game.inScoringPhase || game.scoring.dead.nonEmpty ||
+        game.status == chess.Status.VariantEnd || game.status == chess.Status.Draw).option:
         Json.obj(
           "dead" -> game.scoring.dead.toList.map(_.index).sorted,
           "accepted" -> game.scoring.accepted.toList.map(_.name),

@@ -55,7 +55,9 @@
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-  background: var(---c-bg-box, #fff);
+  // theme colours, so the panel follows the light and dark themes
+  background: $c-bg-box;
+  color: $c-font;
   border-radius: 4px;
   padding: 0.6rem;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
@@ -71,7 +73,7 @@
   border-radius: 4px;
 
   &.to-move {
-    background: rgba(98, 153, 36, 0.12);
+    background: rgb(from $c-good r g b / 0.15);
   }
 
   &__info {
@@ -101,34 +103,34 @@
 
   &__rating {
     font-weight: normal;
-    opacity: 0.8;
+    color: $c-font-dim;
   }
 
   &__online {
     width: 0.5em;
     height: 0.5em;
     border-radius: 50%;
-    background: #999;
+    background: $c-font-dimmer;
 
     &.on {
-      background: #629924;
+      background: $c-good;
     }
   }
 
   &__extra {
     grid-area: extra;
     font-size: 0.9em;
-    opacity: 0.8;
+    color: $c-font-dim;
     display: flex;
     gap: 0.8rem;
   }
 
   .rp.up {
-    color: #629924;
+    color: $c-good;
   }
 
   .rp.down {
-    color: #c33;
+    color: $c-bad;
   }
 }
 
@@ -139,15 +141,15 @@
   font-size: 1.8em;
   padding: 0.1em 0.4em;
   border-radius: 4px;
-  background: rgba(0, 0, 0, 0.06);
+  background: $c-bg-zebra2;
 
   &.running {
-    background: #629924;
-    color: #fff;
+    background: $c-good;
+    color: $c-over;
   }
 
   &.emerg.running {
-    background: #c33;
+    background: $c-bad;
   }
 }
 
@@ -169,21 +171,25 @@
     gap: 0.3em;
 
     index {
-      opacity: 0.5;
+      color: $c-font-dimmer;
     }
 
     &:hover {
-      background: rgba(0, 0, 0, 0.08);
+      background: $c-bg-zebra2;
     }
 
     &.active {
-      background: #3692e7;
-      color: #fff;
+      background: $c-primary;
+      color: $c-over;
+
+      index {
+        color: inherit;
+      }
     }
   }
 
   &__empty {
-    opacity: 0.6;
+    color: $c-font-dim;
     font-style: italic;
   }
 
@@ -202,7 +208,7 @@
       color: inherit;
 
       &:hover {
-        background: rgba(0, 0, 0, 0.08);
+        background: $c-bg-zebra2;
       }
     }
   }
@@ -218,7 +224,7 @@
   text-align: center;
 
   &.error {
-    color: #c33;
+    color: $c-bad;
   }
 
   &.result {
@@ -233,7 +239,7 @@
 
 .go-score {
   font-size: 0.9em;
-  opacity: 0.85;
+  color: $c-font-dim;
 }
 
 .go-actions {
