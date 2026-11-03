@@ -79,3 +79,6 @@ instance.lock
 /playwright/.auth/
 /gtp_logs/
 /modules/goban/gtp_logs/
+
+# KataGo, installed by bin/setup-katago
+/katago/

@@ -5,8 +5,10 @@ This repository is **GoGame**, a Go (Baduk/Weiqi) server forked from Lichess's
 Read [README.md](README.md) first.
 
 - Go rules, scoring, SGF and the bot live in `modules/goban` (pure Scala, tests in `modules/goban/src/test`).
-- The computer opponent goes through `lila.round.AiEngine`: KataGo over GTP (`goban/Gtp.scala`) when
-  `round.ai.katago.enabled`, else, and on any engine failure, the built-in `goban.Bot`.
+- The computer opponent goes through `lila.round.AiEngine`: KataGo over GTP (`goban/Gtp.scala`), on by
+  default and installed into `katago/` by `bin/setup-katago`. Levels map to human ranks of KataGo's
+  human-style network (`round.ai.katago.levels`, `conf/katago.cfg`). The built-in `goban.Bot` is only
+  the fallback when KataGo is off, missing or fails.
 - `core.Game` wraps `goban.Game`. The chess library (scalachess) is still a dependency, but only for
   shared primitives: `Color`, `ByColor`, `Clock`, `Centis`, `Ply`, `Status`, `Speed` and Glicko ratings.
 - Status mapping: a game won by counting is `Status.VariantEnd`, a jigo is `Status.Draw`.

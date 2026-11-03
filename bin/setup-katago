@@ -1,0 +1,132 @@
+#!/usr/bin/env bash
+# Installs KataGo, the computer opponent, into katago/ (see round.ai.katago in conf/base.conf):
+#   katago/katago          the engine (a wrapper script when it needs bundled libraries)
+#   katago/model.bin.gz    the main network: full strength, and counting
+#   katago/human.bin.gz    the human-style network: plays like a human of a given rank
+# Then plays one test move. Run it again to repair or update an install; files already
+# downloaded are kept.
+#
+#   bin/setup-katago                      CPU build (eigen, or eigenavx2 when the CPU has AVX2)
+#   KATAGO_BACKEND=opencl bin/setup-katago   GPU build (opencl; or cuda, see below)
+#
+# Linux x64 downloads the official release. macOS uses Homebrew (brew install katago).
+# Other systems: install KataGo yourself and point round.ai.katago.command at it.
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+DIR=katago
+VERSION=1.15.3
+MODEL_URL=https://media.katagotraining.org/uploaded/networks/models/kata1/kata1-b18c384nbt-s9996604416-d4316597426.bin.gz
+HUMAN_URL=https://github.com/lightvector/KataGo/releases/download/v1.15.0/b18c384nbt-humanv0.bin.gz
+RELEASES=https://github.com/lightvector/KataGo/releases/download/v$VERSION
+
+say() { printf '\033[1m%s\033[0m\n' "$*"; }
+die() { printf 'Error: %s\n' "$*" >&2; exit 1; }
+need() { command -v "$1" >/dev/null || die "$1 is needed: please install it"; }
+
+need curl
+mkdir -p "$DIR"
+
+download() { # url file
+  if [ -s "$2" ]; then echo "  $2 already there"; return; fi
+  echo "  downloading $(basename "$1")"
+  curl -fL --retry 4 --retry-delay 2 --retry-all-errors --progress-bar -o "$2.part" "$1"
+  mv "$2.part" "$2"
+}
+
+install_linux() {
+  need unzip
+  local backend="${KATAGO_BACKEND:-}"
+  if [ -z "$backend" ]; then
+    if grep -q avx2 /proc/cpuinfo 2>/dev/null; then backend=eigenavx2; else backend=eigen; fi
+  fi
+  local asset
+  case "$backend" in
+    eigen | eigenavx2 | opencl) asset="katago-v$VERSION-$backend-linux-x64.zip" ;;
+    cuda) asset="katago-v$VERSION-cuda12.1-cudnn8.9.7-linux-x64.zip" ;;
+    *) die "unknown KATAGO_BACKEND '$backend': use eigen, eigenavx2, opencl or cuda" ;;
+  esac
+  if [ -x "$DIR/katago-bin" ] && [ "$(cat "$DIR/backend" 2>/dev/null)" = "$backend" ]; then
+    echo "  KataGo $VERSION ($backend) already there"
+  else
+    say "KataGo $VERSION ($backend build)"
+    download "$RELEASES/$asset" "$DIR/$asset"
+    local tmp
+    tmp=$(mktemp -d)
+    unzip -q -o "$DIR/$asset" -d "$tmp"
+    install -m 755 "$(find "$tmp" -name katago -type f | head -1)" "$DIR/katago-bin"
+    rm -rf "$tmp" "$DIR/$asset"
+    echo "$backend" >"$DIR/backend"
+  fi
+
+  # The release is built on Ubuntu 20.04: newer systems lack libzip.so.5 and OpenSSL 1.1.
+  # Take them from the Ubuntu 20.04 packages, into katago/lib.
+  mkdir -p "$DIR/lib"
+  local missing
+  missing=$(LD_LIBRARY_PATH="$DIR/lib" ldd "$DIR/katago-bin" | awk '/not found/ {print $1}')
+  if [ -n "$missing" ]; then
+    say "Libraries missing on this system: $(echo $missing)"
+    need ar
+    local pool=http://archive.ubuntu.com/ubuntu/pool
+    fetch_deb() { # directory, package name prefix (Ubuntu 20.04 versions)
+      local listing deb
+      listing=$(curl -fsSL --retry 4 --retry-delay 2 --retry-all-errors "$pool/$1/")
+      # newest security update: ..._1.1.1f-1ubuntu2.24_amd64.deb beats ..._1.1.1f-1ubuntu2_amd64.deb
+      deb=$(grep -oE "$2(\.[0-9]+)?_amd64\.deb" <<<"$listing" | sort -u |
+        awk -F'_amd64' '{ n = split($1, a, "."); print (a[n] ~ /^[0-9]+$/ ? a[n] : 0), $0 }' |
+        sort -n | tail -1 | cut -d' ' -f2)
+      [ -n "$deb" ] || die "could not find $2 in $pool/$1"
+      echo "  $deb"
+      local t
+      t=$(mktemp -d)
+      curl -fsSL --retry 4 --retry-delay 2 --retry-all-errors -o "$t/p.deb" "$pool/$1/$deb"
+      (cd "$t" && ar x p.deb && tar -xf data.tar.*)
+      find "$t" -name '*.so*' \( -type f -o -type l \) -exec cp -P {} "$DIR/lib/" \;
+      rm -rf "$t"
+    }
+    grep -q libzip <<<"$missing" && fetch_deb universe/libz/libzip libzip5_1.5.1-0ubuntu1
+    grep -qE 'libssl|libcrypto' <<<"$missing" && fetch_deb main/o/openssl libssl1.1_1.1.1f-1ubuntu2
+    missing=$(LD_LIBRARY_PATH="$DIR/lib" ldd "$DIR/katago-bin" | awk '/not found/ {print $1}')
+    [ -z "$missing" ] || die "still missing: $missing (for the GPU builds, install the OpenCL or CUDA drivers)"
+  fi
+
+  # katago/katago: runs the engine with the bundled libraries
+  cat >"$DIR/katago" <<'EOF'
+#!/usr/bin/env bash
+here="$(cd "$(dirname "$0")" && pwd)"
+export LD_LIBRARY_PATH="$here/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+exec "$here/katago-bin" "$@"
+EOF
+  chmod 755 "$DIR/katago"
+}
+
+install_macos() {
+  need brew
+  if ! command -v katago >/dev/null; then
+    say "KataGo (Homebrew)"
+    brew install katago
+  fi
+  ln -sf "$(command -v katago)" "$DIR/katago"
+}
+
+say "Installing KataGo into $DIR/"
+case "$(uname -s)-$(uname -m)" in
+  Linux-x86_64) install_linux ;;
+  Darwin-*) install_macos ;;
+  *) die "no KataGo download for $(uname -s) $(uname -m): install KataGo and set round.ai.katago.command" ;;
+esac
+
+say "Networks"
+download "$MODEL_URL" "$DIR/model.bin.gz"
+download "$HUMAN_URL" "$DIR/human.bin.gz"
+
+say "Test move (the first start can take a while: the GPU builds tune themselves)"
+answer=$(printf 'boardsize 9\nkata-set-param humanSLProfile rank_10k\ngenmove b\nquit\n' |
+  (cd "$DIR" && ./katago gtp -model model.bin.gz -human-model human.bin.gz -config ../conf/katago.cfg 2>gtp-test.log) |
+  grep -E '^= [A-T][0-9]' || true)
+if [ -n "$answer" ]; then
+  rm -f "$DIR/gtp-test.log"
+  say "KataGo works: it played ${answer#= }. Restart lila to use it."
+else
+  die "KataGo did not answer, see $DIR/gtp-test.log"
+fi

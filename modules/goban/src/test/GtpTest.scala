@@ -38,7 +38,8 @@ class GtpTest extends munit.FunSuite:
       // closing behaves like killing a process: both of its streams end
       GtpConnection.streams(clientIn, OutputStreamWriter(toEngine), () => { engineIn.close(); fromEngine.close() })
 
-  def await[A](f: scala.concurrent.Future[A]) = Await.result(f, 10.seconds)
+  // long enough for a real engine to load its networks
+  def await[A](f: scala.concurrent.Future[A]) = Await.result(f, 2.minutes)
 
   test("vertices use GTP coordinates"):
     assertEquals(Gtp.vertex(Point.fromSgf("pd", 19).get, 19), "Q16")
@@ -92,7 +93,8 @@ class GtpTest extends munit.FunSuite:
     engine.close()
 
   // Runs against a real engine when KATAGO_COMMAND is set, e.g.
-  // KATAGO_COMMAND="katago gtp -model model.bin.gz -config default_gtp.cfg"
+  // KATAGO_COMMAND="$PWD/katago/katago gtp -model $PWD/katago/model.bin.gz \
+  //   -human-model $PWD/katago/human.bin.gz -config $PWD/conf/katago.cfg" (see README)
   test("real engine plays a legal move and lists dead stones"):
     assume(sys.env.contains("KATAGO_COMMAND"), "KATAGO_COMMAND is not set")
     val command = sys.env("KATAGO_COMMAND").split(' ').toList

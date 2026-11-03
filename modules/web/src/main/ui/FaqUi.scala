@@ -110,10 +110,15 @@ final class FaqUi(helpers: Helpers, sitePages: SitePages, siteName: String)(
             "computer",
             "How strong is the computer?",
             p(
-              "Levels 1 to 8 use a built-in Monte-Carlo player: friendly for beginners, weak for experienced ",
-              "players. Servers can also connect ",
+              "The computer is ",
               a(href := "https://github.com/lightvector/KataGo", targetBlank)("KataGo"),
-              ", one of the strongest Go programs, for the higher levels."
+              ", one of the strongest Go programs. Levels 1 to 7 use its human-style network to play like ",
+              "a human of a given rank: 20 kyu, 15 kyu, 10 kyu, 5 kyu, 1 kyu, 3 dan and 9 dan. ",
+              "Level 8 is KataGo at full strength. Hover over the computer's name in a game to see its rank."
+            ),
+            p(
+              "If KataGo is not available, a much weaker built-in player takes over, and the computer's ",
+              "name reads \"Computer level\" instead of \"KataGo\"."
             )
           ),
           question(

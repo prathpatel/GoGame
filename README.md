@@ -21,8 +21,9 @@ clocks, correspondence games, notifications, messages — and swaps the game its
   quick pairing offers 1+5, 3+5 and 5+10 on 9×9, 5+10, 10+10 and 15+15 on 13×13, and
   10+15, 20+20 and 30+30 on 19×19 (`modules/pool/src/main/PoolList.scala`). Byo-yomi is
   not implemented yet
-- Play against the computer, levels 1–8: a **built-in** Monte-Carlo bot, or optionally
-  **[KataGo](https://github.com/lightvector/KataGo)** (see below)
+- Play against the computer, levels 1–8, played by **[KataGo](https://github.com/lightvector/KataGo)**:
+  levels 1–7 imitate human players from 20 kyu to 9 dan, level 8 is full strength. A
+  small built-in bot takes over if KataGo isn't installed or fails
 - Real time, correspondence, or unlimited games, Glicko-2 ratings per speed
 - Pass, resign, abort, takebacks, rematch
 - **Counting phase** after two passes: the server proposes dead stones, players click
@@ -72,79 +73,83 @@ Requirements: **Java 21**, **sbt**, **Node.js 24.20+** with **pnpm 12**, **Mongo
 (7.x works) and **Redis**.
 
 1. Start MongoDB on `localhost:27017` and Redis on `localhost:6379`.
-2. Build the front end:
+2. Install KataGo, the computer opponent, into `katago/` (about 300 MB of downloads):
+
+   ```bash
+   bin/setup-katago
+   ```
+
+   Without it everything still works, but the computer is the much weaker built-in bot.
+3. Build the front end:
 
    ```bash
    ./ui/build
    ```
 
-3. Start lila (HTTP on port 9663):
+4. Start lila (HTTP on port 9663):
 
    ```bash
    ./lila.sh run
    ```
 
-4. In another terminal, start lila-ws (websockets on port 9664):
+5. In another terminal, start lila-ws (websockets on port 9664):
 
    ```bash
    cd ws && sbt run
    ```
 
-5. Open <http://localhost:9663>.
+6. Open <http://localhost:9663>.
 
-### Optional: KataGo as the computer opponent
+### The computer opponent: KataGo
 
-Out of the box the computer is the built-in bot (`modules/goban/src/main/Bot.scala`): it needs
-nothing extra, but it is weak. For a strong opponent, point the server at
-[KataGo](https://github.com/lightvector/KataGo) (or any engine that speaks
-[GTP](https://www.lysator.liu.se/~gunnar/gtp/)):
+The computer is [KataGo](https://github.com/lightvector/KataGo), on by default
+(`round.ai.katago` in `conf/base.conf`). `bin/setup-katago` installs it into `katago/`
+(ignored by git):
 
-1. Download a KataGo release for your machine (the `eigen` build runs on any CPU; the
-   `opencl`/`cuda` builds are much faster with a GPU) and a network from
-   <https://katagotraining.org/networks/>.
-2. Copy its `default_gtp.cfg`, and set `logAllGTPCommunication = false` for production.
-3. Enable it in `conf/application.conf`:
+- `katago/katago`: KataGo 1.15.3. On Linux x64 the script downloads the official CPU build,
+  using `eigenavx2` when the processor supports it, and adds the older system libraries
+  it needs on recent Ubuntu. Set `KATAGO_BACKEND=opencl` or `cuda` for a GPU build; on macOS
+  it uses Homebrew.
+- `katago/model.bin.gz`: the main network, for full strength and for counting.
+- `katago/human.bin.gz`: the human-style network, which plays like a human of a given rank.
 
-   ```hocon
-   round.ai.katago {
-     enabled = true
-     command = "/opt/katago/katago gtp -model /opt/katago/model.bin.gz -config /opt/katago/default_gtp.cfg"
-     work_dir = "/opt/katago"   # where KataGo writes its logs
-     min_level = 4              # levels 1-3 keep the built-in bot (KataGo is strong even at 1 visit)
-     visits = [1, 4, 16, 64, 256]   # search size for levels 4..8
-     timeout = 30 seconds
-     resign = true
-   }
-   ```
+The engine settings are in `conf/katago.cfg`. The levels are set in `base.conf`:
 
-The server starts one KataGo process, sets the same rules as the server (area scoring,
-positional superko, no suicide) and sends it one position at a time. KataGo is also used to
-propose dead stones when counting starts. If the engine is missing, crashes, answers with an
-illegal move or takes longer than `timeout`, the built-in bot plays that move instead and the
-engine is restarted for the next one.
+| Level | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Plays like | 20k | 15k | 10k | 5k | 1k | 3d | 9d | full strength |
+
+In a game, the computer's name reads **KataGo 10k · level 3** and so on.
+
+The server starts one KataGo process and sets the same rules as the server (area scoring,
+positional superko, no suicide). Before each move it sends the position and the level's rank
+and search size. KataGo also proposes the dead stones when counting starts.
+
+The built-in Monte-Carlo bot (`modules/goban/src/main/Bot.scala`) is only a fallback. It
+plays a move whenever KataGo is missing, crashes, answers an illegal move or takes longer
+than `timeout`; then the engine restarts for the next move. The name then reads
+**Computer level N**. Set `round.ai.katago.enabled = false` to always use it.
+
+Speed, on a 4-core CPU with the default settings: levels 1–7 answer in 1 to 2 seconds;
+level 8 in about 2 seconds on 9×9 and 6 seconds on 19×19. With a GPU build you can raise
+level 8's `visits` for a much stronger engine.
 
 #### Checking that KataGo is playing
 
-1. Check KataGo on its own first. It should print `= ` followed by a move:
-
-   ```bash
-   printf 'boardsize 9\ngenmove b\nquit\n' | katago gtp -model model.bin.gz -config default_gtp.cfg
-   ```
-
-2. Restart lila. Its log prints `AI engine ready: KataGo` once the network is loaded. If it
-   prints `AI engine failed to start` instead, check `command` (KataGo's own messages appear
-   in the log too).
-3. Open *Play against computer* and pick a level of at least `min_level` (4 by default).
-   The computer's name in the game reads **KataGo · level N**. At lower levels, or if the
-   engine is off or failing, it reads **Computer level N** (the built-in bot).
-4. With `logAllGTPCommunication = true` in KataGo's config, every command the server sends
-   is written to `gtp_logs/` in `work_dir`.
+1. `bin/setup-katago` ends with a test move: it prints `KataGo works: it played E5`.
+2. Restart lila. Its log prints `AI engine ready: KataGo` once the networks are loaded
+   (a few seconds). If it prints `AI engine failed to start` instead, run
+   `bin/setup-katago` again; KataGo's own messages appear in the log too.
+3. Play the computer: its name in the game reads **KataGo … · level N**. Hover over it to
+   see the rank it imitates.
+4. With `logAllGTPCommunication = true` in `conf/katago.cfg`, every command the server
+   sends is written to `katago/gtp_logs/`.
 
 Tests:
 
 ```bash
 ./lila.sh test           # server, including the goban engine tests
-KATAGO_COMMAND="katago gtp -model model.bin.gz -config default_gtp.cfg" \
+KATAGO_COMMAND="$PWD/katago/katago gtp -model $PWD/katago/model.bin.gz -human-model $PWD/katago/human.bin.gz -config $PWD/conf/katago.cfg" \
   ./lila.sh "goban/testOnly goban.GtpTest"   # also run the real-KataGo test
 ./ui/build --tsc         # front-end type checking
 ```

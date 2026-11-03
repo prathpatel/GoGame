@@ -205,7 +205,7 @@ function player(ctrl: RoundCtrl, p: PlayerData): VNode {
     : p.ai
       ? h(
           'span',
-          { attrs: { title: p.aiEngine ? `Played by ${p.aiEngine}` : 'Played by the built-in bot' } },
+          { attrs: { title: aiTitle(p.aiEngine) } },
           p.aiEngine ? `${p.aiEngine} · level ${p.ai}` : `Computer level ${p.ai}`,
         )
       : h('span', p.name || 'Anonymous');
@@ -415,4 +415,11 @@ function resultText(ctrl: RoundCtrl): string {
     default:
       return winner ? `${winner} wins` : 'Game over';
   }
+}
+
+/** "KataGo 20k" => "Played by KataGo, imitating a 20k human player" */
+function aiTitle(engine?: string): string {
+  if (!engine) return 'Played by the built-in bot';
+  const [name, rank] = engine.split(' ');
+  return rank ? `Played by ${name}, imitating a ${rank} human player` : `Played by ${name} at full strength`;
 }
