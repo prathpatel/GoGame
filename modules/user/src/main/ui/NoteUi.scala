@@ -35,7 +35,7 @@ final class NoteUi(helpers: Helpers)(using NetDomain):
         p(cls := "note__text")(richText(note.text, expandImg = false)),
         (note.mod && Granter.opt(_.Admin)).option(
           postForm(
-            action := routes.User.setDoxNote(note._id, !note.dox)
+            action := lila.ui.deadLink
           ):
             submitButton(cls := "button-empty yes-no-confirm button text")("Toggle Dox")
         ),
@@ -72,7 +72,7 @@ final class NoteUi(helpers: Helpers)(using NetDomain):
             boxTop(
               h1("Mod notes"),
               div(cls := "box__top__actions")(
-                st.form(cls := "search", action := routes.Mod.notes())(
+                st.form(cls := "search", action := lila.ui.deadLink)(
                   input(st.name := "q", value := query, placeholder := trans.search.search.txt())
                 )
               )
@@ -91,7 +91,7 @@ final class NoteUi(helpers: Helpers)(using NetDomain):
                     td(cls := "user-note__text")(richText(note.text, expandImg = false)),
                     td(small(momentFromNowOnce(note.date)))
                   ),
-                pagerNextTable(pager, np => routes.Mod.notes(np, query).url)
+                pagerNextTable(pager, np => lila.ui.deadLink.url)
               )
             )
           )

@@ -70,7 +70,7 @@ final class SiteMessage(helpers: Helpers):
   def teamJoinLimit = apply("Cannot join the team"):
     p("You have already joined too many teams.")
 
-  def relayPrivate = apply("This tournament is private", routes.RelayTour.index().url.some):
+  def relayPrivate = apply("This tournament is private", lila.ui.deadLink.url.some):
     p("Sorry, this tournament is private, or maybe it doesn't exist.")
 
   def authFailed = apply("403 - Access denied!"):

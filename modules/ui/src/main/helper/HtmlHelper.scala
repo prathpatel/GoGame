@@ -42,3 +42,6 @@ trait HtmlHelper:
 
   export HtmlHelper.*
   export scalalib.StringOps.{ shorten, urlencode, addQueryParam, addQueryParams }
+
+/** Links to pages that don't exist in this Go fork (removed chess features) point home. */
+val deadLink: play.api.mvc.Call = play.api.mvc.Call("GET", "/")

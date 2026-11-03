@@ -33,8 +33,8 @@ final class UserShowSide(helpers: Helpers):
           if isPuzzle
           then
             val other = ctx.isnt(u).option(u.username)
-            routes.Puzzle.dashboard(Days(30), "home", other).url
-          else routes.User.perfStat(u.username, pk).url
+            lila.ui.deadLink.url
+          else lila.ui.deadLink.url
         ,
         span(
           h3(pk.perfTrans),
@@ -108,7 +108,7 @@ final class UserShowSide(helpers: Helpers):
       cls := List(
         "empty" -> !storm.nonEmpty
       ),
-      href := routes.Storm.dashboardOf(user.username),
+      href := lila.ui.deadLink,
       span(
         h3("Puzzle Storm"),
         st.rating(
@@ -130,7 +130,7 @@ final class UserShowSide(helpers: Helpers):
       cls := List(
         "empty" -> !racer.nonEmpty
       ),
-      href := routes.Racer.home,
+      href := lila.ui.deadLink,
       span(
         h3("Puzzle Racer"),
         st.rating(
@@ -152,7 +152,7 @@ final class UserShowSide(helpers: Helpers):
       cls := List(
         "empty" -> !streak.nonEmpty
       ),
-      href := routes.Puzzle.streak,
+      href := lila.ui.deadLink,
       span(
         h3("Puzzle Streak"),
         st.rating(

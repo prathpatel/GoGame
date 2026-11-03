@@ -13,7 +13,7 @@ final class FaqUi(helpers: Helpers, sitePages: SitePages)(
   import helpers.{ given, * }
   import trans.faq as trf
 
-  private def cmsPageUrl(key: String) = routes.Cms.lonePage(lila.core.id.CmsPageKey(key))
+  private def cmsPageUrl(key: String) = lila.ui.deadLink
 
   private def question(id: String, title: String, answer: Frag*) =
     details(
@@ -59,9 +59,9 @@ final class FaqUi(helpers: Helpers, sitePages: SitePages)(
             p(trf.lichessPoweredByDonationsAndVolunteers()),
             p(
               trf.findMoreAndSeeHowHelp(
-                a(href := routes.Plan.index())(trf.beingAPatron()),
+                a(href := lila.ui.deadLink)(trf.beingAPatron()),
                 a(href := routes.Main.costs)(trf.breakdownOfOurCosts()),
-                a(href := routes.Cms.help)(trf.otherWaysToHelp())
+                a(href := lila.ui.deadLink)(trf.otherWaysToHelp())
               )
             )
           ),
@@ -142,7 +142,7 @@ final class FaqUi(helpers: Helpers, sitePages: SitePages)(
             trf.whatVariantsCanIplay.txt(),
             p(
               trf.lichessSupportChessAnd(
-                a(href := routes.Cms.variantHome)(trf.eightVariants())
+                a(href := lila.ui.deadLink)(trf.eightVariants())
               )
             )
           ),
@@ -167,7 +167,7 @@ final class FaqUi(helpers: Helpers, sitePages: SitePages)(
               trf.explainingEnPassant(
                 a(href := "https://en.wikipedia.org/wiki/En_passant")(trf.goodIntroduction()),
                 a(href := fideHandbookUrl)(trf.fideHandbook()),
-                a(href := s"${routes.Learn.index}#/15")(trf.lichessTraining())
+                a(href := s"${lila.ui.deadLink}#/15")(trf.lichessTraining())
               )
             ),
             p(
@@ -225,7 +225,7 @@ final class FaqUi(helpers: Helpers, sitePages: SitePages)(
             ),
             p(
               trf.showYourTitle(
-                a(href := routes.TitleVerify.index)(trf.verificationForm()),
+                a(href := lila.ui.deadLink)(trf.verificationForm()),
                 a(href := "#lm")("Lichess Master (LM)")
               )
             )

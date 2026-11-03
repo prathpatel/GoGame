@@ -8,7 +8,7 @@ import lila.core.i18n.toLanguage
 import lila.core.net.Continent
 import lila.common.HTTPRequest
 
-final class HomeCache(cacheApi: lila.memo.CacheApi, relayHome: lila.relay.RelayHomeApi):
+final class HomeCache(cacheApi: lila.memo.CacheApi):
 
   private val supportedLangs = lila.i18n.LangList.popularLanguages.toSet
 
@@ -26,8 +26,7 @@ final class HomeCache(cacheApi: lila.memo.CacheApi, relayHome: lila.relay.RelayH
 
   // the homepage relay spotlights depend on the visitor's continent,
   // but only split the cache while a continent-restricted spotlight is live
-  private def continent(using ctx: Context): Option[Continent] =
-    relayHome.spotlight.hasContinentRestriction.so(HTTPRequest.continent(ctx.req))
+  private def continent(using ctx: Context): Option[Continent] = none
 
   private def defaultPrefs(using RequestHeader) =
     lila.pref.RequestPref.fromRequest == lila.pref.Pref.default

@@ -29,7 +29,6 @@ object UiEnv
 
   given lila.core.config.NetDomain = env.net.domain
   given (using ctx: PageContext): Option[Nonce] = ctx.nonce
-  given Conversion[lila.team.Team, lila.core.team.LightTeam] = _.light
   given (using ctx: lila.ui.Context): ClientName = ClientName(ctx.req)
 
   def apiVersion = lila.security.Mobile.Api.currentVersion
@@ -46,10 +45,9 @@ object UiEnv
   def analyseEndpoints = env.web.analyseEndpoints
   val translator = lila.i18n.Translator
   val langList = lila.i18n.LangList
-  lazy val gameOpening = env.game.gameOpening.of
   protected val namer = lila.game.Namer
-  protected lazy val lightTeamSync = env.team.lightTeamSync
-  protected lazy val syncBelongsTo = env.team.api.syncBelongsTo
+  protected lazy val lightTeamSync: TeamId => Option[lila.core.team.LightTeam] = _ => none
+  protected lazy val syncBelongsTo: (TeamId, UserId) => Boolean = (_, _) => false
 
   protected def isProd = env.mode.isProd
 
@@ -60,4 +58,4 @@ object UiEnv
   def flagApi = lila.user.Flags
 
   def lightUserFallback = env.user.lightUserSyncFallback
-  def isStreaming = env.streamer.liveApi.isStreaming
+  def isStreaming(userId: UserId) = false

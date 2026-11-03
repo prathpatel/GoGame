@@ -40,8 +40,6 @@ final class Env(
     userLagPut: lila.core.socket.userLag.Put,
     bookmarkExists: lila.core.misc.BookmarkExists,
     securityApi: lila.core.security.SecurityApi,
-    simulApiCircularDep: => lila.core.simul.SimulApi,
-    tourApiCircularDep: => lila.core.tournament.TournamentApi,
     userNoteApi: lila.core.user.NoteApi,
     settingStore: lila.memo.SettingStore.Builder,
     shutdown: org.apache.pekko.actor.CoordinatedShutdown
@@ -79,8 +77,6 @@ final class Env(
       scheduler.scheduleOnce((centis.millis + 1000).millis):
         roundApi.tell(game.id, lila.core.round.NoStart)
 
-  private val simulApi = lila.core.data.CircularDep(() => simulApiCircularDep)
-  private val tourApi = lila.core.data.CircularDep(() => tourApiCircularDep)
 
   private lazy val proxyDependencies = wire[GameProxy.Dependencies]
   private lazy val roundDependencies = wire[RoundAsyncActor.Dependencies]

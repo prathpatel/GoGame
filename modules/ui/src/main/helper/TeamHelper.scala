@@ -1,6 +1,5 @@
 package lila.ui
 
-import lila.core.id.ForumCategId
 import lila.core.team.LightTeam
 import lila.ui.ScalatagsTemplate.{ *, given }
 
@@ -20,8 +19,7 @@ trait TeamHelper:
     teamLink(teamIdToLight(id), withIcon)
 
   def teamLink(team: LightTeam, withIcon: Boolean): Tag =
-    a(
-      href := routes.Team.show(team.id),
+    span(
       dataIcon := withIcon.option(lila.ui.Icon.Group),
       cls := withIcon.option("text")
     )(team.name, teamFlair(team))
@@ -31,4 +29,4 @@ trait TeamHelper:
   def teamFlair(flair: Flair): Tag =
     img(cls := "uflair", src := flairSrc(flair))
 
-  def teamForumUrl(id: TeamId) = routes.ForumCateg.show(ForumCategId("team-" + id))
+

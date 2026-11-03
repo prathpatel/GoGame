@@ -27,54 +27,54 @@ final class TopNav(helpers: Helpers):
           else a(href := "/?any#friend")(trans.site.challengeAFriend()),
           Option.when(ctx.noBot):
             frag(
-              a(href := langHref(routes.Tournament.home))(trans.arena.arenaTournaments()),
-              a(href := langHref(routes.Swiss.home))(trans.swiss.swissTournaments()),
-              a(href := langHref(routes.Simul.home))(trans.site.simultaneousExhibitions()),
-              hasDgt.option(a(href := routes.DgtCtrl.index)(trans.dgt.dgtBoard())),
+              a(href := langHref(lila.ui.deadLink))(trans.arena.arenaTournaments()),
+              a(href := langHref(lila.ui.deadLink))(trans.swiss.swissTournaments()),
+              a(href := langHref(lila.ui.deadLink))(trans.site.simultaneousExhibitions()),
+              hasDgt.option(a(href := lila.ui.deadLink)(trans.dgt.dgtBoard())),
               (ctx.kid.no && !ctx.me.exists(_.isPatron)).option:
-                a(cls := "community-patron mobile-only", href := routes.Plan.index())(trans.patron.donate())
+                a(cls := "community-patron mobile-only", href := lila.ui.deadLink)(trans.patron.donate())
             )
         )
       ),
       Option.when(ctx.noBot):
-        val puzzleUrl = langHref(routes.Puzzle.home.url)
+        val puzzleUrl = langHref(lila.ui.deadLink.url)
         st.section(
           linkTitle(puzzleUrl, trans.site.puzzles()),
           div(role := "group")(
             a(href := puzzleUrl)(trans.site.puzzles()),
-            a(href := langHref(routes.Puzzle.themes))(trans.puzzle.puzzleThemes()),
-            a(href := routes.Puzzle.dashboard(Days(30), "home", none))(trans.puzzle.puzzleDashboard()),
-            a(href := langHref(routes.Puzzle.streak))("Puzzle Streak"),
-            a(href := langHref(routes.Storm.home))("Puzzle Storm"),
-            a(href := langHref(routes.Racer.home))("Puzzle Racer")
+            a(href := langHref(lila.ui.deadLink))(trans.puzzle.puzzleThemes()),
+            a(href := lila.ui.deadLink)(trans.puzzle.puzzleDashboard()),
+            a(href := langHref(lila.ui.deadLink))("Puzzle Streak"),
+            a(href := langHref(lila.ui.deadLink))("Puzzle Storm"),
+            a(href := langHref(lila.ui.deadLink))("Puzzle Racer")
           )
         )
       ,
       st.section(
-        linkTitle(routes.Learn.index.url, trans.site.learnMenu()),
+        linkTitle(lila.ui.deadLink.url, trans.site.learnMenu()),
         div(role := "group")(
           Option.when(ctx.noBot):
             frag(
-              a(href := langHref(routes.Learn.index))(trans.site.chessBasics()),
-              a(href := langHref(routes.Practice.index))(trans.site.practice()),
-              a(href := langHref(routes.Coordinate.home))(trans.coordinates.coordinates())
+              a(href := langHref(lila.ui.deadLink))(trans.site.chessBasics()),
+              a(href := langHref(lila.ui.deadLink))(trans.site.practice()),
+              a(href := langHref(lila.ui.deadLink))(trans.coordinates.coordinates())
             )
           ,
-          a(href := langHref(routes.Study.allDefault()))(trans.site.studyMenu()),
-          ctx.kid.no.option(a(href := langHref(routes.Coach.all(1)))(trans.site.coaches())),
-          seesClassMenu.option(a(href := routes.Clas.index)(trans.clas.lichessClasses()))
+          a(href := langHref(lila.ui.deadLink))(trans.site.studyMenu()),
+          ctx.kid.no.option(a(href := langHref(lila.ui.deadLink))(trans.site.coaches())),
+          seesClassMenu.option(a(href := lila.ui.deadLink)(trans.clas.lichessClasses()))
         )
       ),
       st.section:
-        val broadcastUrl = langHref(routes.RelayTour.index())
+        val broadcastUrl = langHref(lila.ui.deadLink)
         frag(
           linkTitle(broadcastUrl, trans.site.watch()),
           div(role := "group")(
-            a(href := routes.RelayTour.index())(trans.broadcast.broadcasts()),
-            a(href := langHref(routes.Tv.index))("Lichess TV"),
-            a(href := routes.Tv.games)(trans.site.currentGames()),
-            (ctx.kid.no && ctx.noBot).option(a(href := routes.Streamer.index())(trans.site.streamersMenu())),
-            ctx.noBot.option(a(href := langHref(routes.Video.index))(trans.site.videoLibrary()))
+            a(href := lila.ui.deadLink)(trans.broadcast.broadcasts()),
+            a(href := langHref(lila.ui.deadLink))("Lichess TV"),
+            a(href := lila.ui.deadLink)(trans.site.currentGames()),
+            (ctx.kid.no && ctx.noBot).option(a(href := lila.ui.deadLink)(trans.site.streamersMenu())),
+            ctx.noBot.option(a(href := langHref(lila.ui.deadLink))(trans.site.videoLibrary()))
           )
         )
       ,
@@ -83,21 +83,21 @@ final class TopNav(helpers: Helpers):
         div(role := "group")(
           a(href := routes.User.list)(trans.site.players()),
           ctx.me.map(me => a(href := routes.Relation.following(me.username))(trans.site.friends())),
-          a(href := routes.Team.home())(trans.team.teams()),
-          ctx.kid.no.option(a(href := routes.ForumCateg.index)(trans.site.forum())),
-          ctx.kid.no.option(a(href := langHref(routes.Ublog.communityAll()))(trans.site.blog())),
+          a(href := lila.ui.deadLink)(trans.team.teams()),
+          ctx.kid.no.option(a(href := lila.ui.deadLink)(trans.site.forum())),
+          ctx.kid.no.option(a(href := langHref(lila.ui.deadLink))(trans.site.blog())),
           (ctx.kid.no && ctx.me.exists(_.isPatron))
-            .option(a(cls := "community-patron", href := routes.Plan.index())(trans.patron.donate()))
+            .option(a(cls := "community-patron", href := lila.ui.deadLink)(trans.patron.donate()))
         )
       ),
       st.section(
-        linkTitle(routes.UserAnalysis.index.url, trans.site.tools()),
+        linkTitle(lila.ui.deadLink.url, trans.site.tools()),
         div(role := "group")(
-          a(href := routes.UserAnalysis.index)(trans.site.analysis()),
-          a(href := routes.Opening.index())(trans.site.openings()),
-          a(href := routes.Editor.index)(trans.site.boardEditor()),
-          a(href := routes.Importer.importGame)(trans.site.importGame()),
-          a(href := routes.Search.index())(trans.search.advancedSearch())
+          a(href := lila.ui.deadLink)(trans.site.analysis()),
+          a(href := lila.ui.deadLink)(trans.site.openings()),
+          a(href := lila.ui.deadLink)(trans.site.boardEditor()),
+          a(href := lila.ui.deadLink)(trans.site.importGame()),
+          a(href := lila.ui.deadLink)(trans.search.advancedSearch())
         )
       )
     )

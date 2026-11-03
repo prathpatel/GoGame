@@ -20,8 +20,7 @@ final class Dasher(env: Env) extends LilaController(env):
 
   def get = Open:
     negotiateJson:
-      ctx.me
-        .so(env.streamer.api.isPotentialStreamer(_))
+      fuccess(false)
         .map: isStreamer =>
           val gallery = galleryJson.get()
           Ok:

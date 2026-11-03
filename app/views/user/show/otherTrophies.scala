@@ -20,20 +20,6 @@ object otherTrophies:
                 maybeLink(trophy.anyUrl)(awardCls(trophy), ariaTitle(s"${trophy.kind.name}")):
                   raw(iconChar)
           ),
-      info.trophies.shields.map { shield =>
-        a(
-          cls := "shield-trophy combo-trophy",
-          ariaTitle(s"${shield.categ.name} Shield"),
-          href := routes.Tournament.shields
-        )(shield.categ.icon)
-      },
-      info.trophies.revolutions.map { revol =>
-        a(
-          cls := "revol_trophy combo-trophy",
-          ariaTitle(s"${revol.variant.name} Revolution"),
-          href := s"${routes.Tournament.show(revol.tourId)}?player=${info.user.username}"
-        )(revol.iconChar.toString)
-      },
       info.trophies.trophies.find(_.kind._id == TrophyKind.zugMiracle).map(zugMiracleTrophy),
       info.trophies.trophies.filter(_.kind.withCustomImage).map { t =>
         maybeLink(t.anyUrl)(
@@ -48,20 +34,4 @@ object otherTrophies:
           maybeLink(trophy.anyUrl)(awardCls(trophy), ariaTitle(trophy.kind.name)):
             raw(iconChar)
       },
-      info.isCoach.option(
-        a(
-          href := routes.Coach.show(info.user.username),
-          cls := "trophy award icon3d coach",
-          ariaTitle(trans.coach.lichessCoach.txt())
-        )(Icon.GraduateCap)
-      ),
-      (info.isStreamer && ctx.kid.no).option:
-        val streaming = isStreaming(info.user.id)
-        views.streamer.bits.redirectLink(info.user.username, streaming.some)(
-          cls := List(
-            "trophy award icon3d streamer" -> true,
-            "streaming" -> streaming
-          ),
-          ariaTitle(if streaming then "Live now!" else "Lichess Streamer")
-        )(Icon.Mic)
     )

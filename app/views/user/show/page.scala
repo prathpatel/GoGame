@@ -1,8 +1,6 @@
 package views.user
 package show
 
-import play.api.data.Form
-
 import lila.app.UiEnv.{ *, given }
 import lila.app.mashup.UserInfo
 import lila.core.data.SafeJsonStr
@@ -17,40 +15,10 @@ object page:
 
   private def indexable(u: User) = u.isVerified || u.count.game >= 10
 
-  def activity(
-      activities: Seq[lila.activity.ActivityView],
-      info: UserInfo,
-      social: UserInfo.Social
-  )(using Context) =
-    val u = info.user
-    Page(s"${u.username} : ${trans.activity.activity.txt()}")
-      .graph(
-        OpenGraph(
-          image = assetFullUrl("logo/lichess-tile-wide.png").some,
-          title = u.titleUsernameWithBestRating,
-          url = routeUrl(routes.User.show(u.username)),
-          description = ui.describeUser(u)
-        )
-      )
-      .js(pageModule(info))
-      .js(esModules())
-      .js(isGranted(_.AccountInfo).option(esmInit("mod.autolink")))
-      .css("user.show")
-      .css(isGranted(_.UserModView).option("mod.user"))
-      .flag(_.noRobots, !indexable(u)):
-        main(cls := "page-menu", ui.dataUsername := u.username)(
-          st.aside(cls := "page-menu__menu")(side(u, info.ranks, none)),
-          div(cls := "page-menu__content box user-show")(
-            views.user.show.header(u, info, UserInfo.Angle.Activity, social),
-            div(cls := "angle-content")(views.activity(u, activities))
-          )
-        )
-
   def games(
       info: UserInfo,
       games: scalalib.paginator.Paginator[Game],
       filters: lila.game.GameFilterMenu,
-      searchForm: Option[Form[?]],
       social: UserInfo.Social
   )(using Context) =
     val u = info.user
@@ -66,7 +34,7 @@ object page:
         main(cls := "page-menu", ui.dataUsername := u.username)(
           st.aside(cls := "page-menu__menu")(side(u, info.ranks, none)),
           div(cls := "page-menu__content box user-show")(
-            views.user.show.header(u, info, UserInfo.Angle.Games(searchForm), social),
+            views.user.show.header(u, info, UserInfo.Angle.Games(none), social),
             div(cls := "angle-content"):
               gamesContent(u, info.nbs, games, filters, filters.current.name)
           )

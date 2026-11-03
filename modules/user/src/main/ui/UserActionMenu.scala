@@ -16,7 +16,7 @@ final class UserActionMenu(helpers: Helpers):
             MenuItem(
               "Mod zone",
               Icon.Agent,
-              routes.User.mod(u.username).url,
+              lila.ui.deadLink.url,
               cssClass = Some("mod-zone-toggle")
             )
           ),
@@ -35,17 +35,17 @@ final class UserActionMenu(helpers: Helpers):
             MenuItem(
               trans.site.openingExplorer.txt(),
               Icon.Book,
-              s"${routes.UserAnalysis.index}#explorer/${u.username}"
+              s"${lila.ui.deadLink}#explorer/${u.username}"
             )
           ),
           Some(
-            MenuItem(trans.site.exportGames.txt(), Icon.Download, routes.User.download(u.username).url)
+            MenuItem(trans.site.exportGames.txt(), Icon.Download, lila.ui.deadLink.url)
           ),
           (ctx.isAuth && ctx.kid.no && ctx.isnt(u)).option(
             MenuItem(
               trans.site.reportXToModerators.txt(u.username),
               Icon.CautionTriangle,
-              s"${routes.Report.form}?username=${u.username}"
+              s"${lila.ui.deadLink}?username=${u.username}"
             )
           ),
           (ctx.is(u) || Granter.opt(_.CloseAccount)).option(
@@ -67,12 +67,12 @@ final class UserActionMenu(helpers: Helpers):
             .filter(_.is(u))
             .ifTrue(Granter.opt(_.LichessTeam))
             .map: me =>
-              MenuItem("My permissions", Icon.Logo, routes.Mod.permissions(me.username).url),
+              MenuItem("My permissions", Icon.Logo, lila.ui.deadLink.url),
           canImpersonate.option(
             MenuItem(
               "Impersonate",
               Icon.Agent,
-              routes.Mod.impersonate(u.username.value).url,
+              lila.ui.deadLink.url,
               httpMethod = Some(HttpMethod.POST)
             )
           )

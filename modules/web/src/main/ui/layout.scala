@@ -118,7 +118,7 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
       then trans.site.disableBlindMode.txt()
       else s"${trans.site.accessibility.txt()} - ${trans.site.enableBlindMode.txt()}"
     def tutorialLink = ctx.blind.so:
-      val url = routes.Cms.lonePage(lila.core.id.CmsPageKey("blind-mode-tutorial"))
+      val url = lila.ui.deadLink
       s"""&nbsp;-&nbsp;${a(href := url)("Blind mode tutorial")}"""
 
     s"""<form id="blind-mode" action="${routes.Main.toggleBlindMode}" method="POST"><input type="hidden" name="enable" value="${
@@ -199,7 +199,7 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
       .filter(100 >=)
   } | 80
 
-  val dailyNewsAtom = (routes.Feed.atom, "Lichess Updates Feed")
+  val dailyNewsAtom = (lila.ui.deadLink, "Lichess Updates Feed")
   def atomLinkTag(call: Call, title: String) =
     link(href := call, st.title := title, tpe := "application/atom+xml", rel := "alternate")
 
@@ -260,7 +260,7 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
             "report-maxScore--low" -> (maxScore <= threshold.mid)
           ),
           title := "Moderation",
-          href := routes.Report.list,
+          href := lila.ui.deadLink,
           dataCount := maxScore,
           dataIcon := Icon.Agent
         ).some
@@ -268,7 +268,7 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
         a(
           cls := "link",
           title := "Moderation",
-          href := routes.Mod.publicChat,
+          href := lila.ui.deadLink,
           dataIcon := Icon.Agent
         ).some
       else
@@ -276,7 +276,7 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
           a(
             cls := "link",
             title := "Content",
-            href := Granter.opt(_.Pages).option(routes.Cms.index).orElse(routes.Event.manager().some),
+            href := Granter.opt(_.Pages).option(lila.ui.deadLink).orElse(lila.ui.deadLink.some),
             dataIcon := Icon.InkQuill
           )
         )
@@ -285,7 +285,7 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
       Option.when(nb > 0):
         a(
           cls := "link data-count link-center",
-          href := routes.Team.requests,
+          href := lila.ui.deadLink,
           dataCount := nb,
           dataIcon := Icon.Group,
           title := trans.team.teams.txt()
@@ -316,7 +316,7 @@ final class layout(helpers: Helpers, assetHelper: lila.web.ui.AssetFullHelper)(
             frag(
               topnav,
               (ctx.kid.no && !ctx.me.exists(_.isPatron) && !zenable).option(
-                a(cls := "site-title-nav__donate")(href := routes.Plan.index())(trans.patron.donate())
+                a(cls := "site-title-nav__donate")(href := lila.ui.deadLink)(trans.patron.donate())
               )
             )
           ),

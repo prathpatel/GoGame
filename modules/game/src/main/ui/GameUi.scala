@@ -35,7 +35,7 @@ final class GameUi(helpers: Helpers):
         renderMini(g.pov(color), gameUrl(g, color))
 
     def noCtx(pov: Pov, tv: Boolean = false, channelKey: Option[String] = None): Tag =
-      val link = if tv then channelKey.fold(routes.Tv.index)(routes.Tv.onChannel)
+      val link = if tv then lila.ui.deadLink
       else routes.Round.watcher(pov.gameId, pov.color)
       renderMini(pov, link.url)(using transDefault, None)
 

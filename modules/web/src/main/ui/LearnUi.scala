@@ -32,8 +32,8 @@ final class LearnUi(helpers: Helpers):
       .graph(
         title = "Learn chess by playing",
         description = "You don't know much about chess? Excellent! Let's have fun and learn to play chess!",
-        url = routeUrl(routes.Learn.index)
+        url = routeUrl(lila.ui.deadLink)
       )
-      .hrefLangs(lila.ui.LangPath(routes.Learn.index))
+      .hrefLangs(lila.ui.LangPath(lila.ui.deadLink))
       .flag(_.zoom):
         main(id := "learn-app")

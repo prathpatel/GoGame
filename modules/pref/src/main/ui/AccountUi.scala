@@ -97,7 +97,7 @@ final class AccountUi(helpers: Helpers):
           Granter
             .opt(_.Coach)
             .option(
-              a(activeCls("coach"), href := routes.Coach.edit)(
+              a(activeCls("coach"), href := lila.ui.deadLink)(
                 trans.coach.lichessCoach()
               )
             ),
@@ -121,7 +121,7 @@ final class AccountUi(helpers: Helpers):
             trans.preferences.network()
           ),
           ctx.noBot.option(
-            a(href := routes.DgtCtrl.index)(
+            a(href := lila.ui.deadLink)(
               trans.dgt.dgtBoard()
             )
           ),

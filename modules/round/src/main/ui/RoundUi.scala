@@ -14,7 +14,7 @@ final class RoundUi(helpers: Helpers, gameUi: lila.game.ui.GameUi):
 
   def povOpenGraph(pov: Pov)(using Translate) =
     OpenGraph(
-      image = Url(routes.Export.gameThumbnail(pov.gameId, None, None)).some,
+      image = none,
       title = titleGame(pov.game),
       url = routeUrl(routes.Round.watcher(pov.gameId, pov.color)),
       description = describePov(pov)

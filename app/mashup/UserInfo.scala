@@ -9,28 +9,15 @@ import lila.core.data.SafeJsonStr
 import lila.core.perf.UserWithPerfs
 import lila.core.perm.Granter
 import lila.core.user.User
-import lila.forum.ForumPostApi
 import lila.game.Crosstable
 import lila.mon.extensions.*
 import lila.relation.RelationApi
-import lila.ublog.{ UblogApi, UblogPost }
 
 case class UserInfo(
     nbs: UserInfo.NbGames,
     user: UserWithPerfs,
     trophies: lila.api.UserApi.TrophiesAndAwards,
-    hasSimul: Boolean,
-    ratingChart: Option[SafeJsonStr],
-    nbForumPosts: Int,
-    ublog: Option[UblogPost.BlogPreview],
-    nbStudies: Int,
-    nbSimuls: Int,
-    nbRelays: Int,
-    teamIds: List[lila.team.TeamId],
-    isStreamer: Boolean,
-    isCoach: Boolean,
-    publicFideId: Option[chess.FideId],
-    insightVisible: Boolean
+    ratingChart: Option[SafeJsonStr]
 ):
   export trophies.ranks
   export nbs.crosstable
@@ -104,47 +91,17 @@ object UserInfo:
       ).mapN(NbGames.apply)
 
   final class UserInfoApi(
-      postApi: ForumPostApi,
-      ublogApi: UblogApi,
       perfsRepo: lila.user.UserPerfsRepo,
-      studyRepo: lila.study.StudyRepo,
-      simulApi: lila.simul.SimulApi,
-      relayApi: lila.relay.RelayApi,
       ratingChartApi: lila.history.RatingChartApi,
-      userApi: lila.api.UserApi,
-      streamerApi: lila.streamer.StreamerApi,
-      teamApi: lila.team.TeamApi,
-      teamCache: lila.team.TeamCached,
-      coachApi: lila.coach.CoachApi,
-      fideIdOf: lila.core.user.PublicFideIdOf,
-      insightShare: lila.insight.Share
+      userApi: lila.api.UserApi
   )(using Executor):
-    def fetch(user: User, nbs: NbGames, restricted: Boolean, withBlog: Boolean = true)(using
-        ctx: Context
-    ): Fu[UserInfo] =
+    def fetch(user: User, nbs: NbGames, restricted: Boolean)(using ctx: Context): Fu[UserInfo] =
       val full = !restricted
       def showRatings = full && ctx.noBlind && ctx.pref.showRatings
       (
         perfsRepo.withPerfs(user),
         userApi.getTrophiesAndAwards(user).mon(lila.mon.user.segment("trophies")),
-        (nbs.playing > 0).so(simulApi.isSimulHost(user.id).mon(lila.mon.user.segment("simul"))),
         showRatings
           .so(ratingChartApi(user, computeIfNeeded = ctx.isAuth))
-          .mon(lila.mon.user.segment("ratingChart")),
-        (full && user.isnt(UserId.lichess) && !user.isBot).so:
-          postApi.nbByUser(user.id).mon(lila.mon.user.segment("nbForumPosts"))
-        ,
-        (withBlog && full).so(ublogApi.userBlogPreviewFor(user, 3)),
-        full.so:
-          studyRepo.countByOwner(user.id).recoverDefault.mon(lila.mon.user.segment("nbStudies"))
-        ,
-        full.so(simulApi.countHostedByUser.get(user.id).mon(lila.mon.user.segment("nbSimuls"))),
-        full.so(relayApi.countOwnedByUser.get(user.id).mon(lila.mon.user.segment("nbBroadcasts"))),
-        full.so(ctx.useMe(teamApi.joinedTeamIdsOfUserAsSeenBy(user).mon(lila.mon.user.segment("teamIds")))),
-        streamerApi.isActualStreamer(user).mon(lila.mon.user.segment("streamer")),
-        coachApi.isListedCoach(user).mon(lila.mon.user.segment("coach")),
-        fideIdOf(user.light),
-        fuccess(Granter.opt(_.SeeInsight)) >>| (user.count.rated >= 50).so(insightShare.grant(user))
-      ).mapN(UserInfo(nbs, _, _, _, _, _, _, _, _, _, _, _, _, _, _))
-
-    def preloadTeams(info: UserInfo) = teamCache.lightCache.preloadMany(info.teamIds)
+          .mon(lila.mon.user.segment("ratingChart"))
+      ).mapN(UserInfo(nbs, _, _, _))

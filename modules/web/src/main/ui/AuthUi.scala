@@ -181,7 +181,7 @@ final class AuthUi(helpers: Helpers):
                   tosLink,
                   br,
                   trans.site.readAboutOur(
-                    a(href := routes.Cms.menuPage(lila.core.id.CmsPageKey("privacy")))(
+                    a(href := lila.ui.deadLink)(
                       trans.site.privacyPolicy()
                     )
                   ),
@@ -197,7 +197,7 @@ final class AuthUi(helpers: Helpers):
         )
 
   private def tosLink(using Translate) = trans.site.byRegisteringYouAgreeToBeBoundByOur(
-    a(href := routes.Cms.tos)(trans.site.termsOfService())
+    a(href := lila.ui.deadLink)(trans.site.termsOfService())
   )
 
   def checkYourEmail(
@@ -421,7 +421,7 @@ final class AuthUi(helpers: Helpers):
   private def agreements(using Context) = List(
     "assistance" -> trans.site.agreementAssistance(),
     "nice" -> trans.site.agreementNice(),
-    "account" -> trans.site.agreementMultipleAccounts(a(href := routes.Cms.tos)(trans.site.termsOfService()))
+    "account" -> trans.site.agreementMultipleAccounts(a(href := lila.ui.deadLink)(trans.site.termsOfService()))
   )
 
   private def authGlobalError(form: Form[?])(using Translate): Option[Frag] =

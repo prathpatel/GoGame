@@ -103,7 +103,7 @@ $regards
       body = _ => s"""Hello,
 
 It is our pleasure to welcome you as a Lichess coach.
-Your coach profile awaits you on ${routeUrl(routes.Coach.edit)}.
+Your coach profile awaits you on ${routeUrl(lila.ui.deadLink)}.
 
 $regards
 """
@@ -128,7 +128,7 @@ $regards
     )
 
   def onAppealReply(user: User): Funit =
-    val url = routeUrl(routes.Appeal.home)
+    val url = routeUrl(lila.ui.deadLink)
     sendAsPrivateMessageAndEmail(user)(
       subject = _ => "Appeal response on lichess.org",
       body = _ => s"""Hello,
@@ -179,13 +179,13 @@ As a small token of our thanks, your account now has the awesome Patron wings!""
         _.foreach: user =>
           alsoSendAsPrivateMessage(user)(
             body = _ =>
-              val helpUrl = routeUrl(routes.Cms.help)
+              val helpUrl = routeUrl(lila.ui.deadLink)
               s"""End of Lichess Patron subscription
 
 Thank you for your support over the last month.
 We appreciate all donations, being a small team relying entirely on generous donors like you!
 If you're still interested in supporting us in other ways, you can see non-financial ways of supporting us here $helpUrl.
-To make a new donation, head to ${routeUrl(routes.Plan.index())}."""
+To make a new donation, head to ${routeUrl(lila.ui.deadLink)}."""
           )
 
   def onPatronGift(from: UserId, to: UserId, lifetime: Boolean): Funit =
@@ -205,7 +205,7 @@ To make a new donation, head to ${routeUrl(routes.Plan.index())}."""
     alsoSendAsPrivateMessage(dest)(
       body = _ => s"""Thank you for being an active member of our community!
 As a token of our appreciation, you have been gifted Patron Wings for a month.
-${routeUrl(routes.Plan.index())}"""
+${routeUrl(lila.ui.deadLink)}"""
     )
 
   private[mailer] def dailyCorrespondenceNotice(

@@ -87,7 +87,7 @@ final class AccountPages(helpers: Helpers, ui: AccountUi, flagApi: lila.core.use
                 ),
                 p(
                   "Lichess generally complies with these requests from citizens of any country, because individuals should have control of their data against organisations. However, in certain cases where accounts broke our ",
-                  a(href := routes.Cms.tos)("Terms of Service"),
+                  a(href := lila.ui.deadLink)("Terms of Service"),
                   ", we cannot comply with those requests."
                 ),
                 p(
@@ -98,7 +98,7 @@ final class AccountPages(helpers: Helpers, ui: AccountUi, flagApi: lila.core.use
                 ),
                 p(
                   "For more information on the data we process and how we use it, please refer to our ",
-                  a(href := routes.Cms.menuPage(lila.core.id.CmsPageKey("privacy")))("Privacy Policy"),
+                  a(href := lila.ui.deadLink)("Privacy Policy"),
                   "."
                 ),
                 p(

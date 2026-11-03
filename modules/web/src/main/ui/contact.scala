@@ -35,7 +35,7 @@ object contact:
     frag(
       ul(
         li(
-          a(href := routes.ForumCateg.show(ForumCategId("lichess-feedback")))(reportBugInForum())
+          a(href := lila.ui.deadLink)(reportBugInForum())
         ),
         li(
           a(href := "https://github.com/lichess-org/lila/issues")(reportWebsiteIssue())
@@ -99,7 +99,7 @@ object contact:
               "title",
               wantTitle(),
               p(
-                a(href := routes.TitleVerify.index)(visitTitleConfirmation()),
+                a(href := lila.ui.deadLink)(visitTitleConfirmation()),
                 "."
               )
             ),
@@ -136,7 +136,7 @@ object contact:
           wantReport(),
           frag(
             p(
-              a(href := routes.Report.form)(toReportAPlayerUseForm()),
+              a(href := lila.ui.deadLink)(toReportAPlayerUseForm()),
               "."
             ),
             p(
@@ -222,7 +222,7 @@ object contact:
         ),
         frag(
           p(doNotMessageModerators()),
-          p(sendAppealTo(a(href := routes.Appeal.home)(routes.Appeal.home.url))),
+          p(sendAppealTo(a(href := lila.ui.deadLink)(lila.ui.deadLink.url))),
           p(
             falsePositives(),
             br,

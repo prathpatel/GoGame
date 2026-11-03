@@ -14,22 +14,22 @@ final class UserBits(helpers: Helpers):
       a(cls := active.active("leaderboard"), href := routes.User.list)(trans.site.leaderboard()),
       a(
         cls := active.active("ratings"),
-        href := routes.User.ratingDistribution(PerfKey.blitz)
+        href := lila.ui.deadLink
       )(
         trans.site.ratingStats()
       ),
-      a(cls := active.active("tournament"), href := routes.Tournament.leaderboard)(
+      a(cls := active.active("tournament"), href := lila.ui.deadLink)(
         trans.arena.tournamentWinners()
       ),
-      a(cls := active.active("shield"), href := routes.Tournament.shields)(
+      a(cls := active.active("shield"), href := lila.ui.deadLink)(
         trans.arena.tournamentShields()
       ),
       div(cls := "sep"),
-      a(cls := active.active("bots"), href := routes.PlayApi.botOnline)(
+      a(cls := active.active("bots"), href := lila.ui.deadLink)(
         trans.site.onlineBots()
       ),
       div(cls := "sep"),
-      a(cls := active.active("fide"), href := addQueryParam(routes.Fide.index().url, "community", "1"))(
+      a(cls := active.active("fide"), href := addQueryParam(lila.ui.deadLink.url, "community", "1"))(
         trans.broadcast.fidePlayers()
       )
     )

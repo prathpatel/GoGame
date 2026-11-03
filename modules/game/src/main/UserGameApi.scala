@@ -11,14 +11,11 @@ import lila.game.JsonView.given
 import lila.ui.Context
 
 final class UserGameApi(
-    lightUser: lila.core.user.LightUserApi,
-    getTourName: => lila.core.tournament.GetTourName
-)(using Executor):
+    lightUser: lila.core.user.LightUserApi)(using Executor):
 
   def jsPaginator(pag: Paginator[Game])(using ctx: Context): Fu[JsObject] =
     for
       _ <- lightUser.preloadMany(pag.currentPageResults.flatMap(_.userIds))
-      _ <- getTourName.preload(pag.currentPageResults.flatMap(_.tournamentId))(using ctx.lang)
     yield
       given Writes[Game] = Writes: g =>
         write(g, ctx.me)(using ctx.lang)
@@ -58,6 +55,4 @@ final class UserGameApi(
       .add("correspondence" -> g.daysPerTurn.map { d =>
         Json.obj("daysPerTurn" -> d)
       })
-      .add("tournament" -> g.tournamentId.map { tid =>
-        Json.obj("id" -> tid, "name" -> getTourName.sync(tid))
-      })
+

@@ -244,7 +244,7 @@ final class AccountPref(helpers: Helpers, helper: PrefHelper, bits: AccountUi):
                 ),
                 tbody(
                   List(
-                    a(href := routes.Streamer.index())(trp.notifyStreamStart()) -> "streamStart",
+                    a(href := lila.ui.deadLink)(trp.notifyStreamStart()) -> "streamStart",
                     trp.notifyForumMentions() -> "mention",
                     trp.notifyStudyInvites() -> "invitedStudy",
                     trp.notifyDirectMessage() -> "privateMessage",

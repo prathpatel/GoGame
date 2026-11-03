@@ -85,17 +85,3 @@ trait AssetHelper:
   def analyseNvuiTag(using ctx: Context) = ctx.blind.option(Esm("analyse.nvui"))
 
   def pathUrl(path: String): Url = Url(s"${netBaseUrl}$path")
-
-  def fenThumbnailUrl(
-      fen: chess.format.StandardFen,
-      color: Option[chess.Color] = None,
-      variant: chess.variant.Variant = chess.variant.Standard
-  )(using ctx: Context): Url = Url:
-    routes.Export.fenThumbnail(
-      fen.value,
-      color,
-      none,
-      Option.when(variant.exotic)(variant.key),
-      ctx.pref.theme.some,
-      ctx.pref.pieceSet.some
-    )

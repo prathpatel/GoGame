@@ -32,7 +32,7 @@ final class DgtUi(helpers: Helpers):
         p(
           trd.ifLiveChessRunningElsewhere(
             "LiveChess",
-            a(href := routes.DgtCtrl.config)(trd.configurationSection())
+            a(href := lila.ui.deadLink)(trd.configurationSection())
           )
         ),
         br,
@@ -49,7 +49,7 @@ final class DgtUi(helpers: Helpers):
         br,
         p(
           trd.whenReadySetupBoard(
-            a(href := routes.DgtCtrl.play)(trans.site.play())
+            a(href := lila.ui.deadLink)(trans.site.play())
           )
         )
       )
@@ -63,7 +63,7 @@ final class DgtUi(helpers: Helpers):
           p(trd.checkYouHaveMadeOpponentsMove()),
           p(
             trd.asALastResort(
-              a(href := routes.DgtCtrl.play)(trd.reloadThisPage())
+              a(href := lila.ui.deadLink)(trd.reloadThisPage())
             )
           )
         )
@@ -73,7 +73,7 @@ final class DgtUi(helpers: Helpers):
     layout("config"):
       frag(
         h1(cls := "box__top")(trd.configureYourDgtBoard()),
-        form(action := routes.DgtCtrl.generateToken, method := "post")(
+        form(action := lila.ui.deadLink, method := "post")(
           st.section(
             h2(trd.lichessConnectivity()),
             if token.isDefined then
@@ -207,13 +207,13 @@ final class DgtUi(helpers: Helpers):
       .wrap: body =>
         main(cls := "account page-menu dgt")(
           lila.ui.bits.pageMenuSubnav(
-            a(cls := path.active("index"), href := routes.DgtCtrl.index)(
+            a(cls := path.active("index"), href := lila.ui.deadLink)(
               trd.dgtBoard()
             ),
-            a(cls := path.active("play"), href := routes.DgtCtrl.play)(
+            a(cls := path.active("play"), href := lila.ui.deadLink)(
               trans.site.play()
             ),
-            a(cls := path.active("config"), href := routes.DgtCtrl.config)(
+            a(cls := path.active("config"), href := lila.ui.deadLink)(
               trd.configure()
             )
           ),

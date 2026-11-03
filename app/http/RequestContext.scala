@@ -56,17 +56,15 @@ trait RequestContext(using Executor):
         env.user.lightUserApi.preloadUser(me)
         val enabledId = me.enabled.yes.option(me.userId)
         (
-          enabledId.so(env.team.api.nbRequests),
           enabledId.so(env.challenge.api.countInFor.get),
-          enabledId.so(env.notifyM.api.unreadCount),
-          env.mod.inquiryApi.forMod
-        ).mapN: (teamNbRequests, nbChallenges, nbNotifications, inquiry) =>
+          enabledId.so(env.notifyM.api.unreadCount)
+        ).mapN: (nbChallenges, nbNotifications) =>
           PageData(
-            teamNbRequests,
-            nbChallenges,
-            nbNotifications,
-            seesClassMenu = env.clas.seesClassMenu,
-            inquiry = inquiry,
+            teamNbRequests = 0,
+            nbChallenges = nbChallenges,
+            nbNotifications = nbNotifications,
+            seesClassMenu = false,
+            inquiry = none,
             nonce = nonce
           )
     else fuccess(PageData.anon(none))
@@ -92,8 +90,4 @@ trait RequestContext(using Executor):
       .flatMap:
         case None => fuccess(LoginContext.anon)
         case Some(d) =>
-          env.mod.impersonate
-            .impersonating(d.me.modId)
-            .map:
-              _.fold(LoginContext(d.me.some, !d.hasFingerPrint, none, none)): impersonated =>
-                LoginContext(Me(impersonated).some, needsFp = false, d.me.modId.some, none)
+          fuccess(LoginContext(d.me.some, !d.hasFingerPrint, none, none))

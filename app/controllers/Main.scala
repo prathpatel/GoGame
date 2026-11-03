@@ -27,27 +27,8 @@ final class Main(env: Env, assetsC: ExternalAssets) extends LilaController(env):
       Ok(if valid then 1 else 0)
     }
 
-  def webmasters = Open:
-    Ok.page(views.site.page.webmasters)
-
   def lag = Open:
     Ok.page(views.site.ui.lag)
-
-  def app = Open(serveApp)
-  def appLang = LangPage(routes.Main.app)(serveApp)
-  def mobile = Anon(MovedPermanently(routes.Main.app.url))
-  def mobileLang(lang: Language) = Anon(MovedPermanently(routes.Main.appLang(lang).url))
-
-  def redirectToAppStore = Anon:
-    pageHit
-    Redirect(env.web.static.appStoreUrl.value)
-
-  def redirectToSwag = Anon:
-    Redirect(env.web.static.swagUrl(lila.common.HTTPRequest.country))
-
-  private def serveApp(using Context) =
-    pageHit
-    FoundPage(env.cms.renderKey("mobile"))(views.mobile)
 
   def playerCount = Open:
     NoCrawlers(env.web.playerCounter.website.hit())
@@ -89,10 +70,6 @@ final class Main(env: Env, assetsC: ExternalAssets) extends LilaController(env):
     pageHit
     Ok.page(views.site.page.faq)
 
-  def survey = Open:
-    pageHit
-    Ok.page(views.site.page.survey)
-
   def temporarilyDisabled(@annotation.nowarn path: String) = Open:
     NotImplemented.page(views.site.message.temporarilyDisabled)
 
@@ -100,7 +77,7 @@ final class Main(env: Env, assetsC: ExternalAssets) extends LilaController(env):
     path match
       case "keyboard-move" => Ok.snip(lila.web.ui.help.keyboardMove)
       case "voice/move" => Ok.snip(lila.web.ui.help.voiceMove)
-      case "master" => Redirect(routes.TitleVerify.index.url)
+      case "master" => Redirect(lila.ui.deadLink.url)
       case _ => notFound
 
   def movedPermanently(to: String) = Anon:
@@ -154,10 +131,7 @@ final class Main(env: Env, assetsC: ExternalAssets) extends LilaController(env):
 
   def markdownPreview(realm: MarkdownRealm) = AuthBody(parse.tolerantText) { ctx ?=> me ?=>
     val renderKey = s"${realm.key}:${me.userId}"
-    val options = realm match
-      case MarkdownRealm.blog => lila.ublog.markdownOptions
-      case MarkdownRealm.cms => lila.cms.markdownOptions
-      case _ => env.forum.textExpand.markdownOptions
+    val options = lila.memo.MarkdownOptions(autoLink = true, list = true, strikeThrough = true, blockQuote = true, code = true)
 
     env.memo.markdown
       .toHtml(renderKey, Markdown(ctx.body.body), options)

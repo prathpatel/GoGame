@@ -8,8 +8,6 @@ import lila.round.RoundGame.secondsSinceCreation
 def watcher(
     pov: Pov,
     data: JsObject,
-    tour: Option[lila.tournament.TourAndTeamVs],
-    simul: Option[lila.simul.Simul],
     cross: Option[lila.game.Crosstable.WithMatchup],
     userTv: Option[User] = None,
     chatOption: Option[lila.chat.UserChat.Mine],
@@ -28,8 +26,7 @@ def watcher(
       opponentId = pov.opponent.userId
     )
 
-  ui.RoundPage(pov.game.variant, s"${gameVsText(pov.game, withRatings = ctx.pref.showRatings)} • spectator")
-    .js(roundNvuiTag)
+  ui.RoundPage(s"${gameVsText(pov.game, withRatings = ctx.pref.showRatings)} • spectator")
     .js(
       PageModule(
         "round",
@@ -43,7 +40,7 @@ def watcher(
     .flag(_.zen):
       main(cls := "round")(
         st.aside(cls := "round__side")(
-          side(pov, data, tour, simul, userTv, bookmarked),
+          side(pov, userTv, bookmarked),
           chatOption.map(_ => views.chat.frag)
         ),
         ui.roundAppPreload(pov),

@@ -1,16 +1,12 @@
 package lila.game
 
-import chess.format.Fen
-import chess.variant.Standard
-import chess.{ ByColor, Centis, Clock, Color, Game as ChessGame, Ply, Position, Rated, Status }
+import chess.{ ByColor, Centis, Clock, Color, Ply, Rated, Status }
 
 import lila.core.game.{ Game, Player, Source, newGame }
 import lila.core.id.GamePlayerId
 import lila.game.GameExt.computeMoveTimes
 
 class ComputeMoveTimesTest extends munit.FunSuite:
-
-  private val startFen = Fen.initial.board
 
   /* Builds a game with an arbitrary clock history, so that computeMoveTimes can be
    * exercised without replaying an actual game.
@@ -24,10 +20,8 @@ class ComputeMoveTimesTest extends munit.FunSuite:
       status: Status,
       incrementSeconds: Int
   ): Game =
-    val fen = Fen.Full(s"$startFen ${turn.fold("w", "b")} KQkq - 0 1")
-    val chessGame = ChessGame(
-      position = Position(Standard, fen.some),
-      sans = Vector.empty,
+    val chessGame = goban.Game(
+      position = goban.Position(goban.Board.empty(goban.BoardSize.Nine), turn),
       clock = Clock(Clock.LimitSeconds(600), Clock.IncrementSeconds(incrementSeconds)).some,
       ply = Ply(plies),
       startedAtPly = Ply(0)

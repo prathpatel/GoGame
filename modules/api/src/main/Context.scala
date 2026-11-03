@@ -85,7 +85,7 @@ case class PageData(
     nbChallenges: Int,
     nbNotifications: UnreadCount,
     seesClassMenu: Boolean,
-    inquiry: Option[lila.mod.Inquiry],
+    inquiry: Option[Unit],
     nonce: Option[Nonce],
     error: Boolean = false
 )

@@ -119,8 +119,6 @@ object page:
               "zenable" -> zenable,
               "zen-auto" -> (zenable && pref.isZenAuto)
             ),
-          dataVapid := (ctx.isAuth && env.security.lilaCookie.isRememberMe(ctx.req))
-            .option(env.push.vapidPublicKey),
           dataUser := ctx.userId,
           dataUsername := ctx.username,
           dataSoundSet := pref.currentSoundSet.toString,
@@ -141,8 +139,6 @@ object page:
           style := boardStyle(p.flags(PageFlags.zoom))
         )(
           blindModeForm,
-          for in <- ctx.data.inquiry; me <- ctx.me yield views.mod.inquiryUi(in)(using ctx, me),
-          ctx.me.ifTrue(ctx.impersonatedBy.isDefined).map(views.mod.ui.impersonate(_)),
           netConfig.stageBanner.option(views.bits.stage),
           anonOnboarding.map: u =>
             frag(cssTag("bits.email-confirm"), views.auth.checkYourEmailBanner(u.username, u.email)),

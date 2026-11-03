@@ -101,7 +101,7 @@ final class RelationUi(helpers: Helpers):
               )
             ),
             (!blocked && !blocks && !user.isPatron).option:
-              val url = if me.isPatron then routes.Plan.list else routes.Plan.index()
+              val url = if me.isPatron then lila.ui.deadLink else lila.ui.deadLink
               MenuItem(
                 trans.patron.giftPatronWingsShort.txt(),
                 Icon.Wings,

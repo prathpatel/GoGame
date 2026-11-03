@@ -53,7 +53,7 @@ final class Auth(env: Env, accountC: => Account) extends LilaController(env):
   private def authenticateAppealUser(
       u: UserModel,
       redirect: String => Result,
-      url: Call = routes.Appeal.landing
+      url: Call = lila.ui.deadLink
   )(using
       ctx: Context
   ): Fu[Result] =
@@ -145,15 +145,7 @@ final class Auth(env: Env, accountC: => Account) extends LilaController(env):
                                 case Some(u) if u.enabled.no =>
                                   t3Counter(_.login.fail("closed"))
                                   negotiate(
-                                    env.mod.logApi.closedByTeacher(u).flatMap {
-                                      if _ then
-                                        authenticateAppealUser(u, redirectTo, routes.Appeal.closedByTeacher)
-                                      else
-                                        env.mod.logApi.closedByMod(u).flatMap {
-                                          if _ then authenticateAppealUser(u, redirectTo)
-                                          else redirectTo(routes.Account.reopen.url)
-                                        }
-                                    },
+                                    redirectTo(routes.Account.reopen.url),
                                     Unauthorized(jsonError("This account is closed."))
                                   )
                                 case Some(u) =>
@@ -176,30 +168,10 @@ final class Auth(env: Env, accountC: => Account) extends LilaController(env):
   private def t3Counter(counter: lila.web.T3AuthMonitor => String => Unit)(using Option[ValidReferrer]) =
     simpleSignup.map(_.client.clientId.value).foreach(counter(env.web.t3AuthMonitor))
 
-  private val clasLoginRateLimit =
-    env.security.ipTrust.rateLimit(300, 1.hour, "clas.login")
-
-  def clasLogin = OpenBody:
-    Firewall:
-      val failRedir = Redirect(routes.Clas.index).flashFailure("Invalid or expired login code")
-      bindForm(lila.clas.ClasForm.login)(
-        _ => failRedir,
-        code =>
-          clasLoginRateLimit(rateLimited):
-            for
-              found <- env.clas.login.login(code)
-              res <- found.fold(failRedir.toFuccess): (user, clsId) =>
-                val redir = Redirect(routes.Clas.show(clsId)).flashSuccess:
-                  lila.core.i18n.I18nKey.emails.welcome_subject.txt(user.username)
-                authenticateUser(user, IsPwned.No, false, redir.some)
-            yield res
-      )
-
   def logout = Open:
     val sid = env.security.api.reqSessionId(ctx.req)
     for
       _ <- sid.so(env.security.store.delete)
-      _ <- sid.so(env.push.browserSub.unsubscribeBySession)
       res <- negotiate(Redirect(routes.Auth.login), jsonOkResult)
     yield res.withCookies(env.security.lilaCookie.newSession)
 
@@ -448,14 +420,11 @@ final class Auth(env: Env, accountC: => Account) extends LilaController(env):
             HasherRateLimit:
               for
                 _ <- env.security.authenticator.setPassword(user.id, ClearPassword(data.newPasswd1))
-                _ <- env.mod.logApi.setPassword
                 confirmed <- env.user.repo.setEmailConfirmed(user.id)
                 _ <- confirmed.so:
                   welcome(user, _, sendWelcomeEmail = false)
                 _ <- env.user.repo.disableTwoFactor(user.id)
                 _ <- env.security.store.closeAllSessionsOf(user.id)
-                _ <- env.push.browserSub.unsubscribeByUser(user)
-                _ <- env.push.unregisterDevices(user)
                 res <- authenticateUser(user, remember = true, pwned = IsPwned.No)
               yield
                 lila.mon.user.auth.passwordResetConfirm("success").increment()

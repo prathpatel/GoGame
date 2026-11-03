@@ -80,10 +80,9 @@ final class Msg(env: Env) extends LilaController(env):
     for
       threads <- env.msg.api.myThreads
       contactIds = withConvo.toList ::: threads.map(_.other)
-      studentNames <- env.clas.api.clas.myPotentialStudentNames(contactIds)
       contacts <- env.msg.json.threadsJson(threads)
     yield Json.obj(
       "me" -> Json.toJsObject(me.light).add("bot" -> me.isBot),
       "contacts" -> contacts,
-      "names" -> studentNames
+      "names" -> Json.obj()
     )

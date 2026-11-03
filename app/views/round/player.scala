@@ -10,8 +10,6 @@ import lila.round.UrgentGames
 def player(
     pov: Pov,
     data: play.api.libs.json.JsObject,
-    tour: Option[lila.tournament.GameView],
-    simul: Option[lila.simul.Simul],
     cross: Option[lila.game.Crosstable.WithMatchup],
     playing: UrgentGames,
     chatOption: Option[lila.chat.Chat.GameOrEvent],
@@ -45,8 +43,7 @@ def player(
 
   val opponentNameOrZen = if ctx.pref.isZen || ctx.pref.isZenAuto then "ZEN" else playerText(pov.opponent)
 
-  ui.RoundPage(pov.game.variant, s"${trans.site.play.txt()} $opponentNameOrZen")
-    .js(roundNvuiTag)
+  ui.RoundPage(s"${trans.site.play.txt()} $opponentNameOrZen")
     .js:
       PageModule(
         "round",
@@ -63,16 +60,14 @@ def player(
     .flag(_.playing, pov.game.playable):
       main(cls := "round")(
         st.aside(cls := "round__side")(
-          side(pov, data, tour.map(_.tourAndTeamVs), simul, bookmarked = bookmarked),
+          side(pov, bookmarked = bookmarked),
           chatOption.map(_ => views.chat.frag)
         ),
         ui.roundAppPreload(pov),
         div(cls := "round__underboard")(
           views.game.ui.crosstable.option(cross, pov.game),
-          (playing.value.nonEmpty || simul.exists(_.isHost(ctx.me))).option(
-            div(cls := "round__now-playing")(
-              ui.others(playing, simul.filter(_.isHost(ctx.me)).map(views.simul.ui.roundOtherGames))
-            )
+          playing.value.nonEmpty.option(
+            div(cls := "round__now-playing")(ui.others(playing, none))
           )
         ),
         div(cls := "round__underchat")(underchat(pov.game))

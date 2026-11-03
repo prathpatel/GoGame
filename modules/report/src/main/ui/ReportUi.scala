@@ -36,7 +36,7 @@ final class ReportUi(helpers: Helpers)(menu: Context ?=> Frag):
           h1(cls := "box__top")(trans.site.reportAUser()),
           postForm(
             cls := "form3",
-            action := routes.Report.inboxCreate(user.username)
+            action := lila.ui.deadLink
           )(
             div(cls := "form-group")(aboutReports),
             form3.globalError(form),
@@ -76,7 +76,7 @@ final class ReportUi(helpers: Helpers)(menu: Context ?=> Frag):
           h1(cls := "box__top")(trans.site.reportAUser()),
           postForm(
             cls := "form3",
-            action := s"${routes.Report.create}${reqUser.so(u => "?username=" + u.username)}"
+            action := s"${lila.ui.deadLink}${reqUser.so(u => "?username=" + u.username)}"
           )(
             div(cls := "form-group")(
               aboutReports,
@@ -120,7 +120,7 @@ final class ReportUi(helpers: Helpers)(menu: Context ?=> Frag):
 
   private def aboutReports(using Context) = p(
     a(
-      href := routes.Cms.lonePage(lila.core.id.CmsPageKey("report-faq")),
+      href := lila.ui.deadLink,
       dataIcon := Icon.InfoCircle,
       cls := "text"
     ):
@@ -209,7 +209,7 @@ final class ReportUi(helpers: Helpers)(menu: Context ?=> Frag):
                 span(cls := "tabs")(
                   Granter(_.SeeReport).option:
                     a(
-                      href := routes.Report.listWithFilter("all"),
+                      href := lila.ui.deadLink,
                       cls := List("active" -> (filter == "all"))
                     )(
                       "All",
@@ -220,7 +220,7 @@ final class ReportUi(helpers: Helpers)(menu: Context ?=> Frag):
                     .filter(Room.isGranted)
                     .map { room =>
                       a(
-                        href := routes.Report.listWithFilter(room.key),
+                        href := lila.ui.deadLink,
                         cls := List("active" -> (filter == room.key), s"room-${room.key}" -> true)
                       )(
                         room.name,
@@ -230,7 +230,7 @@ final class ReportUi(helpers: Helpers)(menu: Context ?=> Frag):
                     .toList,
                   Granter(_.Appeals).option(
                     a(
-                      href := routes.Appeal.modQueue,
+                      href := lila.ui.deadLink,
                       cls := List("new" -> true, "active" -> (filter == "appeal"))
                     )(
                       countTag(pending.appeals),
@@ -238,14 +238,14 @@ final class ReportUi(helpers: Helpers)(menu: Context ?=> Frag):
                     )
                   ),
                   Granter(_.Streamers).option(
-                    a(href := s"${routes.Streamer.index()}?requests=1", cls := "new")(
+                    a(href := s"${lila.ui.deadLink}?requests=1", cls := "new")(
                       countTag(pending.streamers),
                       "Streamers"
                     )
                   ),
                   Granter(_.TitleRequest).option(
                     a(
-                      href := routes.TitleVerify.queue,
+                      href := lila.ui.deadLink,
                       cls := List("new" -> true, "active" -> (filter == "title"))
                     )(
                       countTag(pending.titles),
@@ -253,7 +253,7 @@ final class ReportUi(helpers: Helpers)(menu: Context ?=> Frag):
                     )
                   ),
                   Granter(_.ModerateForum).option(
-                    a(href := routes.Mod.imageQueue(1), cls := List("active" -> (filter == "image")))(
+                    a(href := lila.ui.deadLink, cls := List("active" -> (filter == "image")))(
                       countTag(pending.images),
                       "Images"
                     )
@@ -315,13 +315,13 @@ final class ReportUi(helpers: Helpers)(menu: Context ?=> Frag):
                   r.inquiry match
                     case None =>
                       if r.done.isDefined then
-                        postForm(action := routes.Report.inquiry(r.id.value), cls := "reopen")(
+                        postForm(action := lila.ui.deadLink, cls := "reopen")(
                           submitButton(dataIcon := Icon.PlayTriangle, cls := "text button button-metal")(
                             "Reopen"
                           )
                         )
                       else
-                        postForm(action := routes.Report.inquiry(r.id.value), cls := "inquiry")(
+                        postForm(action := lila.ui.deadLink, cls := "inquiry")(
                           submitButton(dataIcon := Icon.PlayTriangle, cls := "button button-metal")
                         )
                     case Some(inquiry) =>

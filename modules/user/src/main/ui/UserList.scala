@@ -50,7 +50,7 @@ final class UserList(helpers: Helpers, bits: UserBits):
                 userTopActive(nbAllTime, trans.site.activePlayers(), icon = Icon.Swords.some),
                 st.section(cls := "user-top")(
                   h2(cls := "text", dataIcon := Icon.Trophy)(
-                    a(href := routes.Tournament.leaderboard)(trans.site.tournament())
+                    a(href := lila.ui.deadLink)(trans.site.tournament())
                   ),
                   tournamentWinners
                 ),

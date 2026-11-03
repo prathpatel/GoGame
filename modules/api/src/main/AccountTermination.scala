@@ -15,48 +15,21 @@ import lila.user.UserDelete
 | email                     | kept for reopening               | deleted               |
 | profile data              | hidden                           | deleted               |
 | sessions and oauth tokens | closed                           | deleted               |
-| patron subscription       | canceled                         | canceled              |
-| blog posts                | unlisted                         | deleted               |
-| public studies            | unlisted                         | anonymized            |
-| private studies           | hidden                           | deleted               |
-| activity                  | hidden                           | deleted               |
-| coach/streamer profiles   | hidden                           | deleted               |
-| tournaments joined        | unlisted                         | anonymized            |
-| tournaments created       | hidden                           | anonymized            |
-| forum posts               | intact                           | deleted               |
-| teams/classes joined      | quit                             | quit                  |
-| team/classes created      | intact *                         | intact *              |
-| classes created           | intact *                         | intact *              |
-| puzzle history            | hidden                           | deleted               |
 | follows and blocks        | deleted                          | deleted               |
-
- * classes and teams have a life of their own. Close them manually if you want to, before deleting your account.
  */
 final class AccountTermination(
     userRepo: lila.user.UserRepo,
     playbanApi: lila.playban.PlaybanApi,
     relationApi: lila.relation.RelationApi,
     rankingApi: lila.user.RankingApi,
-    teamApi: lila.team.TeamApi,
     challengeApi: lila.challenge.ChallengeApi,
-    tournamentApi: lila.tournament.TournamentApi,
-    swissApi: lila.swiss.SwissApi,
-    planApi: lila.plan.PlanApi,
     seekApi: lila.lobby.SeekApi,
     securityStore: lila.security.SessionStore,
-    pushEnv: lila.push.Env,
-    streamerApi: lila.streamer.StreamerApi,
     reportApi: lila.report.ReportApi,
-    modApi: lila.mod.ModApi,
-    modLogApi: lila.mod.ModlogApi,
-    appealApi: lila.appeal.AppealApi,
-    ublogApi: lila.ublog.UblogApi,
-    activityWrite: lila.activity.ActivityWriteApi,
     email: lila.mailer.AutomaticEmail,
     tokenApi: lila.oauth.AccessTokenApi,
     roundApi: lila.core.round.RoundApi,
     gameRepo: lila.game.GameRepo,
-    analysisRepo: lila.analyse.AnalysisRepo,
     chatApi: lila.chat.ChatApi
 )(using Executor, Scheduler, org.apache.pekko.stream.Materializer):
 
@@ -65,45 +38,27 @@ final class AccountTermination(
       fufail[Unit](s"Cannot disable essential account ${u.username}")
     playbanned <- playbanApi.hasCurrentPlayban(u.id)
     selfClose = me.is(u)
-    teacherClose = !selfClose && !Granter(_.CloseAccount) && Granter(_.Teacher)
     modClose = !selfClose && Granter(_.CloseAccount)
     tos = u.marks.dirty || modClose || playbanned
     _ <- userRepo.disable(u, forever = forever)
     _ <- roundApi.resignAllGamesOf(u.id)
-    followedIds <- relationApi.accountTermination(u)
+    _ <- relationApi.accountTermination(u)
     _ <- rankingApi.remove(u.id)
-    teamIds <- teamApi.quitAllOnAccountClosure(u.id)
-    _ <- tos.so(teamApi.deleteNewlyCreatedBy(u.id))
     _ <- challengeApi.removeByUserId(u.id)
-    _ <- tournamentApi.withdrawAll(u)
-    _ <- swissApi.withdrawAll(u, teamIds)
-    _ <- planApi.cancelIfAny(u).recoverDefault
     _ <- seekApi.removeByUser(u)
     _ <- securityStore.closeAllSessionsOf(u.id)
     _ <- selfClose.so(tokenApi.revokeAllByUser(u.id))
-    _ <- pushEnv.browserSub.unsubscribeByUser(u)
-    _ <- pushEnv.unregisterDevices(u)
-    _ <- streamerApi.demote(u.id)
-    reports <- reportApi.processAndGetBySuspect(lila.report.Suspect(u))
-    _ <-
-      if selfClose then modLogApi.selfCloseAccount(u.id, forever, reports)
-      else if teacherClose then modLogApi.teacherCloseAccount(u.id)
-      else modLogApi.closeAccount(u.id)
-    _ <- appealApi.onAccountClose(u)
-    _ <- ublogApi.onAccountClose(u)
-    _ <- (u.marks.troll || u.marks.alt).so(activityWrite.unfollowAll(u, followedIds))
-    _ = selfClose.not.so(modApi.afterModClose(u))
+    _ <- reportApi.processAndGetBySuspect(lila.report.Suspect(u))
   yield Bus.pub(lila.core.security.CloseAccount(u.id))
 
   def scheduleDelete(u: User)(using Me): Funit = for
     _ <- disable(u, forever = false)
-    _ <- modLogApi.scheduleDelete(u.id)
     _ <- email.delete(u)
     _ <- userRepo.delete.schedule(u.id, UserDelete(nowInstant).some)
   yield ()
 
   private[api] def garbageCollect(userId: UserId) =
-    modApi.garbageCollect(userId) >> lichessDisable(userId)
+    lichessDisable(userId)
 
   private[api] def lichessDisable(userId: UserId) =
     userRepo.lichessAnd(userId).flatMapz { (lichess, user) =>
@@ -128,19 +83,11 @@ final class AccountTermination(
     tos = u.marks.dirty || playbanned
     _ = lila.log.system.info(s"Deleting user ${u.username} tos=$tos")
     _ <- if tos then userRepo.delete.nowWithTosViolation(u) else userRepo.delete.nowFully(u)
-    _ <- activityWrite.deleteAll(u)
-    singlePlayerGameIds <- gameRepo.deleteAllSinglePlayerOf(u.id)
-    _ <- analysisRepo.remove(singlePlayerGameIds)
+    _ <- gameRepo.deleteAllSinglePlayerOf(u.id)
     _ <- deleteAllGameChats(u)
-    _ <- streamerApi.repo.delete(u)
-    swissIds <- gameRepo.swissIdsOf(u.id)
-    _ <- swissIds.nonEmpty.so(swissApi.onUserDelete(u.id, swissIds))
-    _ <- teamApi.onUserDelete(u.id)
-    _ <- ublogApi.onAccountDelete(u)
     _ <- tokenApi.revokeAllByUser(u.id)
     _ <- u.marks.clean.so:
       securityStore.deleteAllSessionsOf(u.id)
-    _ <- modLogApi.deleteAccount(u.id, tos)
   yield
     // a lot of deletion is done by modules listening to the following event:
     Bus.pub(lila.core.user.UserDelete(u))

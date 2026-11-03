@@ -133,6 +133,3 @@ final class OAuth(env: Env, apiC: => Api) extends LilaController(env):
           }))
         }
       .map(apiC.toHttp)
-
-  def mobileOAuthCallback = Open:
-    Ok.page(lila.web.ui.mobileRedirect)

@@ -319,7 +319,7 @@ abstract private[controllers] class LilaController(val env: Env)
     Auth { ctx ?=> _ ?=>
       if env.mode.notProd || isGrantedOpt(_.Beta)
       then f
-      else ctx.myId.soUse(env.team.isBetaTester).flatMap(if _ then f else authorizationFailed)
+      else authorizationFailed
     }
 
   def FormFuResult[A, B: Writeable](

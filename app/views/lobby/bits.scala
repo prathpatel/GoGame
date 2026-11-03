@@ -9,31 +9,6 @@ object bits:
     div(cls := "lobby__app__content lpools")
   )
 
-  def underboards(
-      tours: List[lila.tournament.Tournament],
-      simuls: List[lila.simul.Simul]
-  )(using ctx: Context) =
-    div(cls := "lobby__tournaments-simuls")(
-      div(cls := "lobby__tournaments lobby__box")(
-        a(cls := "lobby__box__top", href := routes.Tournament.home)(
-          h2(cls := "title text", dataIcon := Icon.Trophy)(trans.site.openTournaments()),
-          span(cls := "more")(trans.site.more(), " »")
-        ),
-        div(cls := "lobby__box__content"):
-          views.tournament.ui.enterable(tours)
-      ),
-      simuls.nonEmpty.option(
-        div(cls := "lobby__simuls lobby__box")(
-          a(cls := "lobby__box__top", href := routes.Simul.home)(
-            h2(cls := "title text", dataIcon := Icon.Group)(trans.site.simultaneousExhibitions()),
-            span(cls := "more")(trans.site.more(), " »")
-          ),
-          div(cls := "lobby__box__content"):
-            views.simul.ui.allCreated(simuls, withName = false)
-        )
-      )
-    )
-
   def showUnreadLichessMessage(using Context) =
     nopeInfo(
       cls := "unread-lichess-message",
@@ -102,21 +77,4 @@ object bits:
       div(cls := "lobby__app"),
       div(cls := "lobby__nope"):
         st.section(cls := "lobby__app__content")(content)
-    )
-
-  def spotlight(e: lila.event.Event)(using Context) =
-    a(
-      href := (if e.isNow || !e.countdown then e.url else routes.Event.show(e.id).url),
-      cls := List(
-        s"tour-spotlight event-spotlight id_${e.id}" -> true,
-        "invert" -> e.isNowOrSoon
-      )
-    )(
-      views.event.iconOf(e),
-      span(cls := "content")(
-        span(cls := "name")(e.title),
-        span(cls := "headline")(e.headline),
-        span(cls := "more"):
-          if e.isNow then trans.site.eventInProgress() else momentFromNow(e.startsAt)
-      )
     )

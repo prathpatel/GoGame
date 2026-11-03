@@ -38,18 +38,7 @@ def underchat(game: Game)(using ctx: Context) =
 
 private[round] def side(
     pov: Pov,
-    data: play.api.libs.json.JsObject,
-    tour: Option[lila.tournament.TourAndTeamVs],
-    simul: Option[lila.simul.Simul],
     userTv: Option[User] = None,
     bookmarked: Boolean
 )(using Context) =
-  import lila.common.Json.given
-  views.game.side(
-    pov,
-    (data \ "game" \ "initialFen").asOpt[chess.format.Fen.Full],
-    tour,
-    simul = simul,
-    userTv = userTv,
-    bookmarked = bookmarked
-  )
+  views.game.side(pov, userTv = userTv, bookmarked = bookmarked)

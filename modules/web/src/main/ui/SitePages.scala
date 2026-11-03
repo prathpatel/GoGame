@@ -21,19 +21,19 @@ final class SitePages(helpers: Helpers):
     def activeCls(c: String) = cls := active.activeO(c)
     lila.ui.bits.pageMenuSubnav(
       a(activeCls("about"), href := "/about")(trans.site.aboutX("lichess.org")),
-      a(activeCls("news"), href := routes.Feed.index(1))(trans.site.lichessUpdates()),
+      a(activeCls("news"), href := lila.ui.deadLink)(trans.site.lichessUpdates()),
       a(activeCls("faq"), href := routes.Main.faq)(trans.faq.faqAbbreviation()),
       a(activeCls("contact"), href := routes.Main.contact)(trans.contact.contact()),
-      a(activeCls("tos"), href := routes.Cms.tos)(trans.site.termsOfService()),
+      a(activeCls("tos"), href := lila.ui.deadLink)(trans.site.termsOfService()),
       a(activeCls("privacy"), href := "/privacy")(trans.site.privacy()),
-      a(activeCls("title"), href := routes.TitleVerify.index)(trans.site.titleVerification()),
+      a(activeCls("title"), href := lila.ui.deadLink)(trans.site.titleVerification()),
       sep,
-      a(activeCls("source"), href := routes.Cms.source)(trans.site.sourceCode()),
-      a(activeCls("help"), href := routes.Cms.help)(trans.site.contribute()),
-      a(activeCls("changelog"), href := routes.Cms.menuPage(CmsPageKey("changelog")))(trans.site.changelog()),
+      a(activeCls("source"), href := lila.ui.deadLink)(trans.site.sourceCode()),
+      a(activeCls("help"), href := lila.ui.deadLink)(trans.site.contribute()),
+      a(activeCls("changelog"), href := lila.ui.deadLink)(trans.site.changelog()),
       a(activeCls("thanks"), href := "/thanks")(trans.site.thankYou()),
       sep,
-      a(activeCls("webmasters"), href := routes.Main.webmasters)(trans.site.webmasters()),
+
       a(activeCls("database"), href := "https://database.lichess.org")(trans.site.database(), external),
       a(activeCls("api"), href := "/api")("API", external),
       sep,
@@ -125,7 +125,7 @@ final class SitePages(helpers: Helpers):
                 ,
                 p(
                   "Create ",
-                  a(href := routes.Study.allDefault())("a study"),
+                  a(href := lila.ui.deadLink)("a study"),
                   ", then click the share button to get the HTML code for the current chapter."
                 ),
                 parameters(),
@@ -189,7 +189,7 @@ final class SitePages(helpers: Helpers):
                 div(cls := "center")(raw(iframe)),
                 p(
                   "Embeds the ",
-                  a(href := routes.UserAnalysis.index)("fully-featured Lichess analysis board"),
+                  a(href := lila.ui.deadLink)("fully-featured Lichess analysis board"),
                   " with stockfish evaluation, opening explorer and tablebase."
                 ),
                 copyMeInput(iframe),

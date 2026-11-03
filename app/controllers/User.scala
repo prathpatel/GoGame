@@ -15,7 +15,6 @@ import lila.core.security.IsProxy
 import lila.core.user.LightPerf
 import lila.core.userId.UserSearch
 import lila.game.GameFilter
-import lila.mod.UserWithModlog
 import lila.mon.extensions.*
 import lila.rating.PerfType
 import lila.rating.UserPerfsExt.best8Perfs
@@ -25,12 +24,10 @@ import lila.user.WithPerfsAndEmails
 final class User(
     override val env: Env,
     roundC: => Round,
-    gameC: => Game,
-    modC: => Mod
+    gameC: => Game
 ) extends LilaController(env):
 
   import env.relation.api as relationApi
-  import env.gameSearch.userGameSearch
   import env.user.lightUserApi
 
   private given Conversion[UserWithPerfs, UserModel] = _.user
@@ -45,13 +42,6 @@ final class User(
             ctx.me.filterNot(_ => pov.game.bothPlayersHaveMoved).flatMap(Pov(pov.game, _)) match
               case Some(mine) => Redirect(routes.Round.player(mine.fullId))
               case _ => roundC.watch(pov, userTv = user.some)
-
-  def tvExport(username: UserStr) = Anon: _ ?=>
-    Found(
-      env.round.playing
-        .lastPlayedPlayingId(username.id)
-        .orElse(env.game.gameRepo.quickLastPlayedId(username.id))
-    )(gameC.exportGame)
 
   private def gamesForLichobile(u: UserModel, filter: String, page: Int)(using BodyContext[?]) =
     userGames(u, filter, page).flatMap(env.game.userGameApi.jsPaginator).map { res =>
@@ -72,60 +62,31 @@ final class User(
   def search(term: String) = Open: _ ?=>
     UserStr.read(term) match
       case Some(username) => Redirect(routes.User.show(username)).toFuccess
-      case _ if isGrantedOpt(_.UserSearch) => Redirect(s"${routes.Mod.search}?q=$term").toFuccess
+      case _ if isGrantedOpt(_.UserSearch) => Redirect(s"${lila.ui.deadLink}?q=$term").toFuccess
       case _ => notFound
 
   private def isRestricted(using ctx: Context, proxy: IsProxy) =
     ctx.isAnon && (HTTPRequest.noReferer(ctx.req) || proxy.couldBeEnum)
 
   private def renderShow(u: UserModel, status: Results.Status = Results.Ok)(using
-      ctx: Context
+      ctx: BodyContext[?]
   )(using IsProxy): Fu[Result] =
-    limit.userProfileLimiter(rateLimited):
-      val showActivityAndGames = isRestricted.not && !UserId.isOfficial(u.id)
-      def fetchActivity = showActivityAndGames.so(env.activity.read.recentAndPreload(u))
-      if HTTPRequest.isSynchronousHttp(ctx.req)
-      then
-        val cost =
-          if isGrantedOpt(_.UserModView) then 0
-          else if env.socket.isOnline.exec(u.id) then 1
-          else 2
-        userShowHtmlRateLimit.knownProxy(rateLimited, cost = cost):
-          for
-            as <- fetchActivity
-            nbs <- showActivityAndGames
-              .so(ctx.me)
-              .soUse(env.userNbGames(u, withCrosstable = false, withPlaying = false))
-            info <- env.userInfo.fetch(u, nbs, isRestricted)
-            _ <- env.userInfo.preloadTeams(info)
-            social <- env.socialInfo(u)
-            page <- renderPage:
-              lila.mon.chronoSync(lila.mon.user.segment("renderSync")):
-                views.user.show.page.activity(as, info, social)
-          yield status(page).withCanonical(routes.User.show(u.username))
-      else
-        for
-          withPerfs <- env.user.perfsRepo.withPerfs(u)
-          as <- fetchActivity
-          snip = lila.ui.Snippet(views.activity(withPerfs, as))
-        yield status(snip)
-
-  def download(username: UserStr) = AuthBody { _ ?=> _ ?=>
-    val user =
-      meOrFetch(username).map(_.filter(u => u.enabled.yes || ctx.is(u) || isGrantedOpt(_.GamesModView)))
-    FoundPage(user):
-      views.user.download(_)
-  }
+    // there is no activity feed in this fork: the profile shows the player's games
+    renderGames(u, GameFilter.all.name, 1, status)
 
   def gamesAll(username: UserStr, page: Int) = games(username, GameFilter.all.name, page)
 
   def games(username: UserStr, filter: String, page: Int) = OpenBody: ctx ?=>
     Reasonable(page):
-      val isSearch = filter == GameFilter.search.name
-      RequireAuthIf(UserAgentParser.trust.isSuspicious || page > 1 || isSearch):
+      RequireAuthIf(UserAgentParser.trust.isSuspicious || page > 1):
         WithProxy: proxy ?=>
+          EnabledUser(username): u =>
+            renderGames(u, filter, page)
+
+  private def renderGames(u: UserModel, filter: String, page: Int, status: Results.Status = Results.Ok)(
+      using ctx: BodyContext[?]
+  )(using IsProxy): Fu[Result] =
           limit.userProfileLimiter(rateLimited):
-            EnabledUser(username): u =>
               val full = !isRestricted
               negotiate(
                 html = for
@@ -133,21 +94,14 @@ final class User(
                   filters = lila.app.mashup.GameFilterMenu(u, nbs, filter, ctx.isAuth)
                   pag <- full.so(env.gamePaginator(u, nbs.some, filter = filters.current, page = page))
                   _ <- lightUserApi.preloadMany(pag.currentPageResults.flatMap(_.userIds))
-                  _ <- env.tournament.cached.nameCache.preloadMany:
-                    pag.currentPageResults.flatMap(_.tournamentId).map(tid => tid -> ctx.lang)
-                  _ <- env.swiss.cache.name.preloadMany:
-                    pag.currentPageResults.flatMap(_.swissId)
                   res <-
                     if HTTPRequest.isSynchronousHttp(ctx.req) then
                       for
-                        searchForm = (filters.current == GameFilter.search).option:
-                          lila.app.mashup.GameFilterMenu.searchForm(userGameSearch, filters.current)
-                        info <- env.userInfo
-                          .fetch(u, nbs, restricted = isRestricted, withBlog = searchForm.isEmpty)
-                        _ <- env.team.cached.lightCache.preloadMany(info.teamIds)
+                        info <- env.userInfo.fetch(u, nbs, restricted = isRestricted)
                         social <- env.socialInfo(u)
-                        res <- Ok.page:
-                          views.user.show.page.games(info, pag, filters, searchForm, social)
+                        page <- renderPage:
+                          views.user.show.page.games(info, pag, filters, social)
+                        res = status(page)
                       yield res
                     else Ok.snip(views.user.show.gamesContent(u, nbs, pag, filters, filter)).toFuccess
                 yield res.withCanonical(routes.User.games(u.username, filters.current.name)),
@@ -170,17 +124,12 @@ final class User(
       )
       meOrFetch(username).flatMap:
         case None =>
-          env.api.anySearch
-            .redirect(username.value, proxy)
-            .flatMap:
-              case Some(url) => Redirect(url).toFuccess
-              case None if isGrantedOpt(_.AccountInfo) => ctx.useMe(modC.searchTerm(username.value))
-              case None if username.id.is(UserId("me")) =>
-                negotiate(
-                  Redirect(routes.Auth.login.url, Map("referrer" -> List(ctx.req.uri))).toFuccess,
-                  authenticationFailed
-                )
-              case None => notFound(true)
+          if username.id.is(UserId("me")) then
+            negotiate(
+              Redirect(routes.Auth.login.url, Map("referrer" -> List(ctx.req.uri))).toFuccess,
+              authenticationFailed
+            )
+          else notFound(true)
         case Some(u) if u.enabled.yes || isGrantedOpt(_.AccountInfo) => f(u)
         case u => notFound(u.isEmpty)
 
@@ -195,14 +144,14 @@ final class User(
               ctx.userId.so(relationApi.fetchBlocks(user.id, _)),
               ctx.userId.traverse(env.game.crosstableApi(user.id, _)),
               ctx.isAuth.so(env.pref.api.followable(user.id)),
-              ctx.useMe(env.clas.api.clas.realName(user.id))
+              fuccess(none[String])
             ).flatMapN: (blocked, crosstable, followable, realName) =>
               negotiate(
                 html = for
                   pov <- ctx.isnt(user).so(env.round.currentlyPlaying.exec(user.user.id))
                   ping = env.socket.isOnline.exec(user.id).so(env.socket.getLagRating(user.id))
                   snip <- Ok.snip:
-                    views.user.mini(user, pov, blocked, followable, relation, ping, crosstable, realName)
+                    views.user.mini(user, pov, blocked, followable, relation, ping, crosstable, none)
                 yield snip.privateCache(5.seconds),
                 json = // lichobile only
                   import lila.game.JsonView.given
@@ -248,8 +197,6 @@ final class User(
       for
         pagFromDb <- env.gamePaginator(user = u, nbs = none, filter = GameFilter(filterName), page = page)
         pag <- pagFromDb.mapFutureResults(env.round.proxyRepo.upgradeIfPresent)
-        _ <- env.tournament.cached.nameCache.preloadMany:
-          pag.currentPageResults.flatMap(_.tournamentId).map(_ -> ctx.lang)
         _ <- lightUserApi.preloadMany(pag.currentPageResults.flatMap(_.userIds))
       yield pag
 
@@ -258,11 +205,9 @@ final class User(
       negotiate(
         html = for
           nbAllTime <- env.user.cached.top10NbGame.get {}
-          tourneyWinners <- env.tournament.winners.all.map(_.top)
           topOnline <- env.user.cached.getTop50Online
-          _ <- lightUserApi.preloadMany(tourneyWinners.map(_.userId))
           page <- renderPage:
-            views.user.list(tourneyWinners, topOnline, leaderboards, nbAllTime)
+            views.user.list(topOnline, leaderboards, nbAllTime)
         yield Ok(page),
         json = // lichobile only
           given OWrites[LightPerf] = OWrites(env.user.jsonView.lightPerfIsOnline)
@@ -298,182 +243,11 @@ final class User(
     given OWrites[LightPerf] = OWrites(env.user.jsonView.lightPerfIsOnline)
     Ok(Json.obj("users" -> users))
 
-  def mod(username: UserStr) = Secure(_.UserModView) { ctx ?=> _ ?=>
-    modZoneOrRedirect(username)
-  }
-
-  protected[controllers] def modZoneOrRedirect(username: UserStr)(using
-      ctx: Context,
-      me: Me
-  ): Fu[Result] =
-    if HTTPRequest.isEventSource(ctx.req) then renderModZone(username)
-    else modC.redirect(username)
-
-  private def modZoneSegment(fu: Fu[Frag], name: String, user: UserModel): Source[Frag, ?] =
-    Source.futureSource:
-      fu.monSuccess(lila.mon.mod.zoneSegment(name))
-        .logFailure(lila.mod.logger, e => s"zoneSegment $name ${user.id} $e")
-        .map(Source.single)
-
-  protected[controllers] def loginsTableData(
-      user: UserModel,
-      userLogins: UserLogins,
-      max: Int
-  )(using Context): Fu[UserLogins.TableData[UserWithModlog]] =
-    val familyUserIds = user.id :: userLogins.otherUserIds
-    for
-      ((notes, bans), othersWithEmail) <-
-        isGrantedOpt(_.ModNote)
-          .so(
-            env.user.noteApi
-              .byUsersForMod(familyUserIds)
-              .logTimeIfGt(s"${user.username} noteApi.forMod", 2.seconds)
-          )
-          .zip(env.playban.api.bansOf(familyUserIds).logTimeIfGt(s"${user.username} playban.bans", 2.seconds))
-          .zip(lila.security.UserLogins.withMeSortedWithEmails(env.user.repo, user, userLogins))
-      otherUsers <- env.user.perfsRepo.withPerfs(othersWithEmail.others.map(_.user))
-      otherUsers <- env.mod.logApi.withModlogs(otherUsers)
-      others = othersWithEmail.withUsers(otherUsers)
-    yield UserLogins.TableData(userLogins, others, notes, bans, max)
-
-  protected[controllers] def renderModZone(username: UserStr)(using ctx: Context, me: Me): Fu[Result] =
-    env.report.api.inquiries
-      .ofModId(me)
-      .zip(env.user.api.withPerfsAndEmails(username).orFail(s"No such user $username"))
-      .flatMap { case (inquiry, WithPerfsAndEmails(user, emails)) =>
-        import views.mod.user as ui
-        import lila.ui.ScalatagsExtensions.{ emptyFrag, given }
-        given lila.mod.IpRender.RenderIp = env.mod.ipRender.apply
-
-        val nbOthers = getInt("nbOthers") | 100
-
-        val timeline = isGranted(_.AccountInfo).so[Fu[Frag]]:
-          env.api.modTimeline
-            .load(user, withPlayBans = true)
-            .map: tl =>
-              if inquiry.exists(_.isPlay)
-              then views.mod.timeline.renderPlay(tl)
-              else views.mod.timeline.renderGeneral(tl)
-            .map(lila.mod.ui.mzSection("timeline")(_))
-
-        val plan =
-          isGranted(_.Admin).so(
-            env.plan.api
-              .recentChargesOf(user)
-              .map(views.user.mod.plan(user))
-              .dmap(_ | emptyFrag)
-          ): Fu[Frag]
-
-        val student = isGranted(_.AccountInfo).so:
-          env.clas.api.student.findManaged(user).map2(views.user.mod.student).dmap(~_)
-
-        val reportLog = isGranted(_.SeeReport).so:
-          for
-            reports <- env.report.api.by(user, Max(30))
-            _ <- lightUserApi.preloadMany(reports.flatMap(_.userIds))
-          yield ui.reportLog(user, reports)
-
-        val prefs = isGranted(_.CheatHunter).so:
-          env.pref.api
-            .get(user)
-            .map: prefs =>
-              ui.prefs(user, prefs.hasKeyboardMove, prefs.hasVoice)
-
-        val appeal = isGranted(_.Appeals).so:
-          env.appeal.api.latestBy(user).mapz(views.appeal.ui.modSection(lila.mod.ui.mzSection("appeal")))
-
-        val rageSit = isGranted(_.CheatHunter).so:
-          env.playban.api
-            .rageSitOf(user.id)
-            .zip(env.playban.api.bans(user.id))
-            .map(ui.showRageSitAndPlaybans)
-
-        val actions =
-          for flags <- env.user.repo.closedFlags(user)
-          yield ui.actions(user, emails, flags, env.mod.presets.getPmPresets)
-
-        val userLoginsFu = env.security.userLogins(user, nbOthers)
-        val othersAndLogins = for
-          userLogins <- userLoginsFu
-          appeals <- env.appeal.api.byUserIds(user.id :: userLogins.otherUserIds)
-          data <- loginsTableData(user, userLogins, nbOthers)
-          render = () => views.user.mod.otherUsers(user, data, appeals)
-        yield (render, data)
-
-        val otherUsers = isGranted(_.ViewPrintNoIP).so[Fu[Frag]]:
-          othersAndLogins.map(_._1())
-
-        val identification = (isGranted(_.AccountInfo) || isGranted(_.ViewPrintNoIP)).so:
-          for
-            logins <- userLoginsFu
-            others <- othersAndLogins
-          yield views.user.mod.identification(logins, others._2.othersPartiallyLoaded)
-
-        val kaladin = isGranted(_.MarkEngine).so:
-          env.irwin.kaladinApi.get(user).map(_.flatMap(_.response).so(views.irwin.kaladin.report))
-
-        val irwin = isGranted(_.MarkEngine).so:
-          env.irwin.irwinApi.reports.withPovs(user).mapz(views.irwin.report)
-
-        val assess = isGranted(_.MarkEngine)
-          .so(env.mod.assessApi.getPlayerAggregateAssessmentWithGames(user.id))
-          .flatMapz: as =>
-            lightUserApi
-              .preloadMany(as.games.flatMap(_.userIds))
-              .inject(ui.assessments(user, as))
-
-        val oauthTokens = isGranted(_.AccountInfo).so:
-          env.oAuth.tokenApi.modRelevantTokens(user.id).map(views.user.mod.oauthTokens)
-
-        val teacher = isGranted(_.AccountInfo).so:
-          env.clas.api.clas.countOf(user).map(ui.teacher(user))
-
-        given EventSource.EventDataExtractor[Frag] = EventSource.EventDataExtractor[Frag](_.render)
-        Ok.chunked:
-          Source
-            .single(ui.menu)
-            .merge(modZoneSegment(actions, "actions", user))
-            .merge(modZoneSegment(reportLog, "reportLog", user))
-            .merge(modZoneSegment(timeline, "timeline", user))
-            .merge(modZoneSegment(plan, "plan", user))
-            .merge(modZoneSegment(student, "student", user))
-            .merge(modZoneSegment(teacher, "teacher", user))
-            .merge(modZoneSegment(prefs, "prefs", user))
-            .merge(modZoneSegment(appeal, "appeal", user))
-            .merge(modZoneSegment(rageSit, "rageSit", user))
-            .merge(modZoneSegment(otherUsers, "others", user))
-            .merge(modZoneSegment(identification, "identification", user))
-            .merge(modZoneSegment(kaladin, "kaladin", user))
-            .merge(modZoneSegment(irwin, "irwin", user))
-            .merge(modZoneSegment(assess, "assess", user))
-            .merge(modZoneSegment(oauthTokens, "oauthTokens", user))
-            .via(EventSource.flow)
-            .log("User.renderModZone")
-        .as(ContentTypes.EVENT_STREAM)
-          .noProxyBuffer
-      }
-
-  protected[controllers] def renderModZoneActions(username: UserStr)(using Context, Me) =
-    env.user.api
-      .withPerfsAndEmails(username)
-      .orFail(s"No such user $username")
-      .flatMap:
-        case WithPerfsAndEmails(user, emails) =>
-          for flags <- env.user.repo.closedFlags(user)
-          yield Ok.snip:
-            views.mod.user.actions(user, emails, flags, env.mod.presets.getPmPresets)
-
   def writeNote(username: UserStr) = AuthBody { ctx ?=> me ?=>
     bindForm(lila.user.UserForm.note)(
       err => BadRequest(err.errors.toString).toFuccess,
       data =>
         doWriteNote(username, data): user =>
-          if getBool("inquiry") && isGranted(_.ModNote) then
-            Ok.snipAsync:
-              env.user.noteApi.toUserForMod(user.id).map {
-                views.mod.inquiryUi.noteZone(user, _)
-              }
-          else
             Ok.snipAsync:
               env.user.noteApi.getForMyPermissions(user).map {
                 views.user.noteUi.zone(user, _)
@@ -513,12 +287,6 @@ final class User(
         env.user.noteApi.delete(note._id).inject(Redirect(routes.User.show(note.to).url + "?note"))
   }
 
-  def setDoxNote(id: String, dox: Boolean) = Secure(_.Admin) { ctx ?=> _ ?=>
-    Found(env.user.noteApi.byId(id)): note =>
-      note.mod.so:
-        env.user.noteApi.setDox(note._id, dox).inject(Redirect(routes.User.show(note.to).url + "?note"))
-  }
-
   def opponents = Auth { ctx ?=> me ?=>
     val user = meOrFetch(getUserStr("u")).map(_.filter(u => ctx.is(u) || isGrantedOpt(_.BoostHunter)))
     Found(user): user =>
@@ -540,26 +308,6 @@ final class User(
       yield Ok(page)
   }
 
-  def perfStat(username: UserStr, perfKey: PerfKey) = Open: _ ?=>
-    WithProxy:
-      val canCompute = req.client.isHuman && ctx.isAuth
-      limit.userProfileLimiter(rateLimited):
-        Found(env.perfStat.api.data(username, perfKey, computeIfNeeded = canCompute)): data =>
-          negotiate(
-            Ok.async:
-              env.history
-                .ratingChartApi(data.user.user, computeIfNeeded = canCompute)
-                .map(views.user.perfStatPage(data, _))
-            ,
-            JsonOk: // lichobile only
-              getBool("graph")
-                .optionFu:
-                  env.history.ratingChartApi.singlePerf(data.user.user, data.stat.perfType.key)
-                .map: graph =>
-                  env.perfStat.jsonView(data).add("graph", graph)
-            .map(_.privateCache(1.minute))
-          )
-
   def autocomplete = OpenOrScoped(): ctx ?=>
     NoTor:
       if getBool("exists") then
@@ -572,15 +320,7 @@ final class User(
           .flatMap(UserSearch.read)
           .fold(BadRequest("No search term provided").toFuccess): term =>
             for
-              userIds <- (get("tour"), get("swiss"), get("team")) match
-                case (Some(tourId), _, _) =>
-                  env.tournament.playerRepo.searchPlayers(TourId(tourId), term, 10)
-                case (_, Some(swissId), _) =>
-                  env.swiss.api.searchPlayers(SwissId(swissId), term, 10)
-                case (_, _, Some(teamId)) =>
-                  val showHidden = ctx.fullAuthOrScope(_.Team.Read)
-                  env.team.api.searchMembersAs(TeamId(teamId), term, 10, showHidden)
-                case _ =>
+              userIds <-
                   ctx.me.ifTrue(getBool("friend")) match
                     case Some(follower) =>
                       env.relation.api.searchFollowedBy(follower, term, 10).flatMap { userIds =>
@@ -591,8 +331,6 @@ final class User(
                           }
                         else fuccess(userIds)
                       }
-                    case None if getBool("teacher") =>
-                      env.user.repo.userIdsLikeWithRole(term, lila.core.perm.Permission.Teacher.dbKey)
                     case None =>
                       for
                         found <- env.user.cached.userIdsLike(term)
@@ -612,21 +350,6 @@ final class User(
                     })
                 else fuccess(Json.toJson(userIds))
             yield Ok(result)
-
-  def ratingDistribution(perfKey: PerfKey, username: Option[UserStr] = None) = Open:
-    Found(perfKey.some.filter(lila.rating.PerfType.isLeaderboardable)): perfKey =>
-      env.perfStat.api
-        .weeklyRatingDistribution(perfKey)
-        .flatMap: data =>
-          WithMyPerfs:
-            username match
-              case Some(name) =>
-                EnabledUser(name): u =>
-                  env.user.perfsRepo
-                    .withPerfs(u)
-                    .flatMap: u =>
-                      Ok.page(views.user.perfStat.ratingDistribution(perfKey, data, u.some))
-              case _ => Ok.page(views.user.perfStat.ratingDistribution(perfKey, data, none))
 
   def redirect(path: String) = Open:
     staticRedirect(path) |

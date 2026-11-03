@@ -11,7 +11,6 @@ trait GameHelper:
 
   protected val namer: Namer
 
-  def gameOpening: (Game, Boolean) => Option[_root_.chess.opening.Opening]
 
   val gameLink = a(noFollow)
 
@@ -126,14 +125,12 @@ trait GameHelper:
       tv: Boolean = false
   )(using ctx: Context): String = {
     val owner = ownerLink.so(ctx.me.flatMap(game.player))
-    if tv then routes.Tv.index
-    else
-      owner.fold(routes.Round.watcher(game.id, color)): o =>
-        routes.Round.player(game.fullIdOf(o.color))
+    owner.fold(routes.Round.watcher(game.id, color)): o =>
+      routes.Round.player(game.fullIdOf(o.color))
   }.toString
 
   def aiName(level: Int)(using Translate): String =
-    trans.site.aiNameLevelAiLevel.txt("Stockfish", level)
+    trans.site.aiNameLevelAiLevel.txt("Computer", level)
 
   def aiNameFrag(level: Int)(using Translate) =
     raw(aiName(level).replace(" ", "&nbsp;"))
@@ -152,18 +149,7 @@ trait GameHelper:
       st.title := title
     )(name)
 
-    if variant.exotic then
-      link(
-        href = variant match
-          case chess.variant.FromPosition =>
-            s"""${routes.Editor.index}?fen=${initialFen.so(_.value.replace(' ', '_'))}"""
-          case v => routes.Cms.variant(v.key).url
-        ,
-        title = variant.variantTitleTrans.txt(),
-        name = (if shortName && variant == chess.variant.KingOfTheHill then variant.shortName
-                else variant.variantTrans.txt()).toUpperCase
-      )
-    else if pk == PerfKey.correspondence then
+    if pk == PerfKey.correspondence then
       link(
         href = s"${routes.Main.faq}#correspondence",
         title = PerfKey.correspondence.perfDesc.txt(),

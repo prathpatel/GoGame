@@ -50,7 +50,6 @@ object GameFilterMenu:
       case GameFilter.playing => nbs.map(_.playing)
 
   final class PaginatorBuilder(
-      userGameSearch: lila.gameSearch.UserGameSearch,
       pagBuilder: lila.game.PaginatorBuilder,
       gameRepo: lila.game.GameRepo,
       gameProxyRepo: lila.round.GameProxyRepo,
@@ -91,11 +90,4 @@ object GameFilterMenu:
               _.mapFutureResults(gameProxyRepo.upgradeIfPresent)
             .addEffect: p =>
               p.currentPageResults.filter(_.finishedOrAborted).foreach(gameRepo.unsetPlayingUids)
-        case GameFilter.search => userGameSearch(user, page)
-
-  def searchForm(
-      userGameSearch: lila.gameSearch.UserGameSearch,
-      filter: GameFilter
-  )(using Request[?], FormBinding, Lang): play.api.data.Form[?] =
-    if filter == GameFilter.search then userGameSearch.requestForm
-    else userGameSearch.defaultForm
+        case GameFilter.search => std(Query.started(user.id))

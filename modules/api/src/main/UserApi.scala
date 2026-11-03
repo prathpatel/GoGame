@@ -24,16 +24,11 @@ final class UserApi(
     userRepo: lila.user.UserRepo,
     userCache: lila.user.Cached,
     prefApi: lila.pref.PrefApi,
-    streamerApi: lila.streamer.StreamerApi,
-    liveStreamApi: lila.streamer.LiveApi,
     gameProxyRepo: lila.round.GameProxyRepo,
     trophyApi: lila.user.TrophyApi,
-    shieldApi: lila.tournament.TournamentShieldApi,
-    revolutionApi: lila.tournament.RevolutionApi,
     challengeGranter: lila.challenge.ChallengeGranter,
     playbanApi: lila.playban.PlaybanApi,
     rankingsOf: UserId => lila.core.rating.UserRankMap,
-    fideIdOf: PublicFideIdOf,
     net: NetConfig
 )(using Executor, lila.core.i18n.Translator):
 
@@ -44,8 +39,7 @@ final class UserApi(
     val (light, userJson) = u match
       case u: UserWithPerfs => (u.user.light, jsonView.full(u.user, u.perfs.some, withProfile = false))
       case u: LightUser => (u, Json.toJsObject(u))
-    addStreaming(userJson, light.id) ++
-      Json.obj("url" -> makeUrl(s"@/${light.name}")) // for app BC
+    userJson ++ Json.obj("url" -> makeUrl(s"@/${light.name}")) // for app BC
   }.add("joinedTeamAt", joinedAt)
 
   def extended(username: UserStr, opts: Opts)(using Option[Me], Lang): Fu[Option[JsObject]] =
@@ -72,11 +66,9 @@ final class UserApi(
             if as.isDefined then playingUsers.nbPlayingAll(u.id) else playingUsers.nbPlayingRealtime(u.id),
             gameCache.nbImportedBy(u.id),
             (withTrophies && !u.lame).optionFu(getTrophiesAndAwards(u.user)),
-            streamerApi.listed(u.user),
             withCanChallenge.so(challengeGranter.mayChallenge(u.user).dmap(some)),
             forWiki.optionFu(userRepo.email(u.id)),
-            withPlayban.so(playbanApi.currentBan(u)),
-            withFideId.so(fideIdOf(u.user.light))
+            withPlayban.so(playbanApi.currentBan(u))
           ).mapN:
             (
                 gameOption,
@@ -87,11 +79,9 @@ final class UserApi(
                 nbPlaying,
                 nbImported,
                 trophiesAndAwards,
-                streamer,
                 canChallenge,
                 email,
-                playban,
-                fideId
+                playban
             ) =>
               val rankMap = withRank.option(rankingsOf(u.id))
               jsonView.full(u.user, u.perfs.some, withProfile = withProfile, rankMap) ++ {
@@ -114,27 +104,10 @@ final class UserApi(
                   .add("kid", u.kid)
                   .add("email", email)
                   .add("groups", forWiki.option(wikiGroups(u.user)))
-                  .add("streaming", liveStreamApi.isStreaming(u.id))
                   .add("trophies", trophiesAndAwards.map(trophiesJson))
                   .add("canChallenge", canChallenge)
                   .add("playban", playban)
-                  .add("fideId", fideId)
-                  .add(
-                    "streamer",
-                    streamer.map: s =>
-                      Json
-                        .obj()
-                        .add(
-                          "twitch",
-                          s.twitch.map: t =>
-                            Json.obj("channel" -> t.fullUrl)
-                        )
-                        .add(
-                          "youTube",
-                          s.youtube.map: y =>
-                            Json.obj("channel" -> y.fullUrl)
-                        )
-                  ) ++
+                  ++
                   (opts.withRelation && as.isDefined).so:
                     Json.obj(
                       "followable" -> followable,
@@ -155,10 +128,11 @@ final class UserApi(
   )
 
   def getTrophiesAndAwards(u: User) =
-    (trophyApi.findByUser(u), shieldApi.active(u), revolutionApi.active(u)).mapN:
-      (trophies, shields, revols) =>
+    trophyApi
+      .findByUser(u)
+      .map: trophies =>
         val roleTrophies = trophyApi.roleBasedTrophies(u)
-        UserApi.TrophiesAndAwards(userCache.rankingsOf(u.id), trophies ::: roleTrophies, shields, revols)
+        UserApi.TrophiesAndAwards(userCache.rankingsOf(u.id), trophies ::: roleTrophies)
 
   private def trophiesJson(all: UserApi.TrophiesAndAwards)(using Lang): JsArray =
     JsArray:
@@ -189,9 +163,6 @@ final class UserApi(
     "name" -> s"${perf.trans} $name"
   )
 
-  private def addStreaming(js: JsObject, id: UserId) =
-    js.add("streaming", liveStreamApi.isStreaming(id))
-
   private def makeUrl(path: String): String = s"${net.baseUrl}/$path"
 
   private def wikiGroups(u: User): List[String] =
@@ -202,9 +173,7 @@ final class UserApi(
 object UserApi:
   case class TrophiesAndAwards(
       ranks: lila.core.rating.UserRankMap,
-      trophies: List[Trophy],
-      shields: List[lila.tournament.TournamentShield.Award],
-      revolutions: List[lila.tournament.Revolution.Award]
+      trophies: List[Trophy]
   ):
     def countTrophiesAndPerfCups = trophies.size + ranks.count(_._2 <= 100)
 

@@ -63,8 +63,7 @@ final class Account(
   }
 
   private def profileForm(me: Me) =
-    for realName <- env.title.api.publicTitle.realName(me.light)
-    yield (env.user.forms.profileOf(me, realName), realName)
+    fuccess((env.user.forms.profileOf(me, none), none[String]))
 
   def usernameApply = AuthBody { _ ?=> me ?=>
     FormFuResult(env.user.forms.username(me))(err => renderPage(pages.username(me, err))): username =>
@@ -151,7 +150,6 @@ final class Account(
           val newPass = ClearPassword(data.newPasswd1)
           for
             _ <- env.security.authenticator.setPassword(me, newPass)
-            _ <- env.mod.logApi.setPassword
             pwned <- env.security.pwned.isPwned(newPass)
             res <- refreshSessionId(Redirect(routes.Account.passwd).flashSuccess, pwned)
           yield res
@@ -159,8 +157,6 @@ final class Account(
 
   private def refreshSessionId(result: Result, pwned: IsPwned)(using ctx: Context, me: Me): Fu[Result] = for
     _ <- env.security.store.closeAllSessionsOf(me)
-    _ <- env.push.browserSub.unsubscribeByUser(me)
-    _ <- env.push.unregisterDevices(me)
     sessionId <- env.security.api.saveAuthentication(me, ctx.mobileApiVersion, pwned)
   yield result.withCookies(env.security.lilaCookie.session(env.security.api.sessionIdKey, sessionId.value))
 
@@ -173,7 +169,7 @@ final class Account(
     else
       for
         f <- emailForm
-        managed <- env.clas.api.student.isManaged(me)
+        managed <- fuFalse
         res <- Ok.page(pages.email(f, managed))
       yield res.hasPersonalData
   }
@@ -191,7 +187,7 @@ final class Account(
       for
         _ <- env.security.forms.preloadEmailDns()
         form <- emailForm
-        managed <- env.clas.api.student.isManaged(me)
+        managed <- fuFalse
         res <- FormFuResult(form)(err => renderPage(pages.email(err, managed))): data =>
           val newUserEmail = lila.security.EmailConfirm.UserEmail(me.username, data.email)
           auth.EmailConfirmRateLimit(newUserEmail, ctx.req, rateLimited()):
@@ -206,8 +202,6 @@ final class Account(
     Found(env.security.emailChange.confirm(token)): (me, prevEmail, newEmail) =>
       given Me = me
       for
-        _ <- prevEmail.exists(_.isNoReply).so(env.clas.api.student.release(me))
-        _ <- env.mod.logApi.setEmail(me.userId, prevEmail, newEmail)
         res <- auth.authenticateUser(
           me,
           pwned = IsPwned.No,
@@ -262,7 +256,7 @@ final class Account(
 
   def close = Auth { _ ?=> me ?=>
     for
-      managed <- env.clas.api.student.isManaged(me)
+      managed <- fuFalse
       form <- env.security.forms.closeAccount
       res <- Ok.page(pages.close(form, managed))
     yield res
@@ -283,7 +277,7 @@ final class Account(
 
   def delete = Auth { _ ?=> me ?=>
     for
-      managed <- env.clas.api.student.isManaged(me)
+      managed <- fuFalse
       form <- env.security.forms.deleteAccount
       res <- Ok.page(pages.delete(form, managed))
     yield res
@@ -304,15 +298,15 @@ final class Account(
 
   def deleteDone = Open { ctx ?=>
     if ctx.isAuth then Redirect(routes.Lobby.home)
-    else FoundPage(env.cms.renderKey("delete-done"))(views.cms.lone)
+    else Redirect(routes.Lobby.home)
   }
 
   def kid = Auth { _ ?=> me ?=>
     for
-      managed <- env.clas.api.student.isManaged(me)
+      managed <- fuFalse
       form <- env.security.forms.toggleKid
-      content <- env.cms.renderKey("kid-mode")
-      page <- Ok.page(pages.kid(me, form, managed, content.map(_.html)))
+      content <- fuccess(none[lila.ui.Snippet])
+      page <- Ok.page(pages.kid(me, form, managed, none))
     yield page
   }
   def apiKid = Scoped(_.Preference.Read) { _ ?=> me ?=>
@@ -326,8 +320,8 @@ final class Account(
           err =>
             negotiate(
               for
-                content <- env.cms.renderKey("kid-mode")
-                page <- BadRequest.page(pages.kid(me, err, managed = false, content.map(_.html)))
+                content <- fuccess(none[lila.ui.Snippet])
+                page <- BadRequest.page(pages.kid(me, err, managed = false, none))
               yield page,
               BadRequest(errorsAsJson(err))
             ),
@@ -363,7 +357,6 @@ final class Account(
     else
       for
         _ <- env.security.store.closeUserAndSessionId(me, SessionId(sessionId))
-        _ <- env.push.browserSub.unsubscribeBySession(SessionId(sessionId))
       yield NoContent
   }
 
@@ -384,7 +377,7 @@ final class Account(
             data =>
               allow:
                 env.security.reopen
-                  .prepare(data.username, data.email, env.mod.logApi.closedByMod)
+                  .prepare(data.username, data.email, _ => fuFalse)
                   .flatMap: user =>
                     env.security.loginToken.rateLimit[Result](data.email.normalize, rateLimited()):
                       lila.mon.user.auth.reopenRequest("success").increment()
@@ -420,8 +413,5 @@ final class Account(
       .map:
         _.filter(u => ctx.is(u) || isGrantedOpt(_.Impersonate))
       .orNotFound: user =>
-        if getBool("text") then
-          apiC.GlobalConcurrencyLimitUser(me)(env.api.personalDataExport(user)): source =>
-            Ok.chunked(source.map(_ + "\n")).asAttachmentStream(s"lichess_${user.username}.txt")
-        else Ok.page(pages.data(user))
+        Ok.page(pages.data(user))
   }
