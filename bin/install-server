@@ -140,6 +140,21 @@ if ! grep -q "managed by Certbot" /etc/nginx/sites-available/gogame 2>/dev/null;
 fi
 ln -sf /etc/nginx/sites-available/gogame /etc/nginx/sites-enabled/gogame
 rm -f /etc/nginx/sites-enabled/default
+
+# Behind Cloudflare's proxy (orange cloud), requests come from Cloudflare's addresses: take
+# the visitor's address from CF-Connecting-IP, but only on requests from Cloudflare's own
+# ranges. Without the proxy, this changes nothing. Refreshed on each run.
+cf_ranges=$({ curl -fsSL -m 20 https://www.cloudflare.com/ips-v4; echo; curl -fsSL -m 20 https://www.cloudflare.com/ips-v6; } 2>/dev/null |
+  grep -E '^[0-9a-fA-F:.]+/[0-9]{1,3}$' || true)
+if [ -n "$cf_ranges" ]; then
+  {
+    echo "# Cloudflare's addresses (https://www.cloudflare.com/ips/), written by bin/install-server"
+    for range in $cf_ranges; do echo "set_real_ip_from $range;"; done
+    echo "real_ip_header CF-Connecting-IP;"
+  } >/etc/nginx/conf.d/cloudflare-realip.conf
+else
+  echo "Could not download Cloudflare's address ranges: kept /etc/nginx/conf.d/cloudflare-realip.conf as it was"
+fi
 nginx -t && systemctl reload nginx
 
 https=no

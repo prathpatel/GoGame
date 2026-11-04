@@ -2,7 +2,8 @@
 
 The simplest setup that works well for a Go server of any modest size: **one EC2 instance**
 runs everything: nginx, lila, lila-ws, KataGo, MongoDB and Redis. Around it, AWS provides
-the address (Elastic IP), DNS (Route 53), email (SES) and off-server backups (S3).
+the address (Elastic IP), email (SES) and off-server backups (S3). DNS is at Cloudflare (for
+a domain bought there) or Route 53.
 
 ```
 players ──https──> Elastic IP ──> EC2 (Ubuntu 24.04)
@@ -39,13 +40,36 @@ the AWS console, in order. Allow about an hour, plus up to a day for SES approva
 Then **EC2 → Elastic IPs → Allocate**, and **Associate** it with the instance. The public
 address then never changes, even when the instance restarts.
 
-## 3. Domain and DNS (Route 53)
+## 3. Domain and DNS
+
+### With a domain from Cloudflare Registrar
+
+Domains registered at Cloudflare always use Cloudflare's DNS (Route 53 is not needed).
+
+1. **dash.cloudflare.com → Domain Registration → Register Domains**: buy the domain (at cost,
+   about $10 a year for a `.com`).
+2. **Your domain → DNS → Records → Add record**, twice. Here the site is on the bare domain
+   (`example.com`) and the websockets on `ws.example.com`:
+
+   | Type | Name | IPv4 address | Proxy status |
+   | --- | --- | --- | --- |
+   | A | `@` | the Elastic IP | **DNS only** (grey cloud) |
+   | A | `ws` | the Elastic IP | **DNS only** (grey cloud) |
+
+   Keep them **DNS only** until the site works with HTTPS (step 4); step 8 turns on
+   Cloudflare's proxy. Use names **one level deep** (`example.com` and `ws.example.com`, or
+   `play.example.com` with `--ws-domain ws.example.com`): Cloudflare's free certificate for
+   proxied names covers `*.example.com` only, not `ws.play.example.com`.
+3. Optional, for your contact address: **Email → Email Routing** forwards
+   `contact@yourdomain` to your own inbox, for free. Use that address for `net.email`.
+
+### With Route 53 instead
 
 1. **Route 53 → Registered domains → Register domain**, or keep a domain you already own.
 2. **Route 53 → Hosted zones** (created automatically for domains registered there; for
    another registrar, create one and set the registrar's name servers to the four it lists).
-3. Create two **A records** pointing at the Elastic IP: `go.example.com` and
-   `ws.go.example.com` (the websockets). Use your own names.
+3. Create two **A records** pointing at the Elastic IP: `example.com` and
+   `ws.example.com` (the websockets). Use your own names.
 
 ## 4. Install GoGame
 
@@ -66,24 +90,25 @@ Install. `--email` is for Let's Encrypt, which only works once the DNS records o
 point at this server:
 
 ```bash
-sudo /opt/gogame/bin/install-server go.example.com --email you@example.com
+sudo /opt/gogame/bin/install-server example.com --email you@example.com
 ```
 
-It takes 20 to 40 minutes, mostly building. It ends with a short list of what is left:
+The websockets go on `ws.example.com` (or name them with `--ws-domain`). It takes 20 to 40 minutes, mostly building. It ends with a short list of what is left:
 email (step 5), the administrator account (step 7) and backups (step 6). Check it:
 
 ```bash
 systemctl status gogame gogame-ws
 ```
 
-and open `https://go.example.com`. Logs: `journalctl -u gogame -f`.
+and open `https://example.com`. Logs: `journalctl -u gogame -f`.
 
 ## 5. Email (SES)
 
 1. **SES → Identities → Create identity → Domain**: your domain, with **Easy DKIM**. If the
-   domain is in Route 53, SES publishes the three DKIM records itself; otherwise add the
-   CNAME records it shows at your registrar. Optionally add a DMARC record: a `TXT` record
-   `_dmarc.go.example.com` with `v=DMARC1; p=none;`.
+   domain is in Route 53, SES publishes the three DKIM records itself. With Cloudflare, add
+   the three `CNAME` records SES shows in **Cloudflare → DNS → Records**, each set to
+   **DNS only** (grey cloud): proxied DKIM records don't work. Optionally add a DMARC
+   record: a `TXT` record `_dmarc` with `v=DMARC1; p=none;`.
 2. **SES → Account dashboard → Request production access**. New accounts are in a "sandbox"
    that only sends to verified addresses. Explain the use: account confirmation and password
    reset emails for a game website, sent only to people who sign up. Approval usually takes
@@ -100,7 +125,7 @@ and open `https://go.example.com`. Logs: `journalctl -u gogame -f`.
      tls = true
      user = "SMTP USERNAME"
      password = "SMTP PASSWORD"
-     sender = "GoGame <noreply@go.example.com>"
+     sender = "GoGame <noreply@example.com>"
    }
    security.email_confirm.enabled = true
    ```
@@ -157,6 +182,26 @@ mongosh "mongodb://gogame:PASSWORD@127.0.0.1/gogame?authSource=admin" --eval 'db
 Then turn on **two-factor authentication** in that account's security settings. In
 production, administrator roles only work on accounts with two-factor authentication.
 
+## 8. Cloudflare's proxy (optional, for a Cloudflare domain)
+
+With the **proxied** setting (orange cloud), visitors connect to Cloudflare, which forwards
+to your server: it hides the server's address and absorbs attacks. Websockets work through
+it, on the free plan too. Turn it on only after the site works with HTTPS:
+
+1. **Cloudflare → SSL/TLS → Overview**: set the encryption mode to **Full (strict)**. With
+   "Flexible", Cloudflare talks to your server over plain HTTP, the server redirects to
+   HTTPS, and the page loops forever.
+2. **DNS → Records**: switch both A records to **Proxied**.
+3. Nothing to change on the server: `bin/install-server` already set nginx up to take the
+   visitors' real addresses from Cloudflare (`/etc/nginx/conf.d/cloudflare-realip.conf`),
+   so rate limits and security logs see the players, not Cloudflare.
+4. Optional, so nobody can bypass Cloudflare: in the EC2 security group, replace the
+   "Anywhere" sources of the HTTP and HTTPS rules with Cloudflare's ranges, listed at
+   <https://www.cloudflare.com/ips/>.
+
+Let's Encrypt renewals keep working through the proxy. The signup captcha (Turnstile, see
+the production setup in the main README) is in the same Cloudflare account.
+
 ## Updating
 
 ```bash
@@ -164,7 +209,7 @@ cd /opt/gogame && sudo -u gogame git pull
 ```
 
 ```bash
-sudo /opt/gogame/bin/install-server go.example.com
+sudo /opt/gogame/bin/install-server example.com
 ```
 
 It rebuilds and restarts; the secrets and database stay.
@@ -179,7 +224,7 @@ region:
 | m7i.xlarge (t3.xlarge is a bit less, t3.large about half) | ~$145 |
 | 40 GB gp3 disk | ~$3 |
 | Elastic IP (public IPv4) | ~$4 |
-| Route 53 hosted zone, plus the domain (~$15/year) | ~$1.50 |
+| Domain: Cloudflare Registrar sells at cost (~$10/year for `.com`, DNS included); Route 53 adds $0.50/month per hosted zone | ~$1 |
 | SES ($0.10 per 1,000 emails) | cents |
 | S3 backups and disk snapshots | a few dollars |
 | Data transfer out (beyond the 100 GB/month free tier) | $0.09/GB |
