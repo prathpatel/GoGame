@@ -87,3 +87,5 @@ instance.lock
 /test/e2e/node_modules/
 /test/e2e/package-lock.json
 /test/e2e/output/
+/ws/production.conf
+/conf/nginx-gogame.conf

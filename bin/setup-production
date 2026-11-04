@@ -1,0 +1,177 @@
+#!/usr/bin/env bash
+# Writes the production configuration of GoGame, with new random secrets. Run it once, on
+# the server:
+#
+#   bin/setup-production go.example.com
+#
+# It creates (all ignored by git):
+#   conf/secrets.conf           lila's production settings and secrets, included by
+#                               conf/application.conf
+#   ws/production.conf          lila-ws's: start it with -Dconfig.file=ws/production.conf
+#   conf/nginx-gogame.conf      an nginx site for go.example.com and ws.go.example.com,
+#                               to which certbot then adds HTTPS
+# and prints the commands that give MongoDB and Redis the generated passwords.
+#
+# It never overwrites conf/secrets.conf: the password secret in it must not change once
+# people have accounts (their passwords would stop working).
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+domain="${1:-}"
+ws_domain="${2:-ws.$domain}"
+if [ -z "$domain" ] || [[ "$domain" == *"://"* ]] || [[ "$domain" == *"/"* ]]; then
+  echo "Usage: bin/setup-production DOMAIN [WEBSOCKET_DOMAIN]" >&2
+  echo "  e.g. bin/setup-production go.example.com   (websockets on ws.go.example.com)" >&2
+  exit 1
+fi
+command -v openssl >/dev/null || { echo "openssl is needed" >&2; exit 1; }
+if [ -e conf/secrets.conf ]; then
+  echo "conf/secrets.conf already exists: not overwriting it (its password secret must not change)." >&2
+  exit 1
+fi
+
+hex() { openssl rand -hex "$1"; }
+b64() { openssl rand -base64 "$1" | tr -d '\n'; }
+mongo_password=$(hex 24)
+redis_password=$(hex 24)
+
+umask 077 # the files below are readable by their owner only
+
+cat >conf/secrets.conf <<EOF
+# GoGame production settings, written by bin/setup-production on $(date -u +%Y-%m-%d).
+# Keep this file private and back it up: losing user.password.bpass.secret, or changing it,
+# makes every password stop working.
+
+# --- secrets (random, generated for this server) ---
+user.password.bpass.secret = "$(b64 16)"
+play.http.secret.key = "$(b64 48)"
+security {
+  password_reset.secret = "$(hex 32)"
+  email_confirm.secret = "$(hex 32)"
+  email_change.secret = "$(hex 32)"
+  login_token.secret = "$(hex 32)"
+  turnstile_cookie.secret = "$(hex 32)"
+}
+kamon.prometheus.lilaKey = "$(hex 16)"
+memo.picfit.secretKey = "$(hex 32)"
+storm.secret = "$(hex 32)"
+oauth.signedClients.takex3.secrets = ["$(hex 32)"]
+
+# --- database and redis, with the passwords printed by bin/setup-production ---
+mongodb.uri = "mongodb://gogame:${mongo_password}@127.0.0.1:27017/gogame?authSource=admin&appName=gogame"
+redis.uri = "redis://:${redis_password}@127.0.0.1"
+
+# --- the public address, behind nginx with HTTPS ---
+net {
+  domain = "${domain}"
+  socket.domains = ["${ws_domain}"]
+  base_url = "https://${domain}"
+  crawlable = true
+  ratelimit = true
+  email = "contact@${domain}"   # shown on the Contact page
+}
+
+# --- email: fill in your provider's SMTP settings, then set mock = false ---
+mailer.primary {
+  mock = true                   # true: emails are only written to the log
+  host = "smtp.example.com"
+  port = 587
+  tls = true
+  user = "SMTP_USER"
+  password = "SMTP_PASSWORD"
+  sender = "GoGame <noreply@${domain}>"
+}
+# once email works: new accounts must confirm their address
+security.email_confirm.enabled = false
+
+# --- abuse protection ---
+security.disposable_email.enabled = true   # refuse throwaway email domains (downloads a list)
+security.tor.enabled = true                # flag signups made through Tor
+# Cloudflare Turnstile, a captcha for signups (free): fill in the keys, then enabled = true.
+# It loads a Cloudflare script on the signup page: mention it on the /privacy page.
+turnstile {
+  enabled = false
+  site_key = ""
+  secret_key = ""
+}
+# Refuse passwords known from data breaches (sends the first 5 characters of the
+# password's SHA-1 hash to haveibeenpwned.com). Mention it on /privacy if you turn it on.
+# security.pwned.range_url = "https://api.pwnedpasswords.com/range/"
+EOF
+
+cat >ws/production.conf <<EOF
+# lila-ws production settings, written by bin/setup-production.
+# Start lila-ws with -Dconfig.file=ws/production.conf
+include classpath("application.conf")
+csrf.origin = "https://${domain}"
+http.use-nginx-forwarded-ip = yes
+mongo.uri = "mongodb://gogame:${mongo_password}@127.0.0.1:27017/gogame?authSource=admin&appName=gogame-ws"
+redis.uri = "redis://:${redis_password}@127.0.0.1"
+EOF
+
+umask 022
+cat >conf/nginx-gogame.conf <<EOF
+# nginx site for GoGame, written by bin/setup-production. Copy it to
+# /etc/nginx/sites-enabled/, reload nginx, then let certbot add HTTPS (certificates from
+# Let's Encrypt, renewed automatically) and the redirect from http:
+#   sudo certbot --nginx --redirect -d ${domain} -d ${ws_domain}
+server {
+  listen 80;
+  server_name ${domain};
+  client_max_body_size 8m;
+  location / {
+    proxy_pass http://127.0.0.1:9663;
+    proxy_set_header Host \$host;
+    proxy_set_header X-Forwarded-For \$remote_addr;
+    proxy_set_header X-Forwarded-Proto \$scheme;
+  }
+}
+server {
+  listen 80;
+  server_name ${ws_domain};
+  location / {
+    proxy_pass http://127.0.0.1:9664;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade \$http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header X-Forwarded-For \$remote_addr;
+    proxy_read_timeout 600s;
+  }
+}
+EOF
+
+# conf/application.conf includes the new file last, so its values win
+[ -e conf/application.conf ] || cp conf/application.conf.default conf/application.conf
+if ! grep -q '^include "secrets"' conf/application.conf; then
+  printf '\n# production settings and secrets (bin/setup-production)\ninclude "secrets"\n' >>conf/application.conf
+fi
+
+cat <<EOF
+Written: conf/secrets.conf, ws/production.conf, conf/nginx-gogame.conf
+conf/application.conf now includes conf/secrets.conf.
+
+Next steps:
+
+1. MongoDB: create the gogame user, then turn on authentication
+   (security.authorization: enabled in /etc/mongod.conf) and restart mongod:
+
+   mongosh admin --eval 'db.createUser({user: "gogame", pwd: "${mongo_password}", roles: [{role: "readWrite", db: "gogame"}]})'
+
+2. Redis: in /etc/redis/redis.conf set the line below, then restart redis:
+
+   requirepass ${redis_password}
+
+3. DNS: point ${domain} and ${ws_domain} at this server. Then copy
+   conf/nginx-gogame.conf to /etc/nginx/sites-enabled/, run sudo nginx -s reload, and:
+
+   sudo certbot --nginx --redirect -d ${domain} -d ${ws_domain}
+
+4. Email: put your provider's SMTP settings in mailer.primary (conf/secrets.conf),
+   set mock = false and security.email_confirm.enabled = true.
+
+5. Optional: Cloudflare Turnstile keys in the turnstile block.
+
+6. Start lila and lila-ws (lila-ws with -Dconfig.file=ws/production.conf).
+
+These passwords are also in conf/secrets.conf and ws/production.conf.
+EOF

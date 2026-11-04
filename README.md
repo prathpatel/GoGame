@@ -207,8 +207,36 @@ KATAGO_COMMAND="$PWD/katago/katago gtp -model $PWD/katago/model.bin.gz -human-mo
   adapt them to your own service and its jurisdiction.
 - The account deletion page still carries Lichess's GDPR explanation
   (`modules/pref/src/main/ui/AccountPages.scala`): replace it with your own.
-- Set the contact email (`net.email` in `conf/application.conf`) and the secrets in
-  `conf/base.conf` marked as public.
+
+### Production setup
+
+On the server, run once:
+
+```bash
+bin/setup-production go.example.com
+```
+
+It writes, with new random secrets, all ignored by git:
+
+- `conf/secrets.conf`: lila's production settings, included by `conf/application.conf`.
+  Back it up: if `user.password.bpass.secret` is lost or changed, no password works anymore.
+- `ws/production.conf`: lila-ws's settings; start lila-ws with
+  `-Dconfig.file=ws/production.conf`.
+- `conf/nginx-gogame.conf`: the nginx site for `go.example.com` and `ws.go.example.com`.
+
+It also prints the commands that give MongoDB and Redis their generated passwords.
+
+A few values come from outside services:
+
+| What | Where to get it |
+| --- | --- |
+| Domain names | Any registrar. Point `go.example.com` and `ws.go.example.com` (DNS `A` records) at the server. |
+| HTTPS certificates | Free from Let's Encrypt: `sudo certbot --nginx --redirect -d go.example.com -d ws.go.example.com` after installing the nginx site. Renewed automatically. |
+| SMTP settings (`mailer.primary`) | An email provider such as Brevo, Mailgun, Postmark or Amazon SES. Add your domain there, publish the DNS records it gives you (SPF, DKIM), and create SMTP credentials: host, port, user, password. Then set `mock = false` and `security.email_confirm.enabled = true`. |
+| Turnstile keys (`turnstile`), optional | Cloudflare dashboard, Turnstile, Add widget, with your domain: it gives a site key and a secret key. Free, and the domain does not need to be on Cloudflare. |
+| GeoIP database (`geoip.file`), optional | A free MaxMind account, then download GeoLite2-City (`.mmdb`). |
+
+The leaked-password check, the disposable email list and the Tor list need no key.
 
 ## License and credits
 
