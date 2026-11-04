@@ -1,0 +1,13 @@
+# Nightly database backup (bin/backup-database). Installed by bin/install-server.
+# To also copy the backups to S3, create /etc/gogame/backup.env with:
+#   GOGAME_BACKUP_S3=s3://your-bucket/gogame
+[Unit]
+Description=GoGame database backup
+After=mongod.service
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=@DIR@
+EnvironmentFile=-/etc/gogame/backup.env
+ExecStart=@DIR@/bin/backup-database

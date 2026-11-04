@@ -57,6 +57,9 @@ memo.picfit.secretKey = "$(hex 32)"
 storm.secret = "$(hex 32)"
 oauth.signedClients.takex3.secrets = ["$(hex 32)"]
 
+# production mode: caching, strict checks, admin roles only with two-factor authentication
+play.mode = "prod"
+
 # --- database and redis, with the passwords printed by bin/setup-production ---
 mongodb.uri = "mongodb://gogame:${mongo_password}@127.0.0.1:27017/gogame?authSource=admin&appName=gogame"
 redis.uri = "redis://:${redis_password}@127.0.0.1"

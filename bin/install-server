@@ -1,0 +1,177 @@
+#!/usr/bin/env bash
+# Installs GoGame on a fresh Ubuntu 24.04 server (x86_64), such as an AWS EC2 instance.
+# See deploy/aws/README.md. Clone the project into /opt/gogame first, then:
+#
+#   sudo /opt/gogame/bin/install-server go.example.com --email you@example.com
+#
+# It installs Java, sbt, Node.js, MongoDB, Redis, nginx and certbot; builds lila and lila-ws;
+# installs KataGo; writes the production config with new secrets (bin/setup-production);
+# protects MongoDB and Redis with the generated passwords; installs the gogame and gogame-ws
+# services, the nginx site, HTTPS (with --email, once DNS points here), the firewall and a
+# daily database backup.
+#
+# Run it again after a git pull to rebuild and restart: existing secrets are kept.
+#
+#   --email ADDRESS     for Let's Encrypt (expiry notices). Without it, HTTPS is left to you.
+#   --ws-domain NAME    the websocket domain (default: ws.DOMAIN)
+#   --user NAME         the system user that runs GoGame (default: gogame)
+set -euo pipefail
+
+say() { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
+die() { printf 'Error: %s\n' "$*" >&2; exit 1; }
+
+domain=""
+email=""
+ws_domain=""
+user="gogame"
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --email) email="$2"; shift 2 ;;
+    --ws-domain) ws_domain="$2"; shift 2 ;;
+    --user) user="$2"; shift 2 ;;
+    -*) die "unknown option $1" ;;
+    *) domain="$1"; shift ;;
+  esac
+done
+[ -n "$domain" ] || die "usage: sudo bin/install-server DOMAIN [--email ADDRESS] [--ws-domain NAME]"
+ws_domain="${ws_domain:-ws.$domain}"
+
+[ "$(id -u)" = 0 ] || die "run it with sudo"
+. /etc/os-release
+[ "${ID:-}" = ubuntu ] && [ "${VERSION_ID:-}" = 24.04 ] || die "this script is for Ubuntu 24.04 (found ${PRETTY_NAME:-unknown})"
+[ "$(uname -m)" = x86_64 ] || die "x86_64 only: KataGo's Linux release is built for x86_64 (on AWS, pick an Intel or AMD instance)"
+
+dir="$(cd "$(dirname "$0")/.." && pwd)"
+[ -f "$dir/build.sbt" ] && [ -d "$dir/modules/goban" ] || die "run the copy of the script inside the GoGame folder"
+case "$dir" in /root/* | /home/*) die "move the project out of a home folder, e.g. to /opt/gogame (the $user user must own it)" ;; esac
+export DEBIAN_FRONTEND=noninteractive
+
+as_user() { sudo -u "$user" -H bash -c "cd '$dir' && $*"; }
+
+say "System packages"
+apt-get update -qq
+apt-get install -y -qq ca-certificates curl gnupg git unzip openssl binutils ufw \
+  openjdk-21-jdk-headless redis-server nginx python3-certbot-nginx >/dev/null
+
+if [ ! -f /etc/apt/sources.list.d/mongodb-org-8.0.list ]; then
+  say "MongoDB 8.0 repository"
+  curl -fsSL https://pgp.mongodb.com/server-8.0.asc | gpg --dearmor --yes -o /usr/share/keyrings/mongodb-server-8.0.gpg
+  echo "deb [arch=amd64 signed-by=/usr/share/keyrings/mongodb-server-8.0.gpg] https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0 multiverse" \
+    >/etc/apt/sources.list.d/mongodb-org-8.0.list
+fi
+if [ ! -f /etc/apt/sources.list.d/sbt.list ]; then
+  say "sbt repository"
+  curl -fsSL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x2EE0EA64E40A89B84B2DF73499E82A75642AC823" |
+    gpg --dearmor --yes -o /usr/share/keyrings/sbt.gpg
+  echo "deb [signed-by=/usr/share/keyrings/sbt.gpg] https://repo.scala-sbt.org/scalasbt/debian all main" \
+    >/etc/apt/sources.list.d/sbt.list
+fi
+if ! node -e 'process.exit(+process.versions.node.split(".")[0] >= 24 ? 0 : 1)' 2>/dev/null; then
+  say "Node.js 24"
+  curl -fsSL https://deb.nodesource.com/setup_24.x | bash - >/dev/null
+fi
+apt-get update -qq
+apt-get install -y -qq mongodb-org sbt nodejs >/dev/null
+command -v pnpm >/dev/null || npm install -g --silent pnpm@12
+systemctl enable --now mongod redis-server >/dev/null 2>&1
+
+# building lila needs about 8 GB of memory (.sbtopts): add swap on smaller machines
+mem_gb=$(awk '/MemTotal/ {print int($2 / 1024 / 1024)}' /proc/meminfo)
+if [ "$mem_gb" -lt 15 ] && ! swapon --show | grep -q .; then
+  say "Adding 8 GB of swap (this machine has ${mem_gb} GB of memory)"
+  fallocate -l 8G /swapfile && chmod 600 /swapfile && mkswap /swapfile >/dev/null && swapon /swapfile
+  grep -q '^/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' >>/etc/fstab
+fi
+
+if ! id "$user" >/dev/null 2>&1; then
+  say "Creating the $user user"
+  useradd --system --create-home --shell /bin/bash "$user"
+fi
+chown -R "$user:$user" "$dir"
+sudo -u "$user" git config --global --add safe.directory "$dir" 2>/dev/null || true
+
+say "Building the front end"
+as_user ./ui/build
+say "Building lila"
+as_user ./lila.sh stage </dev/null
+say "Building lila-ws"
+as_user "cd ws && sbt stage </dev/null"
+say "KataGo"
+as_user bin/setup-katago
+
+if [ ! -f "$dir/conf/secrets.conf" ]; then
+  say "Production configuration"
+  as_user bin/setup-production "$domain" "$ws_domain"
+fi
+mongo_password=$(grep -oE 'mongodb://gogame:[0-9a-f]+@' "$dir/conf/secrets.conf" | head -1 | sed -E 's/.*gogame:([0-9a-f]+)@/\1/')
+redis_password=$(grep -oE 'redis://:[0-9a-f]+@' "$dir/conf/secrets.conf" | head -1 | sed -E 's/redis:\/\/:([0-9a-f]+)@/\1/')
+[ -n "$mongo_password" ] && [ -n "$redis_password" ] || die "could not read the passwords from conf/secrets.conf"
+
+say "Protecting MongoDB and Redis with the generated passwords"
+if ! grep -q '^security:' /etc/mongod.conf; then
+  for _ in $(seq 30); do mongosh --quiet --eval 'db.runCommand({ping: 1})' >/dev/null 2>&1 && break; sleep 1; done
+  mongosh --quiet admin --eval "if (!db.getUser('gogame')) db.createUser({user: 'gogame', pwd: '$mongo_password', roles: [{role: 'readWrite', db: 'gogame'}]})" >/dev/null
+  printf '\nsecurity:\n  authorization: enabled\n' >>/etc/mongod.conf
+  systemctl restart mongod
+fi
+sed -i '/^requirepass /d' /etc/redis/redis.conf
+echo "requirepass $redis_password" >>/etc/redis/redis.conf
+systemctl restart redis-server
+
+say "Services"
+heap=2g
+[ "$mem_gb" -ge 15 ] && heap=4g
+for unit in gogame gogame-ws gogame-backup; do
+  for kind in service timer; do
+    src="$dir/deploy/systemd/$unit.$kind"
+    [ -f "$src" ] || continue
+    sed -e "s|@DIR@|$dir|g; s|@USER@|$user|g; s|@HEAP@|$heap|g" "$src" >"/etc/systemd/system/$unit.$kind"
+  done
+done
+systemctl daemon-reload
+systemctl enable gogame gogame-ws gogame-backup.timer >/dev/null 2>&1
+systemctl restart gogame gogame-ws
+systemctl start gogame-backup.timer
+
+say "nginx"
+# keep the site once certbot has added HTTPS to it (on a rerun, for an update)
+if ! grep -q "managed by Certbot" /etc/nginx/sites-available/gogame 2>/dev/null; then
+  install -m 644 "$dir/conf/nginx-gogame.conf" /etc/nginx/sites-available/gogame
+fi
+ln -sf /etc/nginx/sites-available/gogame /etc/nginx/sites-enabled/gogame
+rm -f /etc/nginx/sites-enabled/default
+nginx -t && systemctl reload nginx
+
+https=no
+if [ -n "$email" ]; then
+  say "HTTPS certificates (Let's Encrypt)"
+  if certbot --nginx --redirect --non-interactive --agree-tos -m "$email" -d "$domain" -d "$ws_domain"; then
+    https=yes
+  else
+    echo "certbot failed: check that $domain and $ws_domain point at this server, then run:"
+    echo "  sudo certbot --nginx --redirect -d $domain -d $ws_domain"
+  fi
+fi
+
+say "Firewall: SSH, HTTP and HTTPS only"
+ufw allow OpenSSH >/dev/null
+ufw allow 'Nginx Full' >/dev/null
+ufw --force enable >/dev/null
+
+cat <<EOF
+
+GoGame is installed in $dir and runs as the $user user.
+  systemctl status gogame gogame-ws        journalctl -u gogame -f
+  HTTPS: $https   (without it, browsers can't open https://$domain yet)
+
+Still to do (deploy/aws/README.md explains each):
+  1. Email: put your SMTP settings (Amazon SES) in mailer.primary in $dir/conf/secrets.conf,
+     set mock = false and security.email_confirm.enabled = true, then: sudo systemctl restart gogame
+  2. Sign up on https://$domain, make that account an administrator:
+       mongosh "mongodb://gogame:<password>@127.0.0.1/gogame?authSource=admin" \\
+         --eval 'db.user4.updateOne({_id: "yourname"}, {\$set: {roles: ["ROLE_SUPER_ADMIN"]}})'
+     and turn on two-factor authentication in its account security settings: in production,
+     administrator roles only work with it.
+  3. Back up $dir/conf/secrets.conf somewhere safe. Database backups run every night into
+     /var/backups/gogame (see deploy/aws/README.md to copy them to S3).
+EOF

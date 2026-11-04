@@ -210,7 +210,18 @@ KATAGO_COMMAND="$PWD/katago/katago gtp -model $PWD/katago/model.bin.gz -human-mo
 
 ### Production setup
 
-On the server, run once:
+On a fresh **Ubuntu 24.04** server, `bin/install-server` does everything: it installs the
+dependencies, builds both servers, installs KataGo, generates the configuration below,
+protects MongoDB and Redis with passwords, and sets up the services (`deploy/systemd`),
+nginx, HTTPS, the firewall and nightly database backups:
+
+```bash
+sudo /opt/gogame/bin/install-server go.example.com --email you@example.com
+```
+
+For AWS (EC2, Route 53, SES email, S3 backups) follow [deploy/aws/README.md](deploy/aws/README.md).
+
+To set up the configuration by hand instead, run once on the server:
 
 ```bash
 bin/setup-production go.example.com

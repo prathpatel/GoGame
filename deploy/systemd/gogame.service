@@ -1,0 +1,21 @@
+# GoGame web server (lila). Installed by bin/install-server, which replaces @DIR@ (the
+# project folder), @USER@ and @HEAP@ (Java memory, e.g. 3g).
+#   systemctl status gogame     journalctl -u gogame -f
+[Unit]
+Description=GoGame web server (lila)
+After=network-online.target mongod.service redis-server.service
+Wants=network-online.target mongod.service redis-server.service
+
+[Service]
+User=@USER@
+WorkingDirectory=@DIR@
+# -Duser.dir: relative paths (public/, katago/, conf/) are relative to the project folder
+ExecStart=@DIR@/target/universal/stage/bin/lila -Duser.dir=@DIR@ -Dconfig.file=@DIR@/conf/application.conf -Dlogger.file=@DIR@/conf/logger.prod.xml -J-Xms1g -J-Xmx@HEAP@
+Restart=always
+RestartSec=5
+TimeoutStopSec=60
+SuccessExitStatus=143
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

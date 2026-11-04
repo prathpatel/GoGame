@@ -1,0 +1,11 @@
+# Runs gogame-backup.service every night. Installed by bin/install-server.
+[Unit]
+Description=Nightly GoGame database backup
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+RandomizedDelaySec=20m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

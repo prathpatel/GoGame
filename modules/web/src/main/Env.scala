@@ -37,7 +37,8 @@ final class Env(
     endpoint = config.influxEventEndpoint,
     env = config.influxEventEnv
   )
-  if mode.isProd then scheduler.scheduleOnce(5.seconds)(influxEvent.start())
+  if mode.isProd && config.influxEventEndpoint.nonEmpty then
+    scheduler.scheduleOnce(5.seconds)(influxEvent.start())
 
   wire[PagerDuty]
 

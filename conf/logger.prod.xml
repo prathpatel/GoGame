@@ -1,0 +1,14 @@
+<configuration debug="false">
+  <!-- Production logging: everything to the console, which systemd's journal stores and
+       rotates (journalctl -u gogame). Started with -Dlogger.file=conf/logger.prod.xml -->
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder><pattern>%-5level %logger{30} - %message%n%xException{30}</pattern></encoder>
+  </appender>
+
+  <root level="INFO">
+    <appender-ref ref="STDOUT" />
+  </root>
+
+  <logger name="reactivemongo.core.nodeset.ChannelFactory" level="INFO"/>
+  <logger name="reactivemongo.core.actors.MongoDBSystem" level="INFO"/>
+</configuration>
