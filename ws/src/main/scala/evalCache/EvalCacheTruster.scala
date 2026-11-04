@@ -49,7 +49,7 @@ final private class EvalCacheTruster(mongo: Mongo)(using Executor)(using cacheAp
     user
       .getAsOpt[LocalDateTime]("createdAt")
       .fold(-1d): createdAt =>
-        math.sqrt(daysBetween(createdAt, LocalDateTime.now) / 30d) - 1
+        math.sqrt(daysBetween(createdAt, LocalDateTime.now(java.time.ZoneOffset.UTC)) / 30d) - 1
 
   private def patronBonus(user: BSONDocument): Int =
     user

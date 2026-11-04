@@ -324,6 +324,14 @@ final private class RoundAsyncActor(
       proxy.withGame: g =>
         fuccess(g.playableByAi.so(player.requestAi(g, this)))
 
+    // the watchdog of an AI move request: still the computer's turn at the same ply?
+    case AiCheck(ply) =>
+      proxy.withGame: g =>
+        fuccess:
+          if g.playableByAi && g.ply == ply && !g.inScoringPhase then
+            logger.warn(s"No AI move in ${g.id} at ply $ply, asking again")
+            player.requestAi(g, this)
+
     case WsBoot =>
       handle: game =>
         game.playable.so:
@@ -451,6 +459,7 @@ object RoundAsyncActor:
   case object WsBoot
   case class LilaStop(promise: Promise[Unit])
   case object AiStart
+  case class AiCheck(ply: chess.Ply)
   case class AiResign(ply: chess.Ply)
 
   private val monitor =

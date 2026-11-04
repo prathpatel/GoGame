@@ -256,6 +256,9 @@ POST  /run/toggle-blind-mode           controllers.Main.toggleBlindMode
 GET   /prometheus-metrics/:key         controllers.Main.prometheusMetrics(key: String)
 
 # Pages
+GET   /games                           controllers.Main.games
+GET   /terms-of-service                controllers.Main.terms
+GET   /privacy                         controllers.Main.privacy
 GET   /contact                         controllers.Main.contact
 GET   /faq                             controllers.Main.faq
 GET   /about                           controllers.Main.about

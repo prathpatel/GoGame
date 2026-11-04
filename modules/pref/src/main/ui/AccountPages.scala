@@ -171,15 +171,7 @@ final class AccountPages(helpers: Helpers, ui: AccountUi, flagApi: lila.core.use
             ): field =>
               form3.input(field)(fixedRealName.option(inertAttr))
           ),
-          form3.split(
-            List("fide", "uscf", "ecf", "rcf", "cfc", "dsb").map: rn =>
-              form3.group(
-                form(s"${rn}Rating"),
-                trans.site.xRating(rn.toUpperCase),
-                help = trans.site.ifNoneLeaveEmpty().some,
-                klass = "form-third"
-              )(form3.input(_, typ = "number"))
-          ),
+          // (the chess federation ratings of lichess, FIDE, USCF..., are not asked for)
           ctx.kid.no.option(
             form3.group(form("links"), trans.site.socialMediaLinks(), help = Some(linksHelp())): f =>
               form3.textarea(f)(rows := 5)

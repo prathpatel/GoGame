@@ -15,6 +15,8 @@ object page:
   def faq(using Context) = faqUi.apply.js(esmInitBit("faq"))
 
   def about(using Context) = faqUi.about
+  def terms(using Context) = faqUi.terms
+  def privacy(using Context) = faqUi.privacy
 
   def contact(using Context) =
     ui.SitePage(

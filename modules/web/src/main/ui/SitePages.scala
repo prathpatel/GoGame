@@ -23,6 +23,8 @@ final class SitePages(helpers: Helpers):
       a(activeCls("about"), href := "/about")(trans.site.about()),
       a(activeCls("faq"), href := routes.Main.faq)(trans.faq.faqAbbreviation()),
       a(activeCls("contact"), href := routes.Main.contact)(trans.contact.contact()),
+      a(activeCls("terms"), href := routes.Main.terms)(trans.site.termsOfService()),
+      a(activeCls("privacy"), href := routes.Main.privacy)(trans.site.privacy()),
       sep,
       a(activeCls("source"), href := sourceUrl, targetBlank)(trans.site.sourceCode(), external),
       a(activeCls("lag"), href := routes.Main.lag)("Is the server lagging?")

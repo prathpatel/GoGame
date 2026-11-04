@@ -213,3 +213,139 @@ final class FaqUi(helpers: Helpers, sitePages: SitePages, siteName: String)(
             )
           )
         )
+
+  private def legalPage(title: String, active: String)(body: Frag*)(using Context) =
+    sitePages
+      .SitePage(title = title, active = active, contentCls = "page box box-pad")
+      .css("bits.page"):
+        frag(
+          h1(cls := "box__top")(title),
+          div(cls := "body")(body)
+        )
+
+  // Plain-language terms for a free Go server. Operators: adapt them to your own service.
+  def terms(using Context) =
+    legalPage("Terms of Service", "terms")(
+      p(
+        "These terms apply to everyone who uses ",
+        strong(siteName),
+        ", by playing as a guest or with an account. If you do not agree with them, please do not use the site."
+      ),
+      h2("The service"),
+      p(
+        siteName,
+        " is a free Go server. It is provided as it is, without any warranty: games, ratings and accounts ",
+        "can be lost, and the site can be unavailable. The software is free and open source under the ",
+        "GNU Affero General Public License; its ",
+        a(href := sourceUrl, targetBlank)("source code"),
+        " is available to everyone."
+      ),
+      h2("Accounts"),
+      ul(
+        li("One account per person. If you need another one, for example for a bot, ask us first."),
+        li("Keep your password to yourself. You are responsible for what is done with your account."),
+        li("Usernames must not be offensive or impersonate someone else.")
+      ),
+      h2("Fair play"),
+      ul(
+        li(
+          "Play your own games: do not get help from a Go engine (AI), a book, a game database or another ",
+          "person during a game against a human."
+        ),
+        li("Do not manipulate ratings, for example by losing on purpose or playing against your own accounts."),
+        li("Playing against the computer opponent of this site is of course fine.")
+      ),
+      h2("Behaviour"),
+      p(
+        "Be respectful in games, chat and messages. Harassment, hate speech, threats, spam and sharing other ",
+        "people's private information are not allowed."
+      ),
+      h2("Moderation"),
+      p(
+        "We can remove content, mark or restrict accounts, and close accounts that break these terms. ",
+        "If you think a decision was wrong, ",
+        a(href := routes.Main.contact)("contact us"),
+        "."
+      ),
+      h2("Your content"),
+      p(
+        "Games are public: anyone can watch them, and download them as SGF. What you write in your profile, ",
+        "in chat and in messages stays yours, but you allow us to store and display it to provide the service."
+      ),
+      h2("Changes"),
+      p(
+        "We may update these terms. The current version is always on this page. If you keep using the site ",
+        "after a change, you accept the new terms."
+      ),
+      p(
+        "See also the ",
+        a(href := routes.Main.privacy)("Privacy policy"),
+        "."
+      )
+    )
+
+  def privacy(using Context) =
+    legalPage("Privacy policy", "privacy")(
+      p(
+        "This page explains what ",
+        strong(siteName),
+        " stores about you, why, and how to remove it. The site shows no ads and uses no third-party ",
+        "tracking or analytics."
+      ),
+      h2("What we store"),
+      ul(
+        li(
+          strong("Your account"),
+          ": username, email address, and your password, stored as a salted hash (never in plain text)."
+        ),
+        li(
+          strong("Your profile and preferences"),
+          ": what you write in your profile, your settings, and the players you follow or block."
+        ),
+        li(
+          strong("Games"),
+          ": the moves, times and results of your games, and the ratings they give. Games are public."
+        ),
+        li(strong("Chat and messages"), ": what you write in game chat and in private messages."),
+        li(
+          strong("Security records"),
+          ": the IP addresses and browsers your account signs in from, with dates, to protect accounts ",
+          "and fight abuse such as cheating with multiple accounts."
+        )
+      ),
+      h2("Cookies"),
+      p("The site only sets the cookies it needs to work:"),
+      ul(
+        li("a session cookie, which keeps you signed in;"),
+        li("a game cookie, which lets you keep playing your games as a guest;"),
+        li("a few preference cookies, such as the theme, board and stones you chose.")
+      ),
+      h2("Email"),
+      p(
+        "Your email address is used to confirm your account, to reset your password, and for the ",
+        "notifications you turn on (such as correspondence game updates). It is never shown to other players."
+      ),
+      h2("Who can see what"),
+      p(
+        "Your username, profile, ratings and games are public. Your email address, security records and ",
+        "private messages are not: only you, and the administrators of this server, can see them."
+      ),
+      h2("Your data, your choice"),
+      ul(
+        li(a(href := routes.Account.data)("Download your personal data"), "."),
+        li(
+          a(href := routes.Account.close)("Close your account"),
+          ": it disappears from the site, and you can reopen it later."
+        ),
+        li(
+          a(href := routes.Account.delete)("Delete your account"),
+          ": your account and personal data are removed for good."
+        )
+      ),
+      p(
+        "Questions about your data? ",
+        a(href := routes.Main.contact)("Contact us"),
+        "."
+      )
+    )
+

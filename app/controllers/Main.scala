@@ -53,6 +53,23 @@ final class Main(env: Env, assetsC: ExternalAssets) extends LilaController(env):
   val manifest = Anon:
     Ok(env.web.static.manifest).publicCache(1.hour)
 
+  def games = Open:
+    pageHit
+    for
+      stored <- env.game.gameRepo.nowPlaying(48)
+      // the latest moves are in memory before they reach the database
+      live <- env.round.proxyRepo.gamesIfPresentOrFetch(stored.map(_.id))
+      page <- Ok.page(views.game.nowPlaying(live))
+    yield page
+
+  def terms = Open:
+    pageHit
+    Ok.page(views.site.page.terms)
+
+  def privacy = Open:
+    pageHit
+    Ok.page(views.site.page.privacy)
+
   def contact = Open:
     pageHit
     Ok.page(views.site.page.contact)

@@ -22,7 +22,8 @@ final class SeenAtUpdate(mongo: Mongo)(using
   def set(user: User.Id, oauthToken: Option[AccessTokenId]): Unit =
     if done.getIfPresent(user).isEmpty then
       done.put(user, true)
-      val now = LocalDateTime.now
+      // UTC: dates are stored as UTC (see MongoHandlers), whatever the server's time zone
+      val now = LocalDateTime.now(java.time.ZoneOffset.UTC)
       for
         userColl <- mongo.userColl
         userDoc <- findAndModify(

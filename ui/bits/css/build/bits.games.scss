@@ -1,0 +1,14 @@
+@import '../../../lib/css/plugin';
+@import '../../../lib/css/component/now-playing';
+
+// /games: the games being played now
+.games-now {
+  &__list {
+    gap: 1em;
+    margin-top: 1em;
+  }
+
+  &__empty {
+    margin-top: 1em;
+  }
+}

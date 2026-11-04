@@ -40,8 +40,8 @@ case class EvalCacheEntry(
   def add(eval: Eval) =
     copy(
       evals = EvalCacheSelector(eval :: evals),
-      usedAt = LocalDateTime.now,
-      updatedAt = LocalDateTime.now
+      usedAt = LocalDateTime.now(java.time.ZoneOffset.UTC),
+      updatedAt = LocalDateTime.now(java.time.ZoneOffset.UTC)
     )
 
   // finds the best eval with at least multiPv pvs,

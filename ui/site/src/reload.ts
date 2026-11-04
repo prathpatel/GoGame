@@ -14,11 +14,13 @@ export const redirect = async (opts: RedirectTo, beep?: boolean) => {
   else {
     url = `/game/${opts.id}`;
     if (opts.cookie) {
+      // browsers refuse a domain attribute without a dot (localhost): leave it out there
+      const domain = location.hostname.includes('.') ? '; domain=' + location.hostname : '';
       document.cookie = [
         encodeURIComponent(opts.cookie.name) + '=' + opts.cookie.value,
         '; max-age=' + opts.cookie.maxAge,
         '; path=/',
-        '; domain=' + location.hostname,
+        domain,
       ].join('');
     }
   }

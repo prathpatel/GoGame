@@ -12,11 +12,15 @@ final class Dasher(env: Env) extends LilaController(env):
 
   private lazy val galleryJson = scalalib.data.SimpleMemo[Option[JsValue]](10.minutes.some): () =>
     val pathname = env.getFile.exec(s"public/lifat/background/gallery.json").toPath
-    try Json.parse(Files.newInputStream(pathname)).some
-    catch
-      case e: Throwable =>
-        lila.log.system.warn(s"dasher error reading gallery json $pathname", e)
-        none
+    // the background gallery ships with lichess's large assets, which this fork leaves out:
+    // without it, the theme menu offers a custom background image only
+    if !Files.exists(pathname) then none
+    else
+      try Json.parse(Files.newInputStream(pathname)).some
+      catch
+        case e: Throwable =>
+          lila.log.system.warn(s"dasher error reading gallery json $pathname", e)
+          none
 
   def get = Open:
     negotiateJson:

@@ -39,6 +39,9 @@ final class AiEngine(config: AiEngine.Config)(using Executor):
             "until then the built-in bot plays."
         )
 
+  /** How long to wait for an AI move before asking again: longer than the engine timeout. */
+  def watchdogDelay: FiniteDuration = config.katago.fold(20.seconds)(_.timeout + 15.seconds)
+
   def usesEngine(level: Int): Boolean = config.katago.exists(level >= _.minLevel)
 
   /** Which engine plays this level, for display ("KataGo 10k"): None for the built-in bot. */

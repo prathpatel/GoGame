@@ -170,8 +170,8 @@
   <string name="threefoldRepetition">Threefold repetition</string>
   <string name="claimADraw">Claim a draw</string>
   <string name="drawClaimed">Draw claimed</string>
-  <string name="offerDraw">Offer draw</string>
-  <string name="draw">Draw</string>
+  <string name="offerDraw">Offer a draw (jigo)</string>
+  <string name="draw">Jigo (draw)</string>
   <plurals name="nbPlayers">
     <item quantity="one">%s player</item>
     <item quantity="other">%s players</item>
@@ -198,7 +198,7 @@
   <string name="rememberMe">Keep me logged in</string>
   <string name="youNeedAnAccountToDoThat">You need an account to do that</string>
   <string name="signUp">Register</string>
-  <string name="computersAreNotAllowedToPlay">Computers and computer-assisted players are not allowed to play. Please do not get assistance from chess engines, databases, or from other players while playing. Also note that making multiple accounts is strongly discouraged and excessive multi-accounting will lead to being banned.</string>
+  <string name="computersAreNotAllowedToPlay">Computers and computer-assisted players are not allowed to play. Please do not get assistance from Go engines (AI), game records, or from other players while playing.</string>
   <string name="games">Games</string>
   <string name="forum">Forum</string>
   <string name="xPostedInForumY">%1$s posted in topic %2$s</string>
@@ -249,9 +249,9 @@
   <string name="forgotPassword">Forgot password?</string>
   <string name="error.weakPassword">This password is extremely common and too easy to guess.</string>
   <string name="error.namePassword">Please don\'t use your username as your password.</string>
-  <string name="blankedPassword">You have used the same password on another site, and that site has been compromised. To ensure the safety of your Lichess account, we need you to set a new password. Thank you for your understanding.</string>
-  <string name="youAreLeavingLichess">You are leaving Lichess</string>
-  <string name="neverTypeYourPassword">Never type your Lichess password on another site!</string>
+  <string name="blankedPassword">You have used the same password on another site, and that site has been compromised. To ensure the safety of your GoGame account, we need you to set a new password. Thank you for your understanding.</string>
+  <string name="youAreLeavingLichess">You are leaving GoGame</string>
+  <string name="neverTypeYourPassword">Never type your GoGame password on another site!</string>
   <string name="proceedToX">Proceed to %s</string>
   <string name="passwordSuggestion">Do not set a password suggested by someone else. They can use it to steal your account.</string>
   <string name="emailSuggestion">Do not set an email address suggested by someone else. They can use it to steal your account.</string>
@@ -263,7 +263,7 @@
   <string name="emailSent">We have sent an email to %s.</string>
   <string name="emailCanTakeSomeTime">It can take some time to arrive.</string>
   <string name="refreshInboxAfterFiveMinutes">Wait 5 minutes and refresh your email inbox.</string>
-  <string name="checkSpamOrJunkFolder" comment="checkSpamFolder&#10;It = The confirmation email">If you do not receive a confirmation email, check your Spam or Junk folder. Be sure to indicate messages from lichess.org as safe and \"not spam\" so you can stay informed of important communications.</string>
+  <string name="checkSpamOrJunkFolder" comment="checkSpamFolder&#10;It = The confirmation email">If you do not receive a confirmation email, check your Spam or Junk folder. Be sure to indicate messages from GoGame as safe and \"not spam\" so you can stay informed of important communications.</string>
   <string name="sendEmailForAccountVerification">If you can\'t find your confirmation email, send an email to %s, and we\'ll confirm your account for you.</string>
   <string name="accountConfirmed">The user %s is successfully confirmed.</string>
   <string name="accountCanLogin">You can login right now as %s.</string>
@@ -295,7 +295,7 @@
   <string name="blackOffersDraw">Black offers draw</string>
   <string name="whiteDeclinesDraw">White declines draw</string>
   <string name="blackDeclinesDraw">Black declines draw</string>
-  <string name="yourOpponentOffersADraw">Your opponent offers a draw</string>
+  <string name="yourOpponentOffersADraw">Your opponent offers a draw (jigo)</string>
   <string name="accept">Accept</string>
   <string name="decline">Decline</string>
   <string name="playingRightNow">Playing right now</string>
@@ -358,7 +358,7 @@
     <item quantity="one">Give %s second</item>
     <item quantity="other">Give %s seconds</item>
   </plurals>
-  <string name="thisAccountViolatedTos">The Lichess Terms of Service were violated on this account</string>
+  <string name="thisAccountViolatedTos">The Terms of Service were violated on this account</string>
   <string name="openingExplorerAndTablebase">Opening explorer &amp; tablebase</string>
   <string name="takeback">Takeback</string>
   <string name="proposeATakeback">Propose a takeback</string>
@@ -419,7 +419,7 @@ Playing rated games will increase stability.</string>
   <string name="mustBeInTeam">Must be in team %s</string>
   <string name="youAreNotInTeam">You are not in the team %s</string>
   <string name="backToGame">Back to game</string>
-  <string name="siteDescription">Free online chess server. Play chess in a clean interface. No registration, no ads, no plugin required. Play chess with the computer, friends or random opponents.</string>
+  <string name="siteDescription">Free online Go server. Play Go (Baduk, Weiqi) in a clean interface. No registration, no ads, no plugin required. Play Go against the computer, friends or random opponents.</string>
   <string name="xJoinedTeamY">%1$s joined team %2$s</string>
   <string name="xCreatedTeamY">%1$s created team %2$s</string>
   <string name="startedStreaming">started streaming</string>
@@ -548,7 +548,7 @@ Friends playing: %2$s</string>
   <string name="inlineNotation">Inline notation</string>
   <string name="makeAStudy">For safekeeping and sharing, consider making a study.</string>
   <string name="clearLocalData">Clear local data</string>
-  <string name="previouslyOnLichessTV">Previously on Lichess TV</string>
+  <string name="previouslyOnLichessTV">Previously on GoGame TV</string>
   <string name="onlinePlayers">Online players</string>
   <string name="activePlayers">Active players</string>
   <string name="bewareTheGameIsRatedButHasNoClock">Beware, the game is rated but has no clock!</string>
@@ -561,11 +561,11 @@ Friends playing: %2$s</string>
   <string name="autoSwitch">Auto switch</string>
   <string name="puzzles">Puzzles</string>
   <string name="onlineBots">Online bots</string>
-  <string name="aboutBotsOnLichess">About bots on Lichess</string>
+  <string name="aboutBotsOnLichess">About bots</string>
   <string name="featuredBots">Featured bots</string>
-  <string name="tryPlayingTheseInnovativeChessEngines">Try playing these innovative chess engines! They are our favourites.</string>
+  <string name="tryPlayingTheseInnovativeChessEngines">Try playing these Go engines! They are our favorites.</string>
   <string name="communityBots">Community bots</string>
-  <string name="moreChessEnginesCreatedByTheLichessCommunity">More chess engines created by the Lichess community. They are hosted by their creators, and might not always be online.</string>
+  <string name="moreChessEnginesCreatedByTheLichessCommunity">More Go engines created by the community. They are hosted by their creators, and might not always be online.</string>
   <string name="name">Name</string>
   <string name="description">Description</string>
   <string name="descPrivate">Private description</string>
@@ -632,7 +632,7 @@ Friends playing: %2$s</string>
   <string name="slow">Slow</string>
   <string name="insideTheBoard">Inside the board</string>
   <string name="outsideTheBoard">Outside the board</string>
-  <string name="allSquaresOfTheBoard">All squares</string>
+  <string name="allSquaresOfTheBoard">All points</string>
   <string name="onSlowGames">On slow games</string>
   <string name="always">Always</string>
   <string name="never">Never</string>
@@ -647,7 +647,7 @@ Friends playing: %2$s</string>
   <string name="timeline">Timeline</string>
   <string name="starting">Starting:</string>
   <string name="allInformationIsPublicAndOptional">All information is public and optional.</string>
-  <string name="biographyDescription">Talk about yourself, your interests, what you like in chess, your favorite openings, players, ...</string>
+  <string name="biographyDescription">Talk about yourself, your interests, what you like in Go, your favorite players, ...</string>
   <plurals name="maximumNbCharacters">
     <item quantity="one">Maximum: %s character.</item>
     <item quantity="other">Maximum: %s characters.</item>
@@ -702,7 +702,7 @@ Friends playing: %2$s</string>
   <string name="aboutX">About %s</string>
   <string name="xIsAFreeYLibreOpenSourceChessServer">%1$s is a free (%2$s), libre, no-ads, open source chess server.</string>
   <string name="really">really</string>
-  <string name="lichessUpdates">Lichess updates</string>
+  <string name="lichessUpdates">GoGame updates</string>
   <string name="contribute">Contribute</string>
   <string name="changelog">Changelog</string>
   <string name="termsOfService">Terms of Service</string>
@@ -732,7 +732,7 @@ Friends playing: %2$s</string>
   <string name="extraClockTimeForHost" comment="Appears on: https://lichess.org/simul/new&#10;&#10;Allows a simul host to select extra time for the simul.&#10;&#10;Please note this string used to state &quot;Host extra clock time&quot;, without the word &quot;initial&quot;">Extra clock time for the host:</string>
   <string name="simulAddExtraTimePerPlayer">Add initial time to your clock for each player joining the simul.</string>
   <string name="simulHostExtraTimePerPlayer">Host extra clock time per player</string>
-  <string name="lichessTournaments">Lichess tournaments</string>
+  <string name="lichessTournaments">GoGame tournaments</string>
   <string name="tournamentFAQ">Arena tournament FAQ</string>
   <string name="timeBeforeTournamentStarts">Time before tournament starts</string>
   <string name="averageCentipawnLoss">Average centipawn loss</string>
@@ -783,8 +783,8 @@ Friends playing: %2$s</string>
   <string name="weHaveSentYouAnEmailTo">We\'ve sent an email to %s. Click the link in the email to reset your password.</string>
   <string name="byRegisteringYouAgreeToBeBoundByOur">By registering, you agree to the %s.</string>
   <string name="readAboutOur">Read about our %s.</string>
-  <string name="networkLagBetweenYouAndLichess">Network lag between you and Lichess</string>
-  <string name="timeToProcessAMoveOnLichessServer">Time to process a move on Lichess\'s server</string>
+  <string name="networkLagBetweenYouAndLichess">Network lag between you and the server</string>
+  <string name="timeToProcessAMoveOnLichessServer">Time to process a move on the server</string>
   <string name="downloadAnnotated">Download annotated</string>
   <string name="downloadRaw">Download raw</string>
   <string name="downloadImported">Download imported</string>
@@ -798,15 +798,15 @@ Friends playing: %2$s</string>
   <string name="primaryColorArrowsHowTo">Ctrl or shift = red; command, alt, or meta = blue; a key from each = yellow.</string>
   <string name="letOtherPlayersMessageYou">Let other players message you</string>
   <string name="receiveForumNotifications">Receive notifications when mentioned in the forum</string>
-  <string name="shareYourInsightsData">Share your chess insights data</string>
+  <string name="shareYourInsightsData">Share your game statistics</string>
   <string name="withNobody">With nobody</string>
   <string name="withFriends">With friends</string>
   <string name="withEverybody">With everybody</string>
   <string name="kidMode">Kid mode</string>
   <string name="kidModeIsEnabled">Kid mode is enabled.</string>
   <string name="kidModeExplanation">This is about safety. In kid mode, all site communications are disabled. Enable this for your children and school students, to protect them from other internet users.</string>
-  <string name="inKidModeTheLichessLogoGetsIconX">In kid mode, the Lichess logo gets a %s icon, so you know your kids are safe.</string>
-  <string name="askYourChessTeacherAboutLiftingKidMode">Your account is managed. Ask your chess teacher about lifting kid mode.</string>
+  <string name="inKidModeTheLichessLogoGetsIconX">In kid mode, the GoGame logo gets a %s icon, so you know your kids are safe.</string>
+  <string name="askYourChessTeacherAboutLiftingKidMode">Your account is managed. Ask your teacher about removing kid mode.</string>
   <string name="enableKidMode">Enable Kid mode</string>
   <string name="disableKidMode">Disable Kid mode</string>
   <string name="security">Security</string>
@@ -923,24 +923,24 @@ Friends playing: %2$s</string>
     <item quantity="one">and save %s premove line</item>
     <item quantity="other">and save %s premove lines</item>
   </plurals>
-  <string name="showUnreadLichessMessage">You have received a private message from Lichess.</string>
+  <string name="showUnreadLichessMessage">You have received a private message from the site.</string>
   <string name="readTheMessage" comment="'It' refers to a private message. This text follows after a different string which advises players they have received a private message from Lichess. For users, this is appears as a regular private message from the Lichess account: https://lichess.org/@/Lichess">Read the message</string>
   <string name="sorry">Sorry :(</string>
   <string name="weHadToTimeYouOutForAWhile">We had to time you out for a while.</string>
   <string name="why">Why?</string>
-  <string name="pleasantChessExperience">We aim to provide a pleasant chess experience for everyone.</string>
+  <string name="pleasantChessExperience">We aim to provide a pleasant Go experience for everyone.</string>
   <string name="goodPractice">To that effect, we must ensure that all players follow good practice.</string>
   <string name="potentialProblem">When a potential problem is detected, we display this message.</string>
   <string name="howToAvoidThis">How to avoid this?</string>
   <string name="playEveryGame">Play every game you start.</string>
-  <string name="tryToWin">Try to win (or at least draw) every game you play.</string>
+  <string name="tryToWin">Try to win every game you play.</string>
   <string name="resignLostGames">Resign lost games (don\'t let the clock run down).</string>
   <string name="temporaryInconvenience">We apologize for the temporary inconvenience,</string>
-  <string name="wishYouGreatGames">and wish you great games on lichess.org.</string>
+  <string name="wishYouGreatGames">and wish you great games on GoGame.</string>
   <string name="thankYouForReading">Thank you for reading!</string>
   <string name="lifetimeScore">Lifetime score</string>
   <string name="currentMatchScore">Current match score</string>
-  <string name="agreementAssistance">I agree that I will at no time receive assistance during my games (from a chess computer, book, database or another person).</string>
+  <string name="agreementAssistance">I agree that I will at no time receive assistance during my games (from a Go engine, a book, a game database or another person).</string>
   <string name="agreementNice">I agree that I will always be respectful to other players.</string>
   <string name="agreementMultipleAccounts" comment="%s will be replaced with the translation of 'termsOfService'">I agree that I will not create multiple accounts (except for the reasons stated in the %s).</string>
   <string name="searchOrStartNewDiscussion">Search or start new conversation</string>
@@ -982,7 +982,7 @@ Friends playing: %2$s</string>
   <string name="congratsYouWon">Congratulations, you won!</string>
   <string name="gameVsX">Game vs %1$s</string>
   <string name="resVsX">%1$s vs %2$s</string>
-  <string name="lostAgainstTOSViolator">You lost rating points to someone who violated the Lichess TOS</string>
+  <string name="lostAgainstTOSViolator">You lost rating points to someone who violated the Terms of Service</string>
   <string name="refundXpointsTimeControlY">Refund: %1$s %2$s rating points.</string>
   <string name="timeAlmostUp">Time is almost up!</string>
   <string name="clickToRevealEmailAddress">[Click to reveal email address]</string>
@@ -1038,13 +1038,13 @@ Leave empty to start games from the normal initial position.</string>
   <string name="youCantStartNewGame">You can\'t start a new game while it\'s your turn.</string>
   <string name="since">Since</string>
   <string name="until">Until</string>
-  <string name="lichessDbExplanation">Rated games sampled from all Lichess players</string>
+  <string name="lichessDbExplanation">Rated games sampled from all GoGame players</string>
   <string name="switchSides">Switch sides</string>
   <string name="closingAccountWithdrawAppeal">Closing your account will withdraw your appeal</string>
   <string name="ourEventTips">Our tips for organizing events</string>
   <string name="instructions">Instructions</string>
   <string name="showMeEverything">Show me everything</string>
-  <string name="lichessPatronInfo">Lichess is a charity and entirely free/libre open source software. We depend on user donations to support our operating costs, development, and content. Without our generous community, we would not be able to keep the site running. Thank you for joining us!</string>
+  <string name="lichessPatronInfo">GoGame is a charity and entirely free/libre open source software. We depend on user donations to support our operating costs, development, and content. Without our generous community, we would not be able to keep the site running. Thank you for joining us!</string>
   <string name="nothingToSeeHere">Nothing to see here at the moment.</string>
   <string name="stats">Stats</string>
   <string name="accessibility">Accessibility</string>

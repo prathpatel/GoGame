@@ -154,6 +154,16 @@ KATAGO_COMMAND="$PWD/katago/katago gtp -model $PWD/katago/model.bin.gz -human-mo
 ./ui/build --tsc         # front-end type checking
 ```
 
+## Before you run it publicly
+
+- The Terms of Service (`/terms-of-service`) and Privacy policy (`/privacy`) pages are plain
+  starting points written for this server (`modules/web/src/main/ui/FaqUi.scala`). Review and
+  adapt them to your own service and its jurisdiction.
+- The account deletion page still carries Lichess's GDPR explanation
+  (`modules/pref/src/main/ui/AccountPages.scala`): replace it with your own.
+- Set the contact email (`net.email` in `conf/application.conf`) and the secrets in
+  `conf/base.conf` marked as public.
+
 ## License and credits
 
 GoGame is derived from **lila** and **lila-ws** by the Lichess authors

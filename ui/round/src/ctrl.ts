@@ -214,8 +214,10 @@ export default class RoundCtrl {
         site.reload();
         return true;
       case 'redirect':
+        // site.redirect also stores the anonymous player cookie of the new game (a rematch):
+        // without it, the new game opens as a spectator
         site.unload.expected = true;
-        location.href = d.url;
+        site.redirect(d);
         return true;
       case 'resync':
         site.reload();

@@ -200,7 +200,7 @@ final class Mongo(config: Config)(using Executor)(using cacheApi: util.CacheApi)
     import evalCache.EvalCacheBsonHandlers.given
     evalCacheColl.foreach:
       _.update(ordered = false, writeConcern = WriteConcern.Unacknowledged)
-        .one(BSONDocument("_id" -> id), BSONDocument("$set" -> BSONDocument("usedAt" -> LocalDateTime.now)))
+        .one(BSONDocument("_id" -> id), BSONDocument("$set" -> BSONDocument("usedAt" -> LocalDateTime.now(java.time.ZoneOffset.UTC))))
 
   def tournamentActiveUsers(tourId: Tour.Id): Future[Set[User.Id]] =
     tourPlayerColl.flatMap:

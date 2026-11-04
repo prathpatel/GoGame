@@ -113,8 +113,8 @@ final class EvalCacheApi(mongo: Mongo)(using Executor, Scheduler)(using cacheApi
                 _id = input.id,
                 nbMoves = input.position.moves.view.map(_._2.size).sum,
                 evals = List(input.eval),
-                usedAt = LocalDateTime.now,
-                updatedAt = LocalDateTime.now
+                usedAt = LocalDateTime.now(java.time.ZoneOffset.UTC),
+                updatedAt = LocalDateTime.now(java.time.ZoneOffset.UTC)
               )
               c.insert
                 .one(entry)

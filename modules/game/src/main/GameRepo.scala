@@ -79,6 +79,14 @@ final class GameRepo(c: Coll)(using Executor) extends lila.core.game.GameRepo(c)
       .list(nb)
       .map(_.flatMap(Pov(_, user)))
 
+  /** Games being played now (a move in the last hour), most recently moved first: /games */
+  def nowPlaying(max: Int): Fu[List[Game]] =
+    coll
+      .find(Query.status(Status.Started) ++ bdoc(F.movedAt.gt(nowInstant.minusHours(1))))
+      .sort(Query.sortMovedAtNoIndex)
+      .cursor[Game](ReadPref.sec)
+      .list(max)
+
   def recentGamesFromSecondaryCursor(select: Bdoc = emptyBdoc) =
     coll
       .find(select)
