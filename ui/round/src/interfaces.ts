@@ -86,6 +86,8 @@ export interface GameData {
   winner?: GoColor;
   player: GoColor;
   rematch?: string;
+  /** a rated game that ended in very few moves: no rematch */
+  boosted?: boolean;
 }
 
 export interface RoundData {
@@ -124,6 +126,7 @@ export interface MoveEvent {
 
 export interface EndData {
   winner?: GoColor;
+  boosted?: boolean;
   status: StatusData;
   clock?: { wc: number; bc: number };
   ratingDiff?: { white: number; black: number };

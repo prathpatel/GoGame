@@ -72,7 +72,13 @@ with playouts, and finishes the game when both players accept the score.
 Requirements: **Java 21**, **sbt**, **Node.js 24.20+** with **pnpm 12**, **MongoDB**
 (7.x works) and **Redis**.
 
-1. Start MongoDB on `localhost:27017` and Redis on `localhost:6379`.
+1. Start MongoDB on `localhost:27017` and Redis on `localhost:6379`. The data goes in the
+   `gogame` database. Optionally, create its indexes once (faster queries):
+
+   ```bash
+   mongosh gogame bin/mongodb/indexes.js
+   ```
+
 2. Install KataGo, the computer opponent, into `katago/` (about 300 MB of downloads):
 
    ```bash
@@ -99,6 +105,46 @@ Requirements: **Java 21**, **sbt**, **Node.js 24.20+** with **pnpm 12**, **Mongo
    ```
 
 6. Open <http://localhost:9663>.
+
+### Upgrading from the "lichess" database
+
+Earlier versions of GoGame stored everything in a database named `lichess`. To keep your
+accounts and games, stop lila and lila-ws, then move them into `gogame`:
+
+```bash
+mongosh bin/mongodb/rename-to-gogame.js
+```
+
+It moves every collection with its indexes, and can be run again safely. Without it the
+servers start on an empty `gogame` database, and the old data stays in `lichess`.
+
+### Playing from other devices
+
+To open the site from a phone, a tablet or another computer on the same network, start both
+servers with `GOGAME_HOST` set to this computer's address on the network (for example
+`192.168.1.20`; see `ip addr` on Linux, `ipconfig getifaddr en0` on macOS):
+
+```bash
+GOGAME_HOST=192.168.1.20 ./lila.sh run
+```
+
+```bash
+cd ws && GOGAME_HOST=192.168.1.20 sbt run
+```
+
+Then open <http://192.168.1.20:9663> on the other device. The variable sets the address the
+pages and websockets use (`net.host` in `conf/base.conf`, `host` in
+`ws/src/main/resources/application.conf`). If you set `net.domain` or `net.socket.domains` in
+`conf/application.conf`, remove them: they would override it. Your firewall must let the
+other device reach ports 9663 and 9664.
+
+### Testing multiplayer and phones
+
+Each player needs their own cookies: two tabs of one browser are the *same* guest. Use two
+browsers or a private window, or one account per player. For repeatable checks,
+[`test/e2e`](test/e2e/README.md) has Playwright scripts that play as independent players
+(guests and accounts: captures, reload, takeback, counting, resignation, rematch) and on
+emulated phones and tablets (layout, playing by tapping, phone against desktop).
 
 ### The computer opponent: KataGo
 

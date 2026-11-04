@@ -279,14 +279,22 @@ export default class SetupController {
     const { ok, redirected, url } = response;
 
     if (!ok) {
-      const errs: Record<string, string> = await response.json();
-      await alert(
-        errs
-          ? Object.keys(errs)
-              .map(k => `${k}: ${errs[k]}`)
-              .join('\n')
-          : 'Invalid setup',
-      );
+      this.loading = false;
+      this.dialog?.redraw();
+      if (response.status === 429) {
+        await alert('You created many games in a short time. Please wait a minute, then try again.');
+        return;
+      }
+      // the server answers form errors as JSON, other failures as plain text
+      const body = await response.text();
+      let message = body || 'Invalid setup';
+      try {
+        const errs: Record<string, string> = JSON.parse(body);
+        message = Object.keys(errs)
+          .map(k => `${k}: ${errs[k]}`)
+          .join('\n');
+      } catch {}
+      await alert(message);
       if (response.status === 403) {
         // 403 FORBIDDEN closes this modal because challenges to the recipient
         // will not be accepted.  see friend() in controllers/Setup.scala

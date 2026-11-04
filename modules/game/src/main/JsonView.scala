@@ -38,6 +38,8 @@ final class JsonView(rematches: Rematches):
       .add("winner" -> game.winnerColor)
       .add("abortedBy" -> game.abortedBy)
       .add("rematch" -> rematches.getAcceptedId(game.id))
+      // a rated game that ended in very few moves: no rematch (see Rematcher.couldRematch)
+      .add("boosted" -> game.boosted)
       .add("drawOffers" -> (!game.drawOffers.isEmpty).option(game.drawOffers.normalizedPlies))
 
   // adds fields that should be computed by the client instead

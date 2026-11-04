@@ -1,0 +1,14 @@
+{
+  "name": "gogame-e2e",
+  "private": true,
+  "description": "Browser tests for GoGame: independent players and phone layouts (see README.md)",
+  "type": "module",
+  "scripts": {
+    "multiplayer": "node multiplayer.mjs",
+    "mobile": "node mobile.mjs",
+    "test": "node multiplayer.mjs && node mobile.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.50.0"
+  }
+}

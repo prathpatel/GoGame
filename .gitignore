@@ -82,3 +82,8 @@ instance.lock
 
 # KataGo, installed by bin/setup-katago
 /katago/
+
+# browser tests: dependencies and screenshots
+/test/e2e/node_modules/
+/test/e2e/package-lock.json
+/test/e2e/output/

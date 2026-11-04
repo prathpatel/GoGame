@@ -268,6 +268,7 @@ export default class RoundCtrl {
   private onEnd(d: EndData) {
     this.data.game.status = d.status;
     this.data.game.winner = d.winner;
+    this.data.game.boosted = d.boosted;
     if (d.score && this.data.game.go.scoring) this.data.game.go.scoring.score = d.score;
     if (this.clock) this.clock.running = false;
     if (d.ratingDiff) {

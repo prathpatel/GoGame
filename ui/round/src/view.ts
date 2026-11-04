@@ -300,7 +300,14 @@ function controls(ctrl: RoundCtrl): VNode {
         ]),
       );
     if (!ctrl.isSpectator() && d.game.status.id !== status.aborted) {
-      if (ctrl.rematchOfferedBy === d.opponent.color)
+      if (d.game.boosted)
+        // the server refuses: a rated game this short could be used to move ratings around
+        rows.push(
+          h('div.go-actions', [
+            h('span.go-score', 'No rematch: this rated game ended after too few moves to count.'),
+          ]),
+        );
+      else if (ctrl.rematchOfferedBy === d.opponent.color)
         rows.push(
           h('div.go-actions', [
             h('span', 'Your opponent offers a rematch'),

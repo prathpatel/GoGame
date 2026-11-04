@@ -5,6 +5,10 @@ import reactivemongo.api.*
 import lila.core.config.CollName
 import lila.db.dsl.Coll
 
+object Db:
+  /** the database used when the mongodb uri names none */
+  val defaultName = "gogame"
+
 final class AsyncDb(
     name: String,
     uri: String,
@@ -18,7 +22,7 @@ final class AsyncDb(
 
   private def makeDb: Future[DB] =
     connection.flatMap: (conn, dbName) =>
-      conn.database(dbName.getOrElse("lichess"))
+      conn.database(dbName.getOrElse(Db.defaultName))
 
   private val dbCache = new SingleFutureCache[DB](
     compute = () => makeDb,
@@ -41,7 +45,7 @@ final class Db(
         .flatMap: parsedUri =>
           driver
             .connect(parsedUri, name.some)
-            .flatMap(_.database(parsedUri.db.getOrElse("lichess"))),
+            .flatMap(_.database(parsedUri.db.getOrElse(Db.defaultName))),
       5.seconds
     )
     lila.log.system.info(s"MongoDB $name connected  to $uri")
