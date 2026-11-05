@@ -11,6 +11,12 @@ WorkingDirectory=@DIR@/ws
 ExecStart=@DIR@/ws/target/universal/stage/bin/lila-ws -Dconfig.file=@DIR@/ws/production.conf -Dlogback.configurationFile=logback.prod.xml -J-Xms256m -J-Xmx1g
 # /var/log/lila-ws, for logback.prod.xml's rotated log files
 LogsDirectory=lila-ws
+# Sandbox: the project folder is read-only for the running app, so a compromised app can't
+# change the code, the scripts or these service templates.
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full
+ReadOnlyPaths=@DIR@
 Restart=always
 RestartSec=5
 SuccessExitStatus=143

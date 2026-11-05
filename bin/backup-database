@@ -1,26 +1,47 @@
 #!/usr/bin/env bash
-# Dumps the gogame database into /var/backups/gogame (compressed, one file per day, the last
-# 14 kept), and copies it to S3 when GOGAME_BACKUP_S3 is set (e.g. s3://my-bucket/gogame),
-# using the AWS CLI. Run every night by the gogame-backup timer (bin/install-server).
-#
-# Restore a dump with:
-#   mongorestore --uri "$(grep -oE 'mongodb://[^"]+' conf/secrets.conf | head -1)" \
-#     --archive=/var/backups/gogame/gogame-DATE.archive.gz --gzip --drop
+# Nightly database backup, run by the gogame-backup timer (bin/install-server), as the app
+# user. It writes a consistent, compressed snapshot of the whole database into
+# /var/backups/gogame (14 days kept): MongoDB runs as a one-member replica set, so
+# `mongodump --oplog` captures the writes made while the dump runs. Then it:
+#   - checks the backup by restoring it into a temporary MongoDB (bin/restore-database --check)
+#   - copies it to S3 when GOGAME_BACKUP_S3 is set (e.g. s3://my-bucket/gogame)
+#   - reports to GOGAME_HEALTHCHECK_URL when set (e.g. a healthchecks.io check, which emails
+#     you when a backup fails or doesn't happen)
+#   - fails when the disk is more than 85% full, so the health check warns you in time
+# These settings go in /etc/gogame/backup.env. Restore with bin/restore-database.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-uri=$(grep -oE 'mongodb://[^"]+' conf/secrets.conf 2>/dev/null | head -1 || true)
-uri="${uri:-mongodb://127.0.0.1:27017/gogame}"
-backups=/var/backups/gogame
-mkdir -p "$backups"
-file="$backups/gogame-$(date -u +%Y-%m-%d).archive.gz"
+config="${GOGAME_MONGODUMP_CONFIG:-/etc/gogame/mongodump.yaml}"
+backups="${GOGAME_BACKUP_DIR:-/var/backups/gogame}"
 
-mongodump --quiet --uri "$uri" --archive="$file.part" --gzip
+report() { # path suffix: "" for success, /start, /fail
+  [ -n "${GOGAME_HEALTHCHECK_URL:-}" ] || return 0
+  curl -fsS -m 10 --retry 3 -o /dev/null "${GOGAME_HEALTHCHECK_URL%/}$1" || true
+}
+trap 'report /fail' ERR
+report /start
+
+mkdir -p "$backups"
+disk=$(df --output=pcent / "$backups" | tail -n +2 | tr -dc '0-9\n' | sort -n | tail -1)
+if [ "$disk" -gt 85 ]; then
+  echo "the disk is ${disk}% full"
+  false
+fi
+
+file="$backups/gogame-$(date -u +%Y-%m-%d).archive.gz"
+mongodump --quiet --config="$config" --oplog --archive="$file.part" --gzip
 mv "$file.part" "$file"
-find "$backups" -name 'gogame-*.archive.gz' -mtime +14 -delete
 echo "backup: $file ($(du -h "$file" | cut -f1))"
+
+if [ "${GOGAME_BACKUP_VERIFY:-yes}" = yes ]; then
+  bin/restore-database --check "$file"
+fi
+
+find "$backups" -name 'gogame-*.archive.gz' -mtime +14 -delete
 
 if [ -n "${GOGAME_BACKUP_S3:-}" ]; then
   aws s3 cp --only-show-errors "$file" "${GOGAME_BACKUP_S3%/}/$(basename "$file")"
   echo "copied to ${GOGAME_BACKUP_S3%/}/"
 fi
+report ""

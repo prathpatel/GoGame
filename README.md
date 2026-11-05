@@ -76,7 +76,7 @@ Requirements: **Java 21**, **sbt**, **Node.js 24.20+** with **pnpm 12**, **Mongo
    `gogame` database. Optionally, create its indexes once (faster queries):
 
    ```bash
-   mongosh gogame bin/mongodb/indexes.js
+   mongosh gogame bin/mongodb/indexes-gogame.js
    ```
 
 2. Install KataGo, the computer opponent, into `katago/` (about 300 MB of downloads):

@@ -11,6 +11,14 @@ User=@USER@
 WorkingDirectory=@DIR@
 # -Duser.dir: relative paths (public/, katago/, conf/) are relative to the project folder
 ExecStart=@DIR@/target/universal/stage/bin/lila -Duser.dir=@DIR@ -Dconfig.file=@DIR@/conf/application.conf -Dlogger.file=@DIR@/conf/logger.prod.xml -J-Xms1g -J-Xmx@HEAP@
+# Sandbox: the project folder is read-only for the running app, so a compromised app can't
+# change the code, the scripts or these service templates.
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full
+ReadOnlyPaths=@DIR@
+# KataGo writes its logs in katago/gtp_logs
+ReadWritePaths=-@DIR@/katago/gtp_logs
 Restart=always
 RestartSec=5
 TimeoutStopSec=60

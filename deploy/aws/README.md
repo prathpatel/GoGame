@@ -1,7 +1,7 @@
 # Hosting GoGame on AWS
 
-The simplest setup that works well for a Go server of any modest size: **one EC2 instance**
-runs everything: nginx, lila, lila-ws, KataGo, MongoDB and Redis. Around it, AWS provides
+The simplest setup that works well for a Go server of any modest size: **one server**
+(a Lightsail instance or an EC2 instance) runs everything: nginx, lila, lila-ws, KataGo, MongoDB and Redis. Around it, AWS provides
 the address (Elastic IP), email (SES) and off-server backups (S3). DNS is at Cloudflare (for
 a domain bought there) or Route 53.
 
@@ -24,7 +24,29 @@ the AWS console, in order. Allow about an hour, plus up to a day for SES approva
 3. Pick a **region** close to your players (top right of the console), and use it for
    everything below.
 
-## 2. The server (EC2)
+## 2. The server
+
+Two ways to get the same Ubuntu server. **Lightsail** is cheaper and simpler, with a fixed
+monthly price; **EC2** gives more instance choices and IAM roles. `bin/install-server` works
+on both.
+
+### Lightsail (recommended for a small budget)
+
+**Lightsail → Create instance**:
+
+| Setting | Value |
+| --- | --- |
+| Platform, blueprint | **Linux/Unix**, **OS Only → Ubuntu 24.04 LTS** |
+| Plan | **General purpose, 16 GB** ($84/month: 4 vCPUs, 320 GB SSD, 6 TB transfer). Lightsail's general purpose plans are burstable: a CPU kept busy for long, by many games against KataGo, gets slowed down. If that happens, consider the **compute optimized** plan at the same price (4 vCPUs, 8 GB), meant for steady CPU use. |
+| SSH key | the default key, or upload your own |
+
+Then:
+1. **Networking → Create static IP**, attached to the instance (free while attached).
+2. **Networking → IPv4 Firewall**: keep SSH (22), restricted to your IP if you can, and add
+   HTTPS (443). HTTP (80) is there by default: keep it, for certificates and the redirect.
+3. **Snapshots → Automatic snapshots**: turn them on (a daily copy of the whole disk).
+
+### EC2
 
 **EC2 → Launch instance**:
 
@@ -32,13 +54,14 @@ the AWS console, in order. Allow about an hour, plus up to a day for SES approva
 | --- | --- |
 | Name | `gogame` |
 | AMI | **Ubuntu Server 24.04 LTS, 64-bit (x86)**. Not Arm: KataGo's Linux release is x86 only. |
-| Instance type | **m7i.xlarge** (4 vCPU, 16 GB) is comfortable. `t3.xlarge` (same size, burstable) is a little cheaper; `t3.large` (8 GB) works for testing, with slower builds and a slower computer opponent. |
+| Instance type | **m7i.xlarge** (4 vCPU, 16 GB, ~$145/month) is comfortable. `t3.xlarge` (same size, burstable) is a little cheaper; `t3.large` (8 GB) works for testing, with slower builds and a slower computer opponent. |
 | Key pair | Create one and download the `.pem` file: you need it to log in. |
 | Network | **Create security group** with three inbound rules: SSH (22) from **My IP**, HTTP (80) and HTTPS (443) from **Anywhere**. Nothing else: MongoDB, Redis and the app ports stay closed. |
 | Storage | 40 GB **gp3** |
 
 Then **EC2 → Elastic IPs → Allocate**, and **Associate** it with the instance. The public
-address then never changes, even when the instance restarts.
+address then never changes, even when the instance restarts. For daily disk snapshots, use
+**EC2 → Lifecycle Manager**.
 
 ## 3. Domain and DNS
 
@@ -57,9 +80,12 @@ Domains registered at Cloudflare always use Cloudflare's DNS (Route 53 is not ne
    | A | `ws` | the Elastic IP | **DNS only** (grey cloud) |
 
    Keep them **DNS only** until the site works with HTTPS (step 4); step 8 turns on
-   Cloudflare's proxy. Use names **one level deep** (`example.com` and `ws.example.com`, or
-   `play.example.com` with `--ws-domain ws.example.com`): Cloudflare's free certificate for
-   proxied names covers `*.example.com` only, not `ws.play.example.com`.
+   Cloudflare's proxy. Use the **bare domain** for the site: the websocket name must be under
+   the site's name, because the login cookie is set for the site's name and its subdomains
+   (`ws.example.com` gets it, `ws.other.example.com` doesn't). And Cloudflare's free
+   certificate for proxied names covers one level only (`*.example.com`), so a site on
+   `play.example.com` would need `ws.play.example.com`, which only works unproxied or with
+   Cloudflare's paid Advanced Certificate Manager.
 3. Optional, for your contact address: **Email → Email Routing** forwards
    `contact@yourdomain` to your own inbox, for free. Use that address for `net.email`.
 
@@ -134,16 +160,45 @@ and open `https://example.com`. Logs: `journalctl -u gogame -f`.
 
 EC2 blocks outgoing port 25; port 587, used here, is fine.
 
-## 6. Backups
+## 6. Backups and alerts
 
-Every night `gogame-backup.timer` dumps the database into `/var/backups/gogame` (14 days
-kept). To also copy it off the server, to S3:
+Every night `gogame-backup.timer` (as the `gogame` user, never root) writes a snapshot of
+the database into `/var/backups/gogame`, 14 days kept:
+
+- **Consistent:** MongoDB runs as a one-member replica set, so `mongodump --oplog` also
+  records the writes made while the dump runs. A restore brings the database back exactly as
+  it was at one moment, across all collections.
+- **Checked:** each backup is restored into a temporary database, and its accounts and games
+  counted (`bin/restore-database --check`). A backup that can't be restored fails.
+- **Disk space:** the backup fails when the disk is more than 85% full.
+
+Settings go in `/etc/gogame/backup.env`. Run a backup by hand with
+`sudo systemctl start gogame-backup`, and see the result with `journalctl -u gogame-backup -n 20`.
+
+### Alerts
+
+1. **Failed or missed backups, full disk:** create a free check at <https://healthchecks.io>
+   (period 1 day, grace 2 hours) and add its ping URL:
+
+   ```bash
+   echo 'GOGAME_HEALTHCHECK_URL=https://hc-ping.com/YOUR-UUID' | sudo tee -a /etc/gogame/backup.env
+   ```
+
+   It emails you when a backup fails, or doesn't report at all.
+2. **Site down:** a free uptime monitor, such as UptimeRobot or Better Stack, checking
+   `https://example.com` every few minutes.
+3. **Server trouble:** on Lightsail, **Metrics → Add alarm** (CPU, status check failures) with
+   email notifications; on EC2, CloudWatch alarms on `StatusCheckFailed` and CPU.
+
+### Copies off the server (S3)
 
 1. **S3 → Create bucket** (keep "Block all public access" on). Optionally add a lifecycle rule
    that deletes old backups after, say, 90 days.
-2. **IAM → Roles → Create role**, for **EC2**, with a policy that allows `s3:PutObject` on
-   `arn:aws:s3:::YOUR-BUCKET/gogame/*`. Then **EC2 → the instance → Actions → Security →
-   Modify IAM role**, and pick it.
+2. Permission to upload, limited to `s3:PutObject` on `arn:aws:s3:::YOUR-BUCKET/gogame/*`:
+   - **EC2:** an IAM role with that policy (**IAM → Roles → Create role**, for EC2), then
+     **EC2 → the instance → Actions → Security → Modify IAM role**.
+   - **Lightsail** (no IAM roles): an IAM user with that policy and an access key, set up for
+     the `gogame` user with `sudo -u gogame -H aws configure`.
 3. On the server:
 
    ```bash
@@ -151,24 +206,39 @@ kept). To also copy it off the server, to S3:
    ```
 
    ```bash
-   sudo mkdir -p /etc/gogame && echo 'GOGAME_BACKUP_S3=s3://YOUR-BUCKET/gogame' | sudo tee /etc/gogame/backup.env
+   echo 'GOGAME_BACKUP_S3=s3://YOUR-BUCKET/gogame' | sudo tee -a /etc/gogame/backup.env
    ```
 
    ```bash
    sudo systemctl start gogame-backup && journalctl -u gogame-backup -n 5
    ```
 
-Also:
-- **EC2 → Lifecycle Manager**: a daily snapshot policy for the instance's disk saves the
-  whole server, KataGo and configuration included.
-- Keep a copy of `/opt/gogame/conf/secrets.conf` in your password manager. Without its
-  `user.password.bpass.secret`, a restored database's passwords don't work.
+Keep a copy of `/opt/gogame/conf/secrets.conf` in your password manager: without its
+`user.password.bpass.secret`, a restored database's passwords don't work.
 
-To restore a dump:
+### Restoring
+
+Check a backup without changing anything:
 
 ```bash
-cd /opt/gogame && mongorestore --uri "$(grep -oE 'mongodb://[^"]+' conf/secrets.conf | head -1)" --archive=/var/backups/gogame/gogame-DATE.archive.gz --gzip --drop
+sudo -u gogame /opt/gogame/bin/restore-database --check /var/backups/gogame/gogame-DATE.archive.gz
 ```
+
+Replace the database with it:
+
+```bash
+sudo systemctl stop gogame gogame-ws
+```
+
+```bash
+sudo -u gogame /opt/gogame/bin/restore-database /var/backups/gogame/gogame-DATE.archive.gz
+```
+
+```bash
+sudo systemctl start gogame gogame-ws
+```
+
+Try a restore once on a spare server, so you know the steps before you need them.
 
 ## 7. Administrator account
 
@@ -212,7 +282,9 @@ cd /opt/gogame && sudo -u gogame git pull
 sudo /opt/gogame/bin/install-server example.com
 ```
 
-It rebuilds and restarts; the secrets and database stay.
+It rebuilds and restarts; the secrets and database stay. The running services can't change
+the project folder (their sandbox makes it read-only), so the scripts root runs here are the
+ones you pulled.
 
 ## Costs
 
@@ -221,18 +293,14 @@ region:
 
 | Item | Monthly |
 | --- | --- |
-| m7i.xlarge (t3.xlarge is a bit less, t3.large about half) | ~$145 |
-| 40 GB gp3 disk | ~$3 |
-| Elastic IP (public IPv4) | ~$4 |
+| **Lightsail** 16 GB plan: server, 320 GB disk, static IP and 6 TB transfer included | **$84** |
+| or **EC2** m7i.xlarge (t3.xlarge is a bit less), plus ~$3 for a 40 GB disk and ~$4 for the Elastic IP | ~$150 |
 | Domain: Cloudflare Registrar sells at cost (~$10/year for `.com`, DNS included); Route 53 adds $0.50/month per hosted zone | ~$1 |
 | SES ($0.10 per 1,000 emails) | cents |
-| S3 backups and disk snapshots | a few dollars |
-| Data transfer out (beyond the 100 GB/month free tier) | $0.09/GB |
+| Lightsail automatic snapshots or EC2 disk snapshots, S3 backups | a few dollars |
+| Data transfer out: included on Lightsail; on EC2 $0.09/GB beyond the 100 GB/month free tier | |
 
-A 1-year Savings Plan lowers the instance price by roughly a third. Amazon **Lightsail**
-offers the same kind of Ubuntu server at a fixed monthly price (16 GB plans exist) with the
-IP and some transfer included. `bin/install-server` works there too; email and backups are
-set up the same way.
+On EC2, a 1-year Savings Plan lowers the instance price by roughly a third.
 
 ## Why one instance
 

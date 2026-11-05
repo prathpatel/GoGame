@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# Restores a backup made by bin/backup-database.
+#
+#   bin/restore-database --check ARCHIVE   restore into a temporary MongoDB only, and print
+#                                          what it contains: nothing else changes
+#   bin/restore-database ARCHIVE           replace the gogame database with the backup
+#                                          (stop gogame and gogame-ws first)
+#
+# A backup is a snapshot of the whole MongoDB instance plus the writes made while it was
+# taken (the oplog). Replaying those needs a whole instance, so the backup is first restored
+# into a temporary MongoDB, which then holds the database exactly as it was at the end of
+# the backup; only then is the gogame database copied from it.
+#
+# Uses the credentials in /etc/gogame/mongodump.yaml (GOGAME_MONGODUMP_CONFIG), whose user
+# has the backup and restore roles.
+set -euo pipefail
+
+check=no
+yes=no
+archive=""
+for arg in "$@"; do
+  case "$arg" in
+    --check) check=yes ;;
+    --yes) yes=yes ;;
+    -*) echo "unknown option $arg" >&2; exit 1 ;;
+    *) archive="$arg" ;;
+  esac
+done
+[ -f "$archive" ] || { echo "usage: bin/restore-database [--check] ARCHIVE" >&2; exit 1; }
+config="${GOGAME_MONGODUMP_CONFIG:-/etc/gogame/mongodump.yaml}"
+port="${GOGAME_RESTORE_PORT:-27099}"
+
+tmp=$(mktemp -d)
+cleanup() {
+  mongod --dbpath "$tmp/db" --shutdown >/dev/null 2>&1 || true
+  rm -rf "$tmp"
+}
+trap cleanup EXIT
+mkdir -p "$tmp/db"
+mongod --dbpath "$tmp/db" --port "$port" --bind_ip 127.0.0.1 --fork --logpath "$tmp/mongod.log" \
+  --unixSocketPrefix "$tmp" >/dev/null
+temp="mongodb://127.0.0.1:$port"
+
+mongorestore --quiet --uri "$temp" --archive="$archive" --gzip --oplogReplay
+counts=$(mongosh --quiet "$temp/gogame" --eval \
+  'print(`${db.getCollectionNames().length} collections, ${db.user4.countDocuments()} accounts, ${db.game5.countDocuments()} games`)')
+[ "${counts%% *}" -gt 0 ] || { echo "the backup holds no gogame data" >&2; exit 1; }
+echo "backup checked: $counts"
+[ "$check" = yes ] && exit 0
+
+if [ "$yes" != yes ]; then
+  read -r -p "Replace the gogame database with this backup? Type yes: " answer
+  [ "$answer" = yes ] || { echo "cancelled"; exit 1; }
+fi
+mongodump --quiet --uri "$temp/gogame" --archive |
+  mongorestore --quiet --config="$config" --archive --nsInclude 'gogame.*' --drop
+echo "restored: $counts"

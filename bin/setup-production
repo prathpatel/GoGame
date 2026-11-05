@@ -24,6 +24,14 @@ if [ -z "$domain" ] || [[ "$domain" == *"://"* ]] || [[ "$domain" == *"/"* ]]; t
   echo "  e.g. bin/setup-production go.example.com   (websockets on ws.go.example.com)" >&2
   exit 1
 fi
+case "$ws_domain" in
+  *".$domain") ;;
+  *)
+    # lila's login cookie is set for $domain and its subdomains: lila-ws only gets it there
+    echo "The websocket domain must be a subdomain of $domain (e.g. ws.$domain)." >&2
+    exit 1
+    ;;
+esac
 command -v openssl >/dev/null || { echo "openssl is needed" >&2; exit 1; }
 if [ -e conf/secrets.conf ]; then
   echo "conf/secrets.conf already exists: not overwriting it (its password secret must not change)." >&2

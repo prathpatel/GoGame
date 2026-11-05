@@ -35,6 +35,11 @@ while [ $# -gt 0 ]; do
 done
 [ -n "$domain" ] || die "usage: sudo bin/install-server DOMAIN [--email ADDRESS] [--ws-domain NAME]"
 ws_domain="${ws_domain:-ws.$domain}"
+# lila's login cookie is set for $domain and its subdomains: lila-ws only gets it there
+case "$ws_domain" in
+  *".$domain") ;;
+  *) die "the websocket domain must be a subdomain of $domain (e.g. ws.$domain), or the login cookie doesn't reach it" ;;
+esac
 
 [ "$(id -u)" = 0 ] || die "run it with sudo"
 . /etc/os-release
@@ -107,18 +112,56 @@ mongo_password=$(grep -oE 'mongodb://gogame:[0-9a-f]+@' "$dir/conf/secrets.conf"
 redis_password=$(grep -oE 'redis://:[0-9a-f]+@' "$dir/conf/secrets.conf" | head -1 | sed -E 's/redis:\/\/:([0-9a-f]+)@/\1/')
 [ -n "$mongo_password" ] && [ -n "$redis_password" ] || die "could not read the passwords from conf/secrets.conf"
 
-say "Protecting MongoDB and Redis with the generated passwords"
+app_uri="mongodb://gogame:$mongo_password@127.0.0.1:27017/gogame?authSource=admin"
+wait_primary() { # mongosh arguments: wait until this MongoDB accepts writes
+  for _ in $(seq 60); do
+    [ "$(mongosh --quiet "$@" --eval 'db.hello().isWritablePrimary' 2>/dev/null)" = true ] && return 0
+    sleep 1
+  done
+  die "MongoDB did not start (journalctl -u mongod)"
+}
+
+say "MongoDB: a one-member replica set, with passwords"
+# A replica set, even of one member, lets backups take a consistent snapshot (mongodump --oplog)
+if ! grep -q '^replication:' /etc/mongod.conf; then
+  grep -q '^security:' /etc/mongod.conf &&
+    die "MongoDB already has passwords but no replica set (an older install): see deploy/aws/README.md, Updating"
+  printf '\nreplication:\n  replSetName: rs0\n' >>/etc/mongod.conf
+  systemctl restart mongod
+  for _ in $(seq 60); do mongosh --quiet --eval 'db.runCommand({ping: 1}).ok' >/dev/null 2>&1 && break; sleep 1; done
+  mongosh --quiet --eval 'rs.initiate({_id: "rs0", members: [{_id: 0, host: "127.0.0.1:27017"}]})' >/dev/null
+fi
+install -d -m 750 -o "$user" -g "$user" /etc/gogame
 if ! grep -q '^security:' /etc/mongod.conf; then
-  for _ in $(seq 30); do mongosh --quiet --eval 'db.runCommand({ping: 1})' >/dev/null 2>&1 && break; sleep 1; done
-  mongosh --quiet admin --eval "if (!db.getUser('gogame')) db.createUser({user: 'gogame', pwd: '$mongo_password', roles: [{role: 'readWrite', db: 'gogame'}]})" >/dev/null
-  printf '\nsecurity:\n  authorization: enabled\n' >>/etc/mongod.conf
+  wait_primary
+  backup_password=$(openssl rand -hex 24)
+  mongosh --quiet admin --eval "
+    if (!db.getUser('gogame')) db.createUser({user: 'gogame', pwd: '$mongo_password', roles: [{role: 'readWrite', db: 'gogame'}]});
+    if (!db.getUser('gogame-backup')) db.createUser({user: 'gogame-backup', pwd: '$backup_password', roles: ['backup', 'restore']});" >/dev/null
+  # the backup user's credentials, for bin/backup-database and bin/restore-database
+  (umask 077 && printf 'uri: "mongodb://gogame-backup:%s@127.0.0.1:27017/?authSource=admin"\n' "$backup_password" >/etc/gogame/mongodump.yaml)
+  chown "$user:$user" /etc/gogame/mongodump.yaml
+  # replica set members authenticate each other with a key file, required with passwords on
+  openssl rand -base64 756 >/etc/mongod.key
+  chown mongodb:mongodb /etc/mongod.key && chmod 400 /etc/mongod.key
+  printf '\nsecurity:\n  authorization: enabled\n  keyFile: /etc/mongod.key\n' >>/etc/mongod.conf
   systemctl restart mongod
 fi
+wait_primary "$app_uri"
+
+say "Database indexes (unique emails, expiring sessions and tokens...)"
+mongosh --quiet "$app_uri" "$dir/bin/mongodb/indexes-gogame.js"
+
+say "Redis password"
 sed -i '/^requirepass /d' /etc/redis/redis.conf
 echo "requirepass $redis_password" >>/etc/redis/redis.conf
 systemctl restart redis-server
 
 say "Services"
+# the services see the project folder read-only (see deploy/systemd): give them the folders
+# they write to
+install -d -m 750 -o "$user" -g "$user" /var/backups/gogame
+install -d -o "$user" -g "$user" "$dir/katago/gtp_logs"
 heap=2g
 [ "$mem_gb" -ge 15 ] && heap=4g
 for unit in gogame gogame-ws gogame-backup; do
@@ -188,5 +231,8 @@ Still to do (deploy/aws/README.md explains each):
      and turn on two-factor authentication in its account security settings: in production,
      administrator roles only work with it.
   3. Back up $dir/conf/secrets.conf somewhere safe. Database backups run every night into
-     /var/backups/gogame (see deploy/aws/README.md to copy them to S3).
+     /var/backups/gogame, each one checked by restoring it into a temporary database.
+  4. Alerts and off-server copies, in /etc/gogame/backup.env (see deploy/aws/README.md):
+     GOGAME_HEALTHCHECK_URL (an email when a backup fails or the disk fills up) and
+     GOGAME_BACKUP_S3. Add an uptime monitor for https://$domain.
 EOF
